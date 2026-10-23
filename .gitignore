@@ -1,0 +1,36 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+.cache/
+*.local
+*.tsbuildinfo
+
+# Local secrets, credentials and machine-specific files
+.env
+.env.*
+!.env.example
+.npmrc
+.netrc
+.git-credentials
+*.pem
+*.key
+*.p12
+*.pfx
+.aws/
+.codex/
+.agents/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+
+# Browser exports, private experiments and temporary training data
+backups/
+exports/
+checkpoints/
+training-data/
+private/
+tmp/
+*.checkpoint.json
+evotrack-workspace*.json

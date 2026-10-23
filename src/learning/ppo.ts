@@ -1,0 +1,303 @@
+﻿import * as tf from "@tensorflow/tfjs";
+import { Simulator } from "../core/environment";
+import { Random } from "../core/random";
+import type { Config, PolicyData, TrackMap } from "../core/types";
+import { createPolicy, logits, sample, softmax } from "./network";
+export function gae(
+  rewards: number[],
+  values: number[],
+  nextValues: number[],
+  terminated: boolean[],
+  boundaries: boolean[],
+  gamma = 0.99,
+  lambda = 0.95,
+) {
+  const adv = new Array(rewards.length).fill(0);
+  let last = 0;
+  for (let i = rewards.length - 1; i >= 0; i--) {
+    const delta =
+      rewards[i] + gamma * (terminated[i] ? 0 : nextValues[i]) - values[i];
+    last = delta + gamma * lambda * (boundaries[i] ? 0 : last);
+    adv[i] = last;
+  }
+  return { advantages: adv, returns: adv.map((a, i) => a + values[i]) };
+}
+export const clippedObjective = (ratio: number, adv: number, clip = 0.2) =>
+  Math.min(ratio * adv, Math.max(1 - clip, Math.min(1 + clip, ratio)) * adv);
+type SerializedTensor = { name: string; shape: number[]; values: number[] };
+export interface PPOCheckpoint {
+  actor: PolicyData;
+  critic: PolicyData;
+  optimizer: SerializedTensor[];
+  rng: number;
+  updates: number;
+}
+export class PPOTrainer {
+  rng: Random;
+  actor: tf.Variable[];
+  critic: tf.Variable[];
+  optimizer: tf.AdamOptimizer;
+  updates = 0;
+  private names: string[];
+  constructor(
+    public map: TrackMap,
+    public config: Config,
+  ) {
+    this.rng = new Random(config.seed);
+    this.actor = this.variables(
+      createPolicy(12, map.mode === "racing" ? 5 : 6, this.rng),
+    );
+    this.critic = this.variables(createPolicy(12, 1, this.rng));
+    this.names = [...this.actor, ...this.critic].map((v) => v.name);
+    this.optimizer = tf.train.adam(config.learningRate);
+  }
+  private variables(p: PolicyData) {
+    let at = 0;
+    return [
+      [p.input, p.hidden],
+      [p.hidden],
+      [p.hidden, p.output],
+      [p.output],
+    ].map((shape) => {
+      const count = shape.reduce((a, b) => a * b, 1);
+      const t = tf.tensor(p.weights.slice(at, (at += count)), shape);
+      const v = tf.variable(t);
+      t.dispose();
+      return v;
+    });
+  }
+  private forward(x: tf.Tensor2D, vars: tf.Variable[]) {
+    return x
+      .matMul(vars[0] as tf.Tensor2D)
+      .add(vars[1])
+      .tanh()
+      .matMul(vars[2] as tf.Tensor2D)
+      .add(vars[3]) as tf.Tensor2D;
+  }
+  private policy(vars: tf.Variable[]): PolicyData {
+    return {
+      input: 12,
+      hidden: 24,
+      output: vars[3].shape[0],
+      weights: vars.flatMap((v) => Array.from(v.dataSync())),
+    };
+  }
+  getPolicy() {
+    return this.policy(this.actor);
+  }
+  run() {
+    const env = new Simulator(this.map, this.config.horizon);
+    env.reset(this.config.seed + this.updates);
+    const obs: number[][] = [],
+      acts: number[] = [],
+      logs: number[] = [],
+      values: number[] = [],
+      nextValues: number[] = [],
+      rewards: number[] = [],
+      terms: boolean[] = [],
+      bounds: boolean[] = [];
+    let episodes = 0,
+      successes = 0,
+      collisions = 0,
+      completion = 0,
+      totalReward = 0;
+    let state = env.getState();
+    const policy = this.getPolicy(),
+      critic = this.policy(this.critic);
+    for (let i = 0; i < this.config.rollout; i++) {
+      const o = Array.from(env.observe()),
+        prob = softmax(logits(policy, o)),
+        a = sample(prob, this.rng),
+        value = logits(critic, o)[0],
+        r = env.step(a);
+      obs.push(o);
+      acts.push(a);
+      logs.push(Math.log(Math.max(1e-8, prob[a])));
+      values.push(value);
+      rewards.push(r.reward);
+      nextValues.push(logits(critic, r.observation)[0]);
+      terms.push(r.terminated);
+      bounds.push(r.terminated || r.truncated);
+      state = env.getState();
+      if (r.terminated || r.truncated) {
+        episodes++;
+        successes += +state.success;
+        collisions += +state.collision;
+        totalReward += state.reward;
+        if (state.success) completion += state.steps / 60;
+        env.reset(this.config.seed + this.updates + episodes);
+      }
+    }
+    const result = gae(
+      rewards,
+      values,
+      nextValues,
+      terms,
+      bounds,
+      this.config.gamma,
+      this.config.lambda,
+    );
+    const mean = result.advantages.reduce((a, b) => a + b, 0) / obs.length,
+      std = Math.sqrt(
+        result.advantages.reduce((a, b) => a + (b - mean) ** 2, 0) /
+          obs.length +
+          1e-8,
+      );
+    const advantages = result.advantages.map((a) => (a - mean) / std);
+    let policyLoss = 0,
+      valueLoss = 0,
+      entropy = 0,
+      kl = 0,
+      batches = 0;
+    for (let epoch = 0; epoch < this.config.epochs; epoch++) {
+      const order = Array.from({ length: obs.length }, (_, i) => i);
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = this.rng.int(i + 1);
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      for (let start = 0; start < obs.length; start += this.config.minibatch) {
+        const ids = order.slice(start, start + this.config.minibatch);
+        const losses = tf.tidy(() => {
+          const x = tf.tensor2d(ids.map((i) => obs[i])),
+            a = tf.tensor1d(
+              ids.map((i) => acts[i]),
+              "int32",
+            ),
+            old = tf.tensor1d(ids.map((i) => logs[i])),
+            adv = tf.tensor1d(ids.map((i) => advantages[i])),
+            ret = tf.tensor1d(ids.map((i) => result.returns[i]));
+          const calc = () => {
+            const logAll = tf.logSoftmax(this.forward(x, this.actor)),
+              p = logAll.exp(),
+              logp = logAll
+                .mul(tf.oneHot(a, this.map.mode === "racing" ? 5 : 6))
+                .sum(1),
+              ratio = logp.sub(old).exp();
+            const pl = tf
+              .minimum(
+                ratio.mul(adv),
+                ratio
+                  .clipByValue(1 - this.config.clip, 1 + this.config.clip)
+                  .mul(adv),
+              )
+              .mean()
+              .neg();
+            const vl = this.forward(x, this.critic)
+              .reshape([-1])
+              .sub(ret)
+              .square()
+              .mean()
+              .mul(0.5);
+            const ent = p.mul(logAll).sum(1).mean().neg();
+            const kl = old.sub(logp).mean();
+            return {
+              pl,
+              vl,
+              ent,
+              kl,
+              total: pl.add(vl.mul(0.5)).sub(ent.mul(this.config.entropy)),
+            };
+          };
+          const grads = tf.variableGrads(
+            () => calc().total as tf.Scalar,
+            [...this.actor, ...this.critic],
+          );
+          const norm = tf.sqrt(
+            tf.addN(Object.values(grads.grads).map((g) => g.square().sum())),
+          );
+          const scale = tf.minimum(1, tf.scalar(0.5).div(norm.add(1e-8)));
+          const clipped: tf.NamedTensorMap = {};
+          for (const [name, g] of Object.entries(grads.grads))
+            clipped[name] = g.mul(scale);
+          if (!Number.isFinite(grads.value.dataSync()[0]))
+            throw Error("PPO loss is not finite");
+          this.optimizer.applyGradients(
+            Object.entries(clipped).map(([name, tensor]) => ({ name, tensor })),
+          );
+          const l = calc();
+          return [
+            l.pl.dataSync()[0],
+            l.vl.dataSync()[0],
+            l.ent.dataSync()[0],
+            l.kl.dataSync()[0],
+          ];
+        });
+        policyLoss += losses[0];
+        valueLoss += losses[1];
+        entropy += losses[2];
+        kl += losses[3];
+        batches++;
+      }
+    }
+    this.updates++;
+    return {
+      steps: obs.length,
+      episodes,
+      successes,
+      collisions,
+      completion,
+      state,
+      mean: episodes ? totalReward / episodes : state.reward,
+      policyLoss: policyLoss / batches,
+      valueLoss: valueLoss / batches,
+      entropy: entropy / batches,
+      kl: kl / batches,
+    };
+  }
+  async checkpoint(): Promise<PPOCheckpoint> {
+    const weights = await this.optimizer.getWeights();
+    const serialized = weights.map((w) => ({
+      name: w.name,
+      shape: w.tensor.shape,
+      values: Array.from(w.tensor.dataSync()),
+    }));
+    for (const w of weights) if (w.name === "iter") w.tensor.dispose();
+    return {
+      actor: this.getPolicy(),
+      critic: this.policy(this.critic),
+      optimizer: serialized,
+      rng: this.rng.state,
+      updates: this.updates,
+    };
+  }
+  async restore(c: PPOCheckpoint) {
+    for (const [vars, p] of [
+      [this.actor, c.actor],
+      [this.critic, c.critic],
+    ] as const) {
+      let at = 0;
+      for (const v of vars) {
+        const t = tf.tensor(p.weights.slice(at, (at += v.size)), v.shape);
+        v.assign(t);
+        t.dispose();
+      }
+    }
+    // Adam slots are ordered by variable creation; remap names to this trainer's variables.
+    const weights = c.optimizer.map((w, i) => ({
+      name:
+        i === 0
+          ? w.name
+          : this.names[(i - 1) % this.names.length] +
+            (i <= this.names.length ? "/m" : "/v"),
+      tensor: tf.tensor(
+        w.values,
+        w.shape,
+        w.name === "iter" ? "int32" : "float32",
+      ),
+    }));
+    await this.optimizer.setWeights(weights);
+    weights.forEach((w) => w.tensor.dispose());
+    this.rng.state = c.rng;
+    this.updates = c.updates;
+  }
+  dispose() {
+    this.actor.forEach((v) => v.dispose());
+    this.critic.forEach((v) => v.dispose());
+    this.optimizer.dispose();
+  }
+}
+export async function initTensorflow() {
+  await tf.setBackend("cpu");
+  await tf.ready();
+}
+export const tensorMemory = () => tf.memory();

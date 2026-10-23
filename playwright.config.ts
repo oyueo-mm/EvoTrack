@@ -12,6 +12,7 @@ export default defineConfig({
   use: {
     baseURL: deployedURL ?? "http://127.0.0.1:5187/EvoTrack/",
     headless: true,
+    channel: process.env.PLAYWRIGHT_CHANNEL,
     screenshot: "only-on-failure",
   },
   webServer: deployedURL

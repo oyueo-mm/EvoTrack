@@ -86,6 +86,8 @@
 
 ### 배포 검증 확장
 
+첫 릴리스 커밋 `dec897005b9501e1bb150e26cdbe31250b33ac65`을 `main`에 일반 push했고 Pages를 Actions 방식으로 활성화했습니다. 최초 CI의 브라우저 설치 단계가 5분 이상 지연되어, 공식 Ubuntu 24.04 실행 이미지에 이미 포함된 Chrome을 Playwright의 `chrome` 채널로 사용하도록 개선했습니다. 애플리케이션·학습 코드는 변경하지 않았고 브라우저 테스트는 동일하게 실행합니다. GitHub runner의 브라우저 버전은 Actions 로그에 출력합니다.
+
 배포 전 재실행 결과: 독립 TypeScript 검사 통과, Vitest 18개 통과, Playwright 5개 통과(36.3초), `/EvoTrack/` production build 성공(21.93초). 기존 기록의 E2E 4개에 GA 저장·복원·JSON 왕복 검증을 1개 추가했습니다. 커밋 후보 비밀 패턴 검사에서 토큰·개인 키·금지 경로가 발견되지 않았습니다.
 
 - 개발·정적·공개 실행 경로를 `/EvoTrack/`로 일치시켰습니다.

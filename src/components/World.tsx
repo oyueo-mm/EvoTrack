@@ -1,4 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  anchorViewport,
+  baseScale,
+  eraseAt,
+  FIT_VIEW,
+  hitSelection,
+  moveSelection,
+  removeSelection,
+  worldPoint,
+  zoomAt,
+  type Selection,
+  type Viewport,
+} from "../core/editor";
 import type {
   AgentState,
   MapObject,
@@ -35,13 +48,16 @@ export function drawWorld(
   map: TrackMap,
   options: ViewOptions,
   snapshot?: Snapshot,
-  color = "#a7e879",
-  selected?: string,
+  color = "#83a78c",
+  selected?: Selection | null,
   ghost?: AgentState,
+  stateOverride?: AgentState,
+  editing = false,
 ) {
   const w = map.width,
     h = map.height;
-  ctx.fillStyle = "#151b20";
+  const state = stateOverride ?? snapshot?.state;
+  ctx.fillStyle = "#171c21";
   ctx.fillRect(0, 0, w, h);
   ctx.strokeStyle = "#242c32";
   ctx.lineWidth = 0.7;
@@ -59,7 +75,9 @@ export function drawWorld(
     const path = () => {
       ctx.beginPath();
       map.road.forEach((p, i) =>
-        i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y),
+        i && !map.draft?.roadBreaks?.includes(i)
+          ? ctx.lineTo(p.x, p.y)
+          : ctx.moveTo(p.x, p.y),
       );
     };
     ctx.lineCap = "round";
@@ -81,8 +99,7 @@ export function drawWorld(
     map.checkpoints.forEach((p, i) => {
       const prev = map.checkpoints[i - 1] ?? map.start;
       const a = Math.atan2(p.y - prev.y, p.x - prev.x) + Math.PI / 2;
-      ctx.strokeStyle =
-        i < (snapshot?.state.checkpoint ?? 0) ? "#a7e879" : "#b6c6c04d";
+      ctx.strokeStyle = i < (state?.checkpoint ?? 0) ? "#83a78c" : "#b6c6c066";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(
@@ -100,7 +117,9 @@ export function drawWorld(
     });
   }
   map.objects.forEach((original) => {
-    const o = objectPosition(original, (snapshot?.state.steps ?? 0) / 60, 42);
+    const o = editing
+      ? original
+      : objectPosition(original, (state?.steps ?? 0) / 60, 42);
     ctx.fillStyle =
       o.kind === "spike"
         ? "#ed877c"
@@ -111,8 +130,11 @@ export function drawWorld(
             : o.kind === "moving"
               ? "#85bddd"
               : "#657b7c";
-    ctx.strokeStyle = selected === o.id ? "#fff" : "#a3c0bb";
-    ctx.lineWidth = selected === o.id ? 3 : 1;
+    ctx.strokeStyle =
+      selected?.kind === "object" && selected.id === o.id
+        ? "#e9ecef"
+        : "#a3b0b6";
+    ctx.lineWidth = selected?.kind === "object" && selected.id === o.id ? 3 : 1;
     if (o.kind === "spike") {
       ctx.beginPath();
       for (let x = o.x; x < o.x + o.w; x += 16) {
@@ -136,20 +158,56 @@ export function drawWorld(
       }
     }
   });
-  ctx.strokeStyle = "#a7e879";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(map.start.x, map.start.y, 17, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillStyle = "#a7e879";
-  ctx.font = "10px monospace";
-  ctx.fillText("START", map.start.x - 16, map.start.y + 31);
-  ctx.fillStyle = "#a7e87920";
-  ctx.fillRect(map.goal.x - 18, map.goal.y - 24, 36, 48);
-  ctx.strokeStyle = "#a7e879";
-  ctx.strokeRect(map.goal.x - 18, map.goal.y - 24, 36, 48);
-  ctx.fillStyle = "#a7e879";
-  ctx.fillText("FINISH", map.goal.x - 17, map.goal.y + 40);
+  if (!map.draft?.missingStart) {
+    ctx.strokeStyle = "#91b59a";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(map.start.x, map.start.y, 17, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "#b2cbb8";
+    ctx.font = "10px monospace";
+    ctx.fillText("START", map.start.x - 16, map.start.y + 31);
+  }
+  if (!map.draft?.missingGoal) {
+    ctx.fillStyle = "#83a78c20";
+    ctx.fillRect(map.goal.x - 18, map.goal.y - 24, 36, 48);
+    ctx.strokeStyle = "#91b59a";
+    ctx.strokeRect(map.goal.x - 18, map.goal.y - 24, 36, 48);
+    ctx.fillStyle = "#b2cbb8";
+    ctx.fillText("FINISH", map.goal.x - 17, map.goal.y + 40);
+  }
+  if (editing) {
+    map.road.forEach((p, i) => {
+      ctx.beginPath();
+      ctx.arc(
+        p.x,
+        p.y,
+        selected?.kind === "road" && selected.index === i ? 7 : 3,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fillStyle =
+        selected?.kind === "road" && selected.index === i
+          ? "#e5ece7"
+          : "#8d9ba1";
+      ctx.fill();
+    });
+    if (selected) {
+      const p =
+        selected.kind === "checkpoint"
+          ? map.checkpoints[selected.index]
+          : selected.kind === "start"
+            ? map.start
+            : selected.kind === "goal"
+              ? map.goal
+              : undefined;
+      if (p) {
+        ctx.strokeStyle = "#e5ece7";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(p.x - 21, p.y - 21, 42, 42);
+      }
+    }
+  }
   const agent = (s: AgentState, c: string, alpha = 1) => {
     ctx.globalAlpha = alpha;
     if (options.trail && s.trail.length) {
@@ -206,8 +264,8 @@ export function drawWorld(
   };
   if (options.ghost && ghost) agent(ghost, "#bac6c9", 0.25);
   if (options.all) snapshot?.population.forEach((s) => agent(s, color, 0.16));
-  if (snapshot) agent(snapshot.state, color);
-  else
+  if (state) agent(state, color);
+  else if (!editing && !map.draft?.missingStart)
     agent(
       {
         ...map.start,
@@ -236,61 +294,170 @@ export function World({
   onChange,
   selected,
   onSelect,
-  zoom = 1,
-  color = "#a7e879",
+  viewport,
+  onViewportChange,
+  color = "#83a78c",
   ghost,
   animate = false,
+  interactive = false,
+  overview = false,
+  eraserSize = 22,
+  testing = false,
+  follow = false,
+  onNavigate,
+  seed = 42,
+  horizon = 600,
+  onTestState,
+  manualAction = -1,
 }: {
   map: TrackMap;
   snapshot?: Snapshot;
   options: ViewOptions;
   editing?: boolean;
   tool?: Tool;
-  onChange?: (map: TrackMap) => void;
-  selected?: string;
-  onSelect?: (id: string) => void;
-  zoom?: number;
+  onChange?: (map: TrackMap, transaction?: string) => void;
+  selected?: Selection | null;
+  onSelect?: (selection: Selection | null) => void;
+  viewport?: Viewport;
+  onViewportChange?: (view: Viewport) => void;
   color?: string;
   ghost?: AgentState;
   animate?: boolean;
+  interactive?: boolean;
+  overview?: boolean;
+  eraserSize?: number;
+  testing?: boolean;
+  follow?: boolean;
+  onNavigate?: () => void;
+  seed?: number;
+  horizon?: number;
+  onTestState?: (state: AgentState) => void;
+  manualAction?: number;
+  zoom?: number;
 }) {
-  const ref = useRef<HTMLCanvasElement>(null),
-    drag = useRef<{ point: Point; map: TrackMap; id?: string } | null>(null);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const replay = useRef<{
+  const canvasRef = useRef<HTMLCanvasElement>(null),
+    miniRef = useRef<HTMLCanvasElement>(null);
+  const [internalView, setInternalView] = useState<Viewport>(FIT_VIEW);
+  const view = viewport ?? internalView;
+  const latest = useRef({
+    map,
+    snapshot,
+    options,
+    selected,
+    view,
+    color,
+    ghost,
+    editing,
+    testing,
+    follow,
+    seed,
+    horizon,
+    onTestState,
+    manualAction,
+  });
+  latest.current = {
+    map,
+    snapshot,
+    options,
+    selected,
+    view,
+    color,
+    ghost,
+    editing,
+    testing,
+    follow,
+    seed,
+    horizon,
+    onTestState,
+    manualAction,
+  };
+  const renderRef = useRef<() => void>(() => {}),
+    camera = useRef(view),
+    hovered = useRef(false),
+    space = useRef(false),
+    keys = useRef(new Set<string>());
+  const pointers = useRef(new Map<number, Point>()),
+    pinch = useRef<{ distance: number; anchor: Point; view: Viewport } | null>(
+      null,
+    );
+  const drag = useRef<{
+    kind: "pan" | "road" | "erase" | "move";
+    point: Point;
+    screen: Point;
     map: TrackMap;
-    env: Simulator;
-    policy: PolicyData;
+    view: Viewport;
+    transaction: string;
+    selection?: Selection;
+  } | null>(null);
+  const replay = useRef<{
+    mapId: string;
     algorithm: string;
+    env: Simulator;
+    policy?: PolicyData;
     endedAt: number;
   } | null>(null);
+  const brush = useRef<Point | null>(null);
   useEffect(() => {
-    const canvas = ref.current;
+    drag.current = null;
+    pointers.current.clear();
+    pinch.current = null;
+  }, [map.id]);
+  const updateView = (next: Viewport) => {
+    camera.current = next;
+    onNavigate?.();
+    if (onViewportChange) onViewportChange(next);
+    else setInternalView(next);
+  };
+  const frame = () => {
+    const r = canvasRef.current!.getBoundingClientRect();
+    return { width: r.width, height: r.height };
+  };
+  const screen = (e: { clientX: number; clientY: number }) => {
+    const r = canvasRef.current!.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+  const point = (e: { clientX: number; clientY: number }) =>
+    worldPoint(screen(e), map, frame(), camera.current);
+  const snapped = (p: Point) => ({
+    x: Math.round(p.x / 10) * 10,
+    y: Math.round(p.y / 10) * 10,
+  });
+  useEffect(() => {
+    const canvas = canvasRef.current;
     if (!canvas) return;
-    let frame = 0,
-      previous = performance.now(),
+    let raf = 0,
+      last = performance.now(),
       accumulator = 0,
-      lastDraw = 0;
-    if (
-      snapshot &&
-      (!replay.current ||
-        replay.current.map !== map ||
-        replay.current.algorithm !== snapshot.stats.algorithm)
-    ) {
-      const env = new Simulator(map, 600);
-      env.reset(42);
-      replay.current = {
-        map,
-        env,
-        policy: snapshot.policy,
-        algorithm: snapshot.stats.algorithm,
-        endedAt: 0,
-      };
-    }
-    if (!snapshot) replay.current = null;
-    const render = () => {
-      const dpr = Math.min(devicePixelRatio || 1, 2),
-        r = canvas.getBoundingClientRect();
+      lastDraw = 0,
+      lastReport = 0;
+    const ensureReplay = () => {
+      const p = latest.current,
+        algorithm = p.testing ? "manual" : p.snapshot?.stats.algorithm;
+      if (!algorithm) {
+        replay.current = null;
+        return;
+      }
+      if (
+        !replay.current ||
+        replay.current.mapId !== p.map.id ||
+        replay.current.algorithm !== algorithm
+      ) {
+        const env = new Simulator(p.map, p.horizon);
+        env.reset(p.seed);
+        replay.current = {
+          mapId: p.map.id,
+          algorithm,
+          env,
+          policy: p.snapshot?.policy,
+          endedAt: 0,
+        };
+      }
+    };
+    const draw = () => {
+      const p = latest.current,
+        r = canvas.getBoundingClientRect(),
+        dpr = Math.min(devicePixelRatio || 1, 2);
+      if (!r.width || !r.height) return;
       if (
         canvas.width !== Math.round(r.width * dpr) ||
         canvas.height !== Math.round(r.height * dpr)
@@ -299,113 +466,343 @@ export function World({
         canvas.height = r.height * dpr;
       }
       const ctx = canvas.getContext("2d")!;
+      const state = replay.current?.env.getState();
+      const effective =
+        p.follow && state
+          ? {
+              zoom: p.view.zoom,
+              pan: {
+                x: p.map.width / 2 - state.x,
+                y: p.map.height / 2 - state.y,
+              },
+            }
+          : p.view;
+      camera.current = effective;
+      const scale = baseScale(p.map, r) * effective.zoom * dpr;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const scale =
-        Math.min(r.width / map.width, r.height / map.height) * dpr * zoom;
       ctx.setTransform(
         scale,
         0,
         0,
         scale,
-        (canvas.width - map.width * scale) / 2 + pan.x * scale,
-        (canvas.height - map.height * scale) / 2 + pan.y * scale,
+        (canvas.width - p.map.width * scale) / 2 + effective.pan.x * scale,
+        (canvas.height - p.map.height * scale) / 2 + effective.pan.y * scale,
       );
-      const visible =
-        snapshot && replay.current
-          ? { ...snapshot, state: replay.current.env.getState() }
-          : snapshot;
-      drawWorld(ctx, map, options, visible, color, selected, ghost);
+      drawWorld(
+        ctx,
+        p.map,
+        p.options,
+        p.snapshot,
+        p.color,
+        p.selected,
+        p.ghost,
+        state,
+        p.editing && !p.testing,
+      );
+      if (p.editing && tool === "erase" && brush.current) {
+        ctx.beginPath();
+        ctx.arc(brush.current.x, brush.current.y, eraserSize, 0, Math.PI * 2);
+        ctx.strokeStyle = "#d6b6a9";
+        ctx.lineWidth = 1 / baseScale(p.map, r) / effective.zoom;
+        ctx.setLineDash([4 / scale, 4 / scale]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      const mini = miniRef.current;
+      if (mini) {
+        const c = mini.getContext("2d")!,
+          s = Math.min(mini.width / p.map.width, mini.height / p.map.height);
+        c.setTransform(s, 0, 0, s, 0, 0);
+        drawWorld(
+          c,
+          p.map,
+          {
+            sensors: false,
+            trail: false,
+            collision: false,
+            all: false,
+            ghost: false,
+          },
+          undefined,
+          "#83a78c",
+          null,
+          undefined,
+          undefined,
+          true,
+        );
+        const a = worldPoint({ x: 0, y: 0 }, p.map, r, effective),
+          b = worldPoint({ x: r.width, y: r.height }, p.map, r, effective);
+        c.fillStyle = "#83a78c15";
+        c.strokeStyle = "#d1ddd3";
+        c.lineWidth = 1.5 / s;
+        c.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
+        c.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
+      }
     };
+    renderRef.current = draw;
+    ensureReplay();
+    draw();
     const tick = (now: number) => {
+      const p = latest.current;
+      ensureReplay();
       const r = replay.current;
-      accumulator += Math.min(0.1, (now - previous) / 1000);
-      previous = now;
-      if (r && snapshot) {
+      accumulator += Math.min(0.1, (now - last) / 1000);
+      last = now;
+      if (r) {
         if (r.env.getState().done) {
           if (!r.endedAt) r.endedAt = now;
-          if (now - r.endedAt > 650) {
-            r.env.reset(42);
-            r.policy = snapshot.policy;
+          if (!p.testing && now - r.endedAt > 650) {
+            r.env.reset(p.seed);
+            r.policy = p.snapshot?.policy;
             r.endedAt = 0;
             accumulator = 0;
           }
-        } else
+        } else {
           while (accumulator >= 1 / 60) {
-            r.env.step(actionOf(r.policy, r.env.observe()));
+            let action = 4;
+            if (p.testing) {
+              const left =
+                  keys.current.has("ArrowLeft") || keys.current.has("KeyA"),
+                right =
+                  keys.current.has("ArrowRight") || keys.current.has("KeyD"),
+                jump =
+                  keys.current.has("Space") ||
+                  keys.current.has("ArrowUp") ||
+                  keys.current.has("KeyW");
+              action =
+                p.map.mode === "racing"
+                  ? left
+                    ? 1
+                    : right
+                      ? 2
+                      : keys.current.has("ArrowDown")
+                        ? 3
+                        : jump
+                          ? 0
+                          : 4
+                  : jump
+                    ? left
+                      ? 4
+                      : right
+                        ? 5
+                        : 3
+                    : left
+                      ? 1
+                      : right
+                        ? 2
+                        : 0;
+              if (p.manualAction >= 0) action = p.manualAction;
+            } else if (r.policy) action = actionOf(r.policy, r.env.observe());
+            r.env.step(action);
             accumulator -= 1 / 60;
           }
+        }
+        if (p.testing && now - lastReport > 120) {
+          p.onTestState?.(r.env.getState());
+          lastReport = now;
+        }
       }
       if (now - lastDraw >= 1000 / 30) {
-        render();
+        draw();
         lastDraw = now;
       }
-      frame = requestAnimationFrame(tick);
+      raf = requestAnimationFrame(tick);
     };
-    render();
-    if (snapshot && animate) frame = requestAnimationFrame(tick);
-    const ob = new ResizeObserver(render);
-    ob.observe(canvas);
+    if ((animate && snapshot) || testing) raf = requestAnimationFrame(tick);
+    const resize = new ResizeObserver(draw);
+    resize.observe(canvas);
     return () => {
-      cancelAnimationFrame(frame);
-      ob.disconnect();
+      cancelAnimationFrame(raf);
+      resize.disconnect();
     };
-  }, [map, snapshot, options, selected, zoom, pan, color, ghost, animate]);
-  function point(e: React.PointerEvent<HTMLCanvasElement>) {
-    const r = e.currentTarget.getBoundingClientRect(),
-      scale = Math.min(r.width / map.width, r.height / map.height) * zoom;
-    return {
-      x:
-        (e.clientX - r.left - (r.width - map.width * scale) / 2) / scale -
-        pan.x,
-      y:
-        (e.clientY - r.top - (r.height - map.height * scale) / 2) / scale -
-        pan.y,
+  }, [
+    map.id,
+    map.mode,
+    !!snapshot,
+    snapshot?.stats.algorithm,
+    animate,
+    testing,
+    tool,
+    eraserSize,
+  ]);
+  useEffect(() => {
+    renderRef.current();
+  }, [map, snapshot, options, selected, view, color, ghost, follow, overview]);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !interactive) return;
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const local = screen(e);
+      updateView(
+        zoomAt(
+          camera.current,
+          local,
+          latest.current.map,
+          frame(),
+          camera.current.zoom *
+            Math.exp(-e.deltaY * (e.ctrlKey ? 0.008 : 0.0018)),
+        ),
+      );
     };
+    canvas.addEventListener("wheel", wheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", wheel);
+  }, [interactive, map.id, onViewportChange]);
+  useEffect(() => {
+    if (!interactive) return;
+    const down = (e: KeyboardEvent) => {
+      const focused = document.activeElement === canvasRef.current;
+      if (!focused && !hovered.current) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      )
+        return;
+      if (
+        ["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
+          e.code,
+        )
+      ) {
+        e.preventDefault();
+        keys.current.add(e.code);
+        if (e.code === "Space") space.current = true;
+      }
+      if (
+        editing &&
+        !testing &&
+        focused &&
+        (e.code === "Delete" || e.code === "Backspace") &&
+        latest.current.selected
+      ) {
+        e.preventDefault();
+        onChange?.(
+          removeSelection(latest.current.map, latest.current.selected),
+        );
+        onSelect?.(null);
+      }
+    };
+    const up = (e: KeyboardEvent) => {
+      keys.current.delete(e.code);
+      if (e.code === "Space") space.current = false;
+    };
+    const blur = () => {
+      keys.current.clear();
+      space.current = false;
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    window.addEventListener("blur", blur);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", blur);
+    };
+  }, [interactive, editing, testing, onChange, onSelect]);
+  function beginPinch() {
+    const a = [...pointers.current.values()];
+    const center = { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 };
+    pinch.current = {
+      distance: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y),
+      anchor: worldPoint(center, map, frame(), camera.current),
+      view: camera.current,
+    };
+    drag.current = null;
   }
-  const snap = (p: Point) => ({
-    x: Math.round(p.x / 10) * 10,
-    y: Math.round(p.y / 10) * 10,
-  });
   function down(e: React.PointerEvent<HTMLCanvasElement>) {
-    if (!editing && tool !== "pan") return;
+    if (!interactive) return;
+    e.preventDefault();
+    e.currentTarget.focus({ preventScroll: true });
     e.currentTarget.setPointerCapture(e.pointerId);
-    const p = point(e);
-    if (tool === "pan") {
-      drag.current = { point: p, map: structuredClone(map) };
+    pointers.current.set(e.pointerId, screen(e));
+    if (pointers.current.size === 2) {
+      finish();
+      beginPinch();
       return;
     }
-    const m = structuredClone(map);
-    const hit = [...m.objects]
-      .reverse()
-      .find(
-        (o) => p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + o.h,
-      );
+    if (testing) return;
+    const p = point(e),
+      s = screen(e),
+      transaction = crypto.randomUUID(),
+      initial = structuredClone(map);
+    if (!editing || tool === "pan" || space.current || e.button === 1) {
+      drag.current = {
+        kind: "pan",
+        point: p,
+        screen: s,
+        map: initial,
+        view: camera.current,
+        transaction,
+      };
+      return;
+    }
     if (tool === "select") {
-      onSelect?.(hit?.id ?? "");
-      if (hit) drag.current = { point: p, map: m, id: hit.id };
+      const hit = hitSelection(
+        map,
+        p,
+        14 / baseScale(map, frame()) / view.zoom,
+      );
+      onSelect?.(hit);
+      drag.current = {
+        kind: hit ? "move" : "pan",
+        point: p,
+        screen: s,
+        map: initial,
+        view: camera.current,
+        transaction,
+        selection: hit ?? undefined,
+      };
       return;
     }
     if (tool === "erase") {
-      if (hit) {
-        m.objects = m.objects.filter((o) => o.id !== hit.id);
-        onChange?.(m);
-      }
+      const m = eraseAt(initial, p, eraserSize);
+      onSelect?.(null);
+      drag.current = {
+        kind: "erase",
+        point: p,
+        screen: s,
+        map: m,
+        view: camera.current,
+        transaction,
+      };
+      onChange?.(m, transaction);
       return;
     }
     if (tool === "road") {
-      m.road = [p];
-      m.checkpoints = [];
-      drag.current = { point: p, map: m };
-      onChange?.(m);
+      const m = {
+        ...initial,
+        road: [p],
+        checkpoints: [],
+        draft: { missingStart: true, missingGoal: true, roadBreaks: [] },
+      };
+      drag.current = {
+        kind: "road",
+        point: p,
+        screen: s,
+        map: m,
+        view: camera.current,
+        transaction,
+      };
+      onSelect?.(null);
+      onChange?.(m, transaction);
       return;
     }
-    if (tool === "start") m.start = { ...snap(p), angle: m.start.angle };
-    else if (tool === "goal") m.goal = snap(p);
-    else if (tool === "checkpoint") m.checkpoints.push(snap(p));
-    else {
+    const m = initial;
+    if (tool === "start") {
+      m.start = { ...snapped(p), angle: m.start.angle };
+      m.draft = { ...m.draft, missingStart: false };
+      onSelect?.({ kind: "start" });
+    } else if (tool === "goal") {
+      m.goal = snapped(p);
+      m.draft = { ...m.draft, missingGoal: false };
+      onSelect?.({ kind: "goal" });
+    } else if (tool === "checkpoint") {
+      m.checkpoints.push(snapped(p));
+      onSelect?.({ kind: "checkpoint", index: m.checkpoints.length - 1 });
+    } else {
       const o: MapObject = {
-        ...snap(p),
+        ...snapped(p),
         id: crypto.randomUUID(),
         kind: tool as MapObject["kind"],
         w: tool === "wall" ? 35 : 100,
@@ -413,60 +810,147 @@ export function World({
         ...(tool === "moving" ? { amplitude: 60, period: 3 } : {}),
       };
       m.objects.push(o);
-      onSelect?.(o.id);
+      onSelect?.({ kind: "object", id: o.id });
     }
     onChange?.(m);
   }
   function move(e: React.PointerEvent<HTMLCanvasElement>) {
-    if (!drag.current) return;
-    const p = point(e),
-      d = drag.current;
-    if (tool === "pan") {
-      setPan((prev) => ({
-        x: prev.x + p.x - d.point.x,
-        y: prev.y + p.y - d.point.y,
-      }));
+    if (!interactive) return;
+    const s = screen(e);
+    if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, s);
+    const two = [...pointers.current.values()];
+    if (two.length === 2 && pinch.current) {
+      const g = pinch.current,
+        zoom = Math.max(
+          0.4,
+          Math.min(
+            4,
+            (g.view.zoom *
+              Math.hypot(two[0].x - two[1].x, two[0].y - two[1].y)) /
+              g.distance,
+          ),
+        );
+      updateView(
+        anchorViewport(
+          g.anchor,
+          { x: (two[0].x + two[1].x) / 2, y: (two[0].y + two[1].y) / 2 },
+          map,
+          frame(),
+          zoom,
+        ),
+      );
       return;
     }
-    if (tool === "road") {
-      if (Math.hypot(p.x - d.point.x, p.y - d.point.y) > 25) {
+    const p = point(e);
+    brush.current = p;
+    if (tool === "erase") renderRef.current();
+    const d = drag.current;
+    if (!d) return;
+    if (d.kind === "pan") {
+      const scale = baseScale(map, frame()) * d.view.zoom;
+      updateView({
+        ...d.view,
+        pan: {
+          x: d.view.pan.x + (s.x - d.screen.x) / scale,
+          y: d.view.pan.y + (s.y - d.screen.y) / scale,
+        },
+      });
+    } else if (d.kind === "road") {
+      if (Math.hypot(p.x - d.point.x, p.y - d.point.y) > 12) {
         d.map.road.push(p);
         d.point = p;
-        onChange?.(structuredClone(d.map));
+        onChange?.(structuredClone(d.map), d.transaction);
       }
-    } else if (d.id) {
-      const m = structuredClone(d.map),
-        o = m.objects.find((o) => o.id === d.id)!;
-      o.x += Math.round((p.x - d.point.x) / 10) * 10;
-      o.y += Math.round((p.y - d.point.y) / 10) * 10;
-      onChange?.(m);
+    } else if (d.kind === "erase") {
+      d.map = eraseAt(d.map, p, eraserSize);
+      onChange?.(d.map, d.transaction);
+    } else if (d.selection) {
+      onChange?.(
+        moveSelection(
+          d.map,
+          d.selection,
+          snapped({ x: p.x - d.point.x, y: p.y - d.point.y }),
+        ),
+        d.transaction,
+      );
     }
   }
-  function up() {
+  function finish() {
     const d = drag.current;
-    if (d && tool === "road" && d.map.road.length > 1) {
+    if (d?.kind === "road") {
       const m = structuredClone(d.map);
-      m.start = {
-        ...m.road[0],
-        angle: Math.atan2(m.road[1].y - m.road[0].y, m.road[1].x - m.road[0].x),
-      };
-      m.goal = m.road.at(-1)!;
-      m.checkpoints = m.road.filter(
-        (_, i) => i > 0 && (i % 3 === 0 || i === m.road.length - 1),
-      );
-      onChange?.(m);
+      if (m.road.length > 1) {
+        m.start = {
+          ...m.road[0],
+          angle: Math.atan2(
+            m.road[1].y - m.road[0].y,
+            m.road[1].x - m.road[0].x,
+          ),
+        };
+        m.goal = m.road.at(-1)!;
+        m.checkpoints = m.road.filter(
+          (_, i) => i > 0 && (i % 3 === 0 || i === m.road.length - 1),
+        );
+        m.draft = {};
+        onChange?.(m, d.transaction);
+      } else onChange?.(m, d.transaction);
     }
     drag.current = null;
   }
+  function up(e: React.PointerEvent<HTMLCanvasElement>) {
+    pointers.current.delete(e.pointerId);
+    if (pinch.current) {
+      if (pointers.current.size < 2) pinch.current = null;
+      drag.current = null;
+    } else finish();
+  }
   return (
-    <canvas
-      ref={ref}
-      className={"world " + (editing ? "editing" : "")}
-      aria-label={editing ? "맵 편집 캔버스" : "AI 시뮬레이션 캔버스"}
-      onPointerDown={down}
-      onPointerMove={move}
-      onPointerUp={up}
-      onPointerCancel={up}
-    />
+    <div className="world-frame">
+      <canvas
+        ref={canvasRef}
+        className={"world " + (editing ? "editing tool-" + tool : "")}
+        aria-label={editing ? "맵 편집 캔버스" : "AI 시뮬레이션 캔버스"}
+        tabIndex={interactive ? 0 : undefined}
+        data-zoom={view.zoom.toFixed(3)}
+        data-pan-x={view.pan.x.toFixed(2)}
+        data-pan-y={view.pan.y.toFixed(2)}
+        onPointerEnter={() => {
+          hovered.current = true;
+        }}
+        onPointerLeave={() => {
+          hovered.current = false;
+          brush.current = null;
+          renderRef.current();
+        }}
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={up}
+        onPointerCancel={up}
+        onDoubleClick={() => interactive && updateView(FIT_VIEW)}
+      />
+      {overview && (
+        <button
+          type="button"
+          className="overview"
+          aria-label="미니맵에서 위치 이동"
+          title="클릭하여 이동 · 전체 지도의 현재 보기 영역"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            const r = e.currentTarget.getBoundingClientRect(),
+              p = {
+                x: ((e.clientX - r.left) / r.width) * map.width,
+                y: ((e.clientY - r.top) / r.height) * map.height,
+              };
+            updateView({
+              zoom: camera.current.zoom,
+              pan: { x: map.width / 2 - p.x, y: map.height / 2 - p.y },
+            });
+          }}
+        >
+          <canvas ref={miniRef} width={160} height={102} />
+          <span>전체 지도</span>
+        </button>
+      )}
+    </div>
   );
 }

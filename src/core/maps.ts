@@ -157,6 +157,35 @@ export function validateMap(value: unknown): TrackMap {
   if (!value || typeof value !== "object")
     throw Error("맵 형식이 올바르지 않습니다.");
   const m = value as TrackMap;
+  if (
+    m.draft !== undefined &&
+    (!m.draft ||
+      typeof m.draft !== "object" ||
+      Array.isArray(m.draft) ||
+      (m.draft.missingStart !== undefined &&
+        typeof m.draft.missingStart !== "boolean") ||
+      (m.draft.missingGoal !== undefined &&
+        typeof m.draft.missingGoal !== "boolean") ||
+      (m.draft.roadBreaks !== undefined &&
+        (!Array.isArray(m.draft.roadBreaks) ||
+          m.draft.roadBreaks.length > 1000 ||
+          m.draft.roadBreaks.some(
+            (i) =>
+              !Number.isInteger(i) ||
+              i < 1 ||
+              !Array.isArray(m.road) ||
+              i >= m.road.length,
+          ))))
+  )
+    throw Error("편집 상태 데이터가 손상되었습니다.");
+  if (m.draft?.missingStart)
+    throw Error("시작점이 없습니다. 시작점 도구로 배치하세요.");
+  if (m.draft?.missingGoal)
+    throw Error("결승점이 없습니다. 결승점 도구로 배치하세요.");
+  if (m.draft?.roadBreaks?.length)
+    throw Error(
+      "도로가 끊어져 있습니다. 도로 속성에서 구간을 연결하거나 실행 취소하세요.",
+    );
   if (m.version !== 1 || !["racing", "bounce"].includes(m.mode))
     throw Error("지원하지 않는 맵 버전 또는 모드입니다.");
   const finite = (v: unknown): v is number =>

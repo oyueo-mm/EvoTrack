@@ -37,7 +37,7 @@ export function validateConfig(c: Config) {
     !range(c.lambda, 0, 1) ||
     !range(c.clip, 0.01, 0.5) ||
     !range(c.entropy, 0, 1) ||
-    !range(c.speed, 1, 10)
+    !range(c.speed, 0.5, 10)
   )
     throw Error("학습 설정의 허용 범위를 벗어났습니다.");
   return c;

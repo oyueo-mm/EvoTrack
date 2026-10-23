@@ -63,9 +63,13 @@ test("editor, GA/PPO workers, pause/resume, storage, checkpoint and evaluation",
     position: { x: box!.width * 0.75, y: box!.height * 0.15 },
   });
   await page.getByRole("button", { name: "맵 저장", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("저장했습니다");
+  await expect(page.locator('.toast[role="status"]')).toContainText(
+    "저장했습니다",
+  );
   await page.reload();
   await page.getByRole("button", { name: "학습하기", exact: true }).click();
+  if ((page.viewportSize()?.width ?? 1280) <= 900)
+    await page.getByRole("button", { name: "학습 설정", exact: true }).click();
   await page.getByLabel("현재 맵").selectOption("r-straight");
   await page.getByLabel("개체군 크기", { exact: true }).fill("8");
   await page.getByLabel("에피소드 최대 스텝", { exact: true }).fill("300");
@@ -89,15 +93,20 @@ test("editor, GA/PPO workers, pause/resume, storage, checkpoint and evaluation",
   await page.waitForTimeout(1000);
   expect(await page.locator(".metric-card").nth(1).innerText()).toBe(steps);
   await page.getByRole("button", { name: "모델 저장", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("추론 모델");
+  await expect(page.locator('.toast[role="status"]')).toContainText(
+    "추론 모델",
+  );
   await page.getByRole("button", { name: "체크포인트", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("체크포인트");
+  await expect(page.locator('.toast[role="status"]')).toContainText(
+    "체크포인트",
+  );
   await page.getByRole("button", { name: "학습 재개", exact: true }).click();
   await expect
     .poll(() => page.locator(".metric-card").nth(1).innerText())
     .not.toBe(steps);
   await page.getByRole("button", { name: "학습 중지", exact: true }).click();
   await page
+    .locator(".sidebar")
     .getByRole("button", { name: "모델 라이브러리", exact: false })
     .click();
   await expect(page.locator(".model-card")).toHaveCount(2);
@@ -171,13 +180,17 @@ test("mobile layout, Bounce editing and training remain usable", async ({
     .getByLabel("맵 편집 캔버스")
     .click({ position: { x: 180, y: 120 } });
   await page.getByRole("button", { name: "맵 저장", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("저장했습니다");
+  await expect(page.locator('.toast[role="status"]')).toContainText(
+    "저장했습니다",
+  );
   await page.getByRole("button", { name: "학습하기", exact: true }).click();
+  await page.getByRole("button", { name: "학습 설정", exact: true }).click();
   await page.getByLabel("개체군 크기", { exact: true }).fill("4");
   await page.getByLabel("에피소드 최대 스텝", { exact: true }).fill("60");
   await page
     .getByRole("button", { name: "Genetic Algorithm", exact: false })
     .click();
+  await page.getByRole("button", { name: "패널 닫기", exact: true }).click();
   await page.getByRole("button", { name: "학습 시작", exact: true }).click();
   await expect
     .poll(() => page.locator(".metric-card").first().innerText())
@@ -303,7 +316,9 @@ test("saved map, GA checkpoint and exported model survive reload and restore", a
     .getByLabel("맵 이름", { exact: true })
     .fill("Release verification circuit");
   await page.getByRole("button", { name: "맵 저장", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("저장했습니다");
+  await expect(page.locator('.toast[role="status"]')).toContainText(
+    "저장했습니다",
+  );
   await page.reload();
   await page.getByRole("button", { name: "학습하기", exact: true }).click();
   await page.getByLabel("현재 맵").selectOption("r-straight");
@@ -329,11 +344,16 @@ test("saved map, GA checkpoint and exported model survive reload and restore", a
     ).replaceAll(",", ""),
   );
   await page.getByRole("button", { name: "모델 저장", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("추론 모델");
+  await expect(page.locator('.toast[role="status"]')).toContainText(
+    "추론 모델",
+  );
   await page.getByRole("button", { name: "체크포인트", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("체크포인트");
+  await expect(page.locator('.toast[role="status"]')).toContainText(
+    "체크포인트",
+  );
   await page.getByRole("button", { name: "학습 중지", exact: true }).click();
   await page
+    .locator(".sidebar")
     .getByRole("button", { name: "모델 라이브러리", exact: false })
     .click();
   await expect(page.locator(".model-card")).toHaveCount(2);
@@ -348,14 +368,14 @@ test("saved map, GA checkpoint and exported model survive reload and restore", a
   const stream = await file.createReadStream();
   const chunks: Buffer[] = [];
   for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "roundtrip-model.json",
-      mimeType: "application/json",
-      buffer: Buffer.concat(chunks),
-    });
-  await expect(page.getByRole("status")).toContainText("모델을 가져왔습니다");
+  await page.locator("input[type=file]").setInputFiles({
+    name: "roundtrip-model.json",
+    mimeType: "application/json",
+    buffer: Buffer.concat(chunks),
+  });
+  await expect(page.locator('.toast[role="status"]')).toContainText(
+    "모델을 가져왔습니다",
+  );
   await page.reload();
   await expect(page.locator(".model-card")).toHaveCount(2);
   await page
@@ -368,6 +388,7 @@ test("saved map, GA checkpoint and exported model survive reload and restore", a
     .not.toContain("—");
   await page.getByRole("button", { name: "학습 중지", exact: true }).click();
   await page
+    .locator(".sidebar")
     .getByRole("button", { name: "모델 라이브러리", exact: false })
     .click();
   await page

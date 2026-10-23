@@ -61,6 +61,38 @@ try {
     () => document.querySelector(".metric-card strong")?.textContent !== "—",
   );
   await page.getByRole("button", { name: "학습 중지", exact: true }).click();
+  if (process.argv.includes("--screenshots")) {
+    await page
+      .getByRole("button", { name: "학습 시작", exact: true })
+      .waitFor();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.locator(".settings-card").evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await page.screenshot({
+      path: ".cache/ui-review/lab-final.png",
+      fullPage: true,
+    });
+    await page.getByLabel("현재 맵").selectOption("r-serpent");
+    await page.getByRole("button", { name: "맵 편집", exact: true }).click();
+    await page.screenshot({
+      path: ".cache/ui-review/editor-final.png",
+      fullPage: true,
+    });
+    await page.getByRole("button", { name: "테마 전환", exact: true }).click();
+    await page.screenshot({
+      path: ".cache/ui-review/editor-light.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await page.screenshot({
+      path: ".cache/ui-review/mobile-final.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.reload();
+  }
   await page
     .getByRole("button", { name: "맵 라이브러리", exact: false })
     .click();

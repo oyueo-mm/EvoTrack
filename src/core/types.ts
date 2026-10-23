@@ -29,6 +29,12 @@ export interface TrackMap {
   checkpoints: Point[];
   objects: MapObject[];
   physics: { maxSpeed: number; gravity: number };
+  /** Transient editor state. Incomplete drafts cannot run or be saved as maps. */
+  draft?: {
+    missingStart?: boolean;
+    missingGoal?: boolean;
+    roadBreaks?: number[];
+  };
 }
 export interface AgentState extends Point {
   angle: number;

@@ -1,8 +1,5 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Activity,
-  ArrowDownToLine,
-  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   BarChart3,
@@ -11,39 +8,21 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  Copy,
   Download,
-  Flag,
   FlaskConical,
-  FolderOpen,
-  Gauge,
   GitBranch,
-  Grid2X2,
-  Hand,
   Home,
-  Layers,
   Map as MapIcon,
-  Maximize2,
   Menu,
-  MousePointer2,
-  MoveRight,
-  Pause,
   Pencil,
   Play,
   Plus,
-  Redo2,
   Save,
-  Settings2,
-  Square,
   Sun,
   Target,
   Trash2,
-  Undo2,
   Upload,
   X,
-  Zap,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { EXAMPLE_MAPS, newMap, validateMap } from "./core/maps";
@@ -55,8 +34,9 @@ import {
   type SavedModel,
   type TrackMap,
 } from "./core/types";
-import { World, type Tool, type ViewOptions } from "./components/World";
+import { World, type ViewOptions } from "./components/World";
 import { Chart } from "./components/Chart";
+import { Studio } from "./components/studio/Studio";
 import { useTraining } from "./hooks/useTraining";
 import { assertCompatible, evaluate } from "./learning/evaluate";
 import {
@@ -109,38 +89,6 @@ function IconButton({
     </button>
   );
 }
-function Field({
-  label,
-  value,
-  onChange,
-  min,
-  max,
-  step = 1,
-  disabled = false,
-}: {
-  label: string;
-  value: number;
-  onChange: (n: number) => void;
-  min: number;
-  max: number;
-  step?: number;
-  disabled?: boolean;
-}) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      <input
-        type="number"
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        disabled={disabled}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
-    </label>
-  );
-}
 export default function App() {
   const [page, setPage] = useState<Page>(() =>
       NAV.some((n) => n.id === location.hash.slice(1))
@@ -154,9 +102,6 @@ export default function App() {
     [config, setConfig] = useState<Config>({ ...DEFAULT_CONFIG }),
     [method, setMethod] = useState<"GA" | "PPO" | "both">("both"),
     [tab, setTab] = useState<Algorithm>("GA"),
-    [tool, setTool] = useState<Tool>("select"),
-    [selected, setSelected] = useState(""),
-    [zoom, setZoom] = useState(1),
     [options, setOptions] = useState<ViewOptions>({
       sensors: false,
       trail: true,
@@ -167,9 +112,8 @@ export default function App() {
     [notice, setNotice] = useState<{ message: string; error: boolean } | null>(
       null,
     ),
-    [panel, setPanel] = useState(true),
     [sidebar, setSidebar] = useState(false),
-    [advanced, setAdvanced] = useState(false),
+    [compactNav, setCompactNav] = useState(() => window.innerWidth <= 1100),
     [light, setLight] = useState(false),
     [evaluation, setEvaluation] = useState<ReturnType<typeof evaluate> | null>(
       null,
@@ -181,6 +125,28 @@ export default function App() {
     redo = useRef<TrackMap[]>([]),
     importRef = useRef<HTMLInputElement>(null),
     noticeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    const resize = () => setCompactNav(window.innerWidth <= 1100),
+      escape = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setSidebar(false);
+      };
+    window.addEventListener("resize", resize);
+    window.addEventListener("keydown", escape);
+    return () => {
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("keydown", escape);
+    };
+  }, []);
+  useEffect(() => {
+    if (sidebar && compactNav)
+      requestAnimationFrame(() => {
+        (
+          document.querySelector(
+            ".sidebar nav button",
+          ) as HTMLButtonElement | null
+        )?.focus();
+      });
+  }, [sidebar, compactNav]);
   const notify = (message: string, error = false) => {
     setNotice({ message, error });
     clearTimeout(noticeTimer.current);
@@ -232,12 +198,15 @@ export default function App() {
     snapshot = training.snapshots[tab],
     stats = snapshot?.stats;
   const locked = training.active || training.paused;
-  function edit(m: TrackMap) {
+  const lastEditGroup = useRef<string | undefined>(undefined);
+  function edit(m: TrackMap, group?: string) {
     if (locked) {
       notify("맵을 수정하기 전에 학습을 중지하세요.", true);
       return;
     }
-    undo.current.push(structuredClone(map));
+    if (!group || lastEditGroup.current !== group)
+      undo.current.push(structuredClone(map));
+    lastEditGroup.current = group;
     if (undo.current.length > 80) undo.current.shift();
     redo.current = [];
     setMap({ ...m, updatedAt: new Date().toISOString() });
@@ -251,10 +220,10 @@ export default function App() {
     setMap(structuredClone(m));
     undo.current = [];
     redo.current = [];
-    setZoom(1);
-    setSelected("");
   }
   function history(forward = false) {
+    if (locked) return;
+    lastEditGroup.current = undefined;
     const from = forward ? redo : undo,
       to = forward ? undo : redo;
     const last = from.current.pop();
@@ -421,49 +390,37 @@ export default function App() {
     ...EXAMPLE_MAPS.filter((e) => !maps.some((m) => m.id === e.id)),
     ...maps,
   ];
-  const changeConfig = (key: keyof Config, value: number) =>
-    setConfig((c) => ({ ...c, [key]: value }));
-  const object = map.objects.find((o) => o.id === selected);
-  const tools: { tool: Tool; icon: LucideIcon; label: string }[] = [
-    { tool: "select", icon: MousePointer2, label: "선택 / 이동" },
-    { tool: "pan", icon: Hand, label: "화면 이동" },
-    ...(map.mode === "racing"
-      ? [{ tool: "road" as Tool, icon: Pencil, label: "자유곡선 도로" }]
-      : [
-          { tool: "platform" as Tool, icon: Layers, label: "고정 발판" },
-          { tool: "moving" as Tool, icon: MoveRight, label: "이동 발판" },
-          { tool: "spike" as Tool, icon: Zap, label: "가시" },
-          { tool: "spring" as Tool, icon: ArrowUpRight, label: "점프대" },
-          { tool: "elastic" as Tool, icon: Activity, label: "탄성 발판" },
-        ]),
-    { tool: "wall", icon: Square, label: "벽" },
-    { tool: "start", icon: Flag, label: "시작 위치" },
-    { tool: "goal", icon: Target, label: "도착 지점" },
-    ...(map.mode === "racing"
-      ? [{ tool: "checkpoint" as Tool, icon: GitBranch, label: "체크포인트" }]
-      : []),
-    { tool: "erase", icon: Trash2, label: "객체 삭제" },
-  ];
   return (
     <div className={"app " + (light ? "light" : "")}>
-      <aside className={"sidebar " + (sidebar ? "open" : "")}>
+      <aside
+        className={"sidebar " + (sidebar ? "open" : "")}
+        inert={compactNav && !sidebar}
+        aria-label="주요 메뉴"
+      >
         <a className="brand" href="#home" onClick={() => navigate("home")}>
           <span className="brand-symbol">
             <GitBranch size={24} />
           </span>
           <span>
             EvoTrack<span className="brand-dot">.</span>
-            <small>AUTONOMOUS LEARNING LAB</small>
+            <small>자율 학습 시뮬레이터</small>
           </span>
         </a>
         <div className="workspace">
           <span className="workspace-icon">E</span>
           <div>
-            Local workspace<small>브라우저에 안전하게 저장</small>
+            내 작업 공간<small>브라우저 로컬 저장</small>
           </div>
           <ChevronDown size={14} />
         </div>
-        <div className="nav-label">WORKSPACE</div>
+        <button
+          className="button sidebar-dismiss"
+          onClick={() => setSidebar(false)}
+        >
+          <X size={15} />
+          메뉴 닫기
+        </button>
+        <div className="nav-label">실험</div>
         <nav>
           {NAV.slice(0, 4).map(({ id, label, icon: Icon }) => (
             <button
@@ -477,7 +434,7 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <div className="nav-label assets-label">LIBRARY</div>
+        <div className="nav-label assets-label">보관함</div>
         <nav>
           {NAV.slice(4).map(({ id, label, icon: Icon }) => (
             <button
@@ -516,6 +473,13 @@ export default function App() {
           </div>
         </div>
       </aside>
+      {sidebar && compactNav && (
+        <button
+          className="nav-scrim"
+          aria-label="메뉴 배경 닫기"
+          onClick={() => setSidebar(false)}
+        />
+      )}
       <div className="main-shell">
         <header className="topbar">
           <IconButton
@@ -524,12 +488,12 @@ export default function App() {
             onClick={() => setSidebar(!sidebar)}
           />
           <div className="breadcrumb">
-            Workspace <ChevronRight size={13} />
+            작업 공간 <ChevronRight size={13} />
             <span>{NAV.find((n) => n.id === page)?.label}</span>
           </div>
           <div className="topbar-right">
             <span className="system-status">
-              <i /> All systems local
+              <i /> 브라우저에서 실행
             </span>
             <button
               className="text-btn"
@@ -548,16 +512,6 @@ export default function App() {
         <main>
           <div className="page-heading">
             <div>
-              <div className="eyebrow">
-                EVOTRACK /{" "}
-                {page === "lab"
-                  ? "EXPERIMENT STUDIO"
-                  : page === "editor"
-                    ? "TRACK BUILDER"
-                    : page === "compare"
-                      ? "BENCHMARK"
-                      : page.toUpperCase()}
-              </div>
               <h1>
                 {page === "lab"
                   ? "학습 실험실"
@@ -566,21 +520,14 @@ export default function App() {
                     : page === "compare"
                       ? "알고리즘 비교"
                       : page === "home"
-                        ? "다음 가능성을, 직접 실험하세요."
+                        ? "새로운 실험을 시작하세요."
                         : NAV.find((n) => n.id === page)?.label}
-                <span className="heading-tag">
-                  {page === "lab"
-                    ? "LIVE WORKSPACE"
-                    : page === "editor"
-                      ? "CANVAS 2D"
-                      : "LOCAL FIRST"}
-                </span>
               </h1>
               <p>
                 {page === "lab"
-                  ? "트랙 위에서 진화하는 지능. 두 가지 알고리즘의 학습 과정을 관찰하세요."
+                  ? "맵을 선택하고 학습을 시작하세요. 알고리즘별 결과를 한곳에서 비교합니다."
                   : page === "editor"
-                    ? "직접 만든 환경이 새로운 학습의 출발점이 됩니다."
+                    ? "도로와 지형을 만들고, 직접 테스트한 뒤 저장하세요."
                     : page === "compare"
                       ? "같은 환경, 독립된 학습. 환경 스텝과 실제 경과 시간으로 비교합니다."
                       : "만들고, 학습하고, 발견한 것을 보관하세요."}
@@ -607,6 +554,21 @@ export default function App() {
                     {page === "lab" ? "맵 편집" : "학습하기"}
                     <ArrowUpRight size={14} />
                   </button>
+                  {page === "lab" && (
+                    <button
+                      className="button"
+                      disabled={!models.length}
+                      title={
+                        models.length
+                          ? "저장된 모델을 다른 맵에서 평가합니다."
+                          : "학습 후 모델을 저장하면 평가할 수 있습니다."
+                      }
+                      onClick={() => navigate("models")}
+                    >
+                      <Target size={15} />
+                      모델 평가
+                    </button>
+                  )}
                 </>
               )}
               {["maps", "home"].includes(page) && (
@@ -623,779 +585,32 @@ export default function App() {
             </div>
           </div>
           {(page === "lab" || page === "editor") && (
-            <>
-              <div className="mode-row">
-                <div className="segmented">
-                  <button
-                    className={map.mode === "racing" ? "active" : ""}
-                    onClick={() => chooseMap(EXAMPLE_MAPS[2])}
-                  >
-                    <Gauge size={16} /> Racing <small>2D 자율주행</small>
-                  </button>
-                  <button
-                    className={map.mode === "bounce" ? "active" : ""}
-                    onClick={() => chooseMap(EXAMPLE_MAPS[4])}
-                  >
-                    <Activity size={16} /> Bounce <small>물리 퍼즐</small>
-                  </button>
-                </div>
-                <span className="mode-hint">
-                  <span className="tiny-dot" />{" "}
-                  {map.mode === "racing"
-                    ? "12 observations · 5 actions"
-                    : "12 observations · 6 actions"}{" "}
-                  <span className="divider">/</span> Fixed timestep · 60 Hz
-                </span>
-              </div>
-              <div className={"studio " + (!panel ? "panel-hidden" : "")}>
-                <section className="canvas-card">
-                  <div className="canvas-heading">
-                    <div className="map-title">
-                      <span className="map-icon">
-                        <MapIcon size={16} />
-                      </span>
-                      <div>
-                        <select
-                          aria-label="현재 맵"
-                          value={map.id}
-                          disabled={locked}
-                          onChange={(e) =>
-                            chooseMap(
-                              allMaps.find((m) => m.id === e.target.value)!,
-                            )
-                          }
-                        >
-                          {!allMaps.some((m) => m.id === map.id) && (
-                            <option value={map.id}>{map.name}</option>
-                          )}
-                          {allMaps
-                            .filter((m) => m.mode === map.mode)
-                            .map((m) => (
-                              <option value={m.id} key={m.id}>
-                                {m.name}
-                              </option>
-                            ))}
-                        </select>
-                        <small>
-                          {map.mode === "racing"
-                            ? "RACING CIRCUIT"
-                            : "BOUNCE COURSE"}{" "}
-                          <span>·</span> {map.width} × {map.height}
-                        </small>
-                      </div>
-                    </div>
-                    <div className="canvas-heading-right">
-                      <span
-                        className={
-                          "status-badge " + (training.active ? "live" : "")
-                        }
-                      >
-                        <i />
-                        {training.active
-                          ? "TRAINING"
-                          : training.paused
-                            ? "PAUSED"
-                            : "READY"}
-                      </span>
-                      <IconButton
-                        icon={Settings2}
-                        label="설정 패널"
-                        onClick={() => setPanel(!panel)}
-                        active={panel}
-                      />
-                    </div>
-                  </div>
-                  <div className="viewport">
-                    <World
-                      animate={training.active}
-                      map={map}
-                      snapshot={page === "lab" ? snapshot : undefined}
-                      options={options}
-                      editing={page === "editor"}
-                      tool={tool}
-                      onChange={edit}
-                      selected={selected}
-                      onSelect={setSelected}
-                      zoom={zoom}
-                      ghost={training.ghosts[tab]}
-                    />
-                    <div className="canvas-top-left">
-                      <span className="canvas-label">
-                        {page === "editor" ? "EDIT MODE" : "SIMULATION VIEW"}
-                      </span>
-                      {page === "lab" && (
-                        <div className="algorithm-switch">
-                          <button
-                            className={tab === "GA" ? "active ga" : ""}
-                            onClick={() => setTab("GA")}
-                          >
-                            <span />
-                            GA
-                          </button>
-                          <button
-                            className={tab === "PPO" ? "active ppo" : ""}
-                            onClick={() => setTab("PPO")}
-                          >
-                            <span />
-                            PPO
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    {page === "editor" && (
-                      <div className="editor-tools">
-                        {tools.map((t) => (
-                          <IconButton
-                            key={t.tool}
-                            icon={t.icon}
-                            label={t.label}
-                            active={tool === t.tool}
-                            onClick={() => setTool(t.tool)}
-                          />
-                        ))}
-                        <span className="tool-separator" />
-                        <IconButton
-                          icon={Undo2}
-                          label="실행 취소"
-                          onClick={() => history()}
-                          disabled={!undo.current.length}
-                        />
-                        <IconButton
-                          icon={Redo2}
-                          label="다시 실행"
-                          onClick={() => history(true)}
-                          disabled={!redo.current.length}
-                        />
-                      </div>
-                    )}
-                    {page === "lab" && stats && (
-                      <div className="canvas-telemetry">
-                        <span>
-                          <i className={tab === "GA" ? "ga-dot" : "ppo-dot"} />
-                          {tab}{" "}
-                          {tab === "GA" ? "BEST POLICY" : "CURRENT POLICY"}
-                        </span>
-                        <strong>
-                          {Math.round(stats.progress * 100)}
-                          <small>%</small>
-                        </strong>
-                        <span>체크포인트 진행률</span>
-                        <div className="progress-line">
-                          <i style={{ width: `${stats.progress * 100}%` }} />
-                        </div>
-                      </div>
-                    )}
-                    <div className="canvas-bottom-left">
-                      <span className="coordinate">
-                        x {Math.round(snapshot?.state.x ?? map.start.x)}{" "}
-                        <span>·</span> y{" "}
-                        {Math.round(snapshot?.state.y ?? map.start.y)}
-                      </span>
-                      <span className="canvas-note">
-                        {page === "editor"
-                          ? tool === "road"
-                            ? "드래그하여 도로를 그리세요 · 체크포인트 자동 생성"
-                            : "10 px grid · 선택 도구로 객체 이동"
-                          : "DETERMINISTIC ENVIRONMENT · v1"}
-                      </span>
-                    </div>
-                    <div className="zoom-controls">
-                      <IconButton
-                        icon={ZoomOut}
-                        label="축소"
-                        onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
-                      />
-                      <span>{Math.round(zoom * 100)}%</span>
-                      <IconButton
-                        icon={ZoomIn}
-                        label="확대"
-                        onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
-                      />
-                      <IconButton
-                        icon={Maximize2}
-                        label="화면 맞춤"
-                        onClick={() => setZoom(1)}
-                      />
-                    </div>
-                  </div>
-                  <div className="playback-bar">
-                    <div className="playback-actions">
-                      {page === "lab" ? (
-                        <>
-                          <button
-                            className={
-                              "button " + (training.active ? "" : "primary")
-                            }
-                            onClick={() =>
-                              training.active
-                                ? training.send("PAUSE")
-                                : training.paused
-                                  ? training.send("RESUME")
-                                  : start()
-                            }
-                          >
-                            {training.active ? (
-                              <Pause size={16} />
-                            ) : (
-                              <Play size={16} />
-                            )}{" "}
-                            {training.active
-                              ? "일시정지"
-                              : training.paused
-                                ? "학습 재개"
-                                : "학습 시작"}
-                          </button>
-                          <IconButton
-                            icon={Square}
-                            label="학습 중지"
-                            onClick={() => training.send("STOP")}
-                            disabled={!locked}
-                          />
-                          <span className="playback-divider" />
-                          <span className="muted small">배속</span>
-                          <select
-                            aria-label="학습 배속"
-                            value={config.speed}
-                            onChange={(e) => {
-                              const c = {
-                                ...config,
-                                speed: Number(e.target.value),
-                              };
-                              setConfig(c);
-                              if (locked) training.send("UPDATE_CONFIG", c);
-                            }}
-                          >
-                            {[1, 2, 5, 10].map((n) => (
-                              <option key={n} value={n}>
-                                {n === 10 ? "MAX / 10×" : n + "×"}
-                              </option>
-                            ))}
-                          </select>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            className="button primary"
-                            onClick={() => {
-                              try {
-                                validateMap(map);
-                                notify(
-                                  "맵 구조와 출발 위치가 유효합니다. 완주 가능성은 실제 실행으로 확인하세요.",
-                                );
-                              } catch (e) {
-                                notify(String(e), true);
-                              }
-                            }}
-                          >
-                            <Check size={16} /> 맵 검사
-                          </button>
-                          <button
-                            className="text-btn"
-                            onClick={() => download(validateMap(map), map.name)}
-                          >
-                            <Download size={15} /> JSON
-                          </button>
-                        </>
-                      )}
-                    </div>
-                    <span className="runtime">
-                      <span className="tiny-dot" />
-                      {page === "lab"
-                        ? stats
-                          ? fmt(stats.stepsPerSecond) + " steps/s"
-                          : "학습 대기 중"
-                        : "변경 사항은 맵 저장으로 보관"}
-                    </span>
-                  </div>
-                </section>
-                {panel && (
-                  <aside className="settings-card">
-                    <div className="panel-heading">
-                      <span>
-                        <Settings2 size={16} />{" "}
-                        {page === "editor" ? "맵 속성" : "학습 설정"}
-                      </span>
-                      <IconButton
-                        icon={X}
-                        label="패널 닫기"
-                        onClick={() => setPanel(false)}
-                      />
-                    </div>
-                    {page === "lab" ? (
-                      <>
-                        <section className="settings-section">
-                          <div className="section-label">
-                            ALGORITHM <span>01</span>
-                          </div>
-                          <div className="algorithm-choices">
-                            {(["GA", "PPO", "both"] as const).map((a) => (
-                              <button
-                                key={a}
-                                disabled={locked}
-                                onClick={() => setMethod(a)}
-                                className={method === a ? "chosen" : ""}
-                              >
-                                <span className="radio" />
-                                <span>
-                                  {a === "both"
-                                    ? "GA + PPO"
-                                    : a === "GA"
-                                      ? "Genetic Algorithm"
-                                      : "Proximal Policy Opt."}
-                                  <small>
-                                    {a === "both"
-                                      ? "독립적인 동시 학습"
-                                      : a === "GA"
-                                        ? "신경망 가중치의 진화"
-                                        : "Actor–Critic 강화학습"}
-                                  </small>
-                                </span>
-                                {a === "both" && (
-                                  <span className="recommended">COMPARE</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </section>
-                        <section className="settings-section">
-                          <div className="section-label">
-                            HYPERPARAMETERS <span>02</span>
-                          </div>
-                          <Field
-                            label="개체군 크기"
-                            value={config.population}
-                            min={4}
-                            max={256}
-                            onChange={(n) => changeConfig("population", n)}
-                            disabled={locked}
-                          />
-                          <Field
-                            label="돌연변이 확률"
-                            value={config.mutation}
-                            min={0}
-                            max={1}
-                            step={0.01}
-                            onChange={(n) => changeConfig("mutation", n)}
-                            disabled={locked}
-                          />
-                          <Field
-                            label="학습률 (PPO)"
-                            value={config.learningRate}
-                            min={0.000001}
-                            max={0.1}
-                            step={0.0001}
-                            onChange={(n) => changeConfig("learningRate", n)}
-                            disabled={locked}
-                          />
-                          <Field
-                            label="에피소드 최대 스텝"
-                            value={config.horizon}
-                            min={30}
-                            max={10000}
-                            step={30}
-                            onChange={(n) => changeConfig("horizon", n)}
-                            disabled={locked}
-                          />
-                          <Field
-                            label="랜덤 시드"
-                            value={config.seed}
-                            min={0}
-                            max={4294967295}
-                            onChange={(n) => changeConfig("seed", n)}
-                            disabled={locked}
-                          />
-                          <button
-                            className="advanced-toggle"
-                            onClick={() => setAdvanced(!advanced)}
-                          >
-                            고급 설정{" "}
-                            <ChevronDown
-                              size={13}
-                              style={{
-                                transform: advanced ? "rotate(180deg)" : "",
-                              }}
-                            />
-                          </button>
-                          {advanced && (
-                            <div className="advanced-fields">
-                              {(
-                                [
-                                  ["elite", "엘리트 비율", 0.01, 0.5, 0.01],
-                                  ["crossover", "교차 확률", 0, 1, 0.05],
-                                  ["sigma", "변이 강도", 0, 2, 0.05],
-                                  ["rollout", "Rollout 길이", 16, 4096, 16],
-                                  ["epochs", "Epochs", 1, 20, 1],
-                                  ["minibatch", "Minibatch", 8, 512, 8],
-                                  ["gamma", "Gamma", 0, 1, 0.01],
-                                  ["lambda", "GAE lambda", 0, 1, 0.01],
-                                  ["clip", "PPO clip", 0.01, 0.5, 0.01],
-                                  ["entropy", "Entropy bonus", 0, 1, 0.001],
-                                ] as const
-                              ).map(([k, l, min, max, step]) => (
-                                <Field
-                                  key={k}
-                                  label={l}
-                                  value={config[k]}
-                                  min={min}
-                                  max={max}
-                                  step={step}
-                                  disabled={locked}
-                                  onChange={(n) => changeConfig(k, n)}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </section>
-                        <section className="settings-section visualization">
-                          <div className="section-label">
-                            VISUALIZATION <span>03</span>
-                          </div>
-                          {(
-                            [
-                              ["sensors", "센서 광선"],
-                              ["trail", "이동 경로"],
-                              ["collision", "충돌 영역"],
-                              ["all", "전체 GA 개체"],
-                              ["ghost", "이전 최고 기록 고스트"],
-                            ] as const
-                          ).map(([k, l]) => (
-                            <label className="toggle-row" key={k}>
-                              <span>{l}</span>
-                              <input
-                                type="checkbox"
-                                checked={options[k]}
-                                onChange={(e) =>
-                                  setOptions((o) => ({
-                                    ...o,
-                                    [k]: e.target.checked,
-                                  }))
-                                }
-                              />
-                              <span className="toggle" />
-                            </label>
-                          ))}
-                        </section>
-                        <div className="panel-footnote">
-                          <Box size={14} />
-                          <span>
-                            CPU backend · Web Workers
-                            <br />
-                            <small>
-                              두 알고리즘은 가중치를 공유하지 않습니다.
-                            </small>
-                          </span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <section className="settings-section">
-                          <label className="stack-field">
-                            맵 이름
-                            <input
-                              value={map.name}
-                              onChange={(e) =>
-                                edit({ ...map, name: e.target.value })
-                              }
-                            />
-                          </label>
-                          <label className="stack-field">
-                            설명
-                            <textarea
-                              value={map.description}
-                              onChange={(e) =>
-                                edit({ ...map, description: e.target.value })
-                              }
-                            />
-                          </label>
-                          {map.mode === "racing" && (
-                            <Field
-                              label="도로 폭"
-                              value={map.roadWidth}
-                              min={30}
-                              max={300}
-                              onChange={(n) => edit({ ...map, roadWidth: n })}
-                            />
-                          )}
-                          <Field
-                            label="출발 방향 (°)"
-                            value={Math.round(
-                              (map.start.angle * 180) / Math.PI,
-                            )}
-                            min={-180}
-                            max={180}
-                            onChange={(n) =>
-                              edit({
-                                ...map,
-                                start: {
-                                  ...map.start,
-                                  angle: (n * Math.PI) / 180,
-                                },
-                              })
-                            }
-                          />
-                          <Field
-                            label="최고 속도"
-                            value={map.physics.maxSpeed}
-                            min={10}
-                            max={800}
-                            onChange={(n) =>
-                              edit({
-                                ...map,
-                                physics: { ...map.physics, maxSpeed: n },
-                              })
-                            }
-                          />
-                          {map.mode === "bounce" && (
-                            <Field
-                              label="중력"
-                              value={map.physics.gravity}
-                              min={100}
-                              max={2500}
-                              onChange={(n) =>
-                                edit({
-                                  ...map,
-                                  physics: { ...map.physics, gravity: n },
-                                })
-                              }
-                            />
-                          )}
-                          <p className="helper">
-                            {map.mode === "racing"
-                              ? "도로 도구로 드래그하면 출발점·결승선·순서가 있는 체크포인트를 함께 생성합니다."
-                              : "도구를 선택하고 캔버스를 눌러 배치하세요. 이동 도구에서 객체를 드래그할 수 있습니다."}
-                          </p>
-                        </section>
-                        {object && (
-                          <section className="settings-section">
-                            <div className="section-label">
-                              SELECTED OBJECT <span>{object.kind}</span>
-                            </div>
-                            {(
-                              [
-                                "x",
-                                "y",
-                                "w",
-                                "h",
-                                ...(object.kind === "moving"
-                                  ? ["amplitude", "period"]
-                                  : []),
-                              ] as const
-                            ).map((k) => (
-                              <Field
-                                key={k}
-                                label={k}
-                                value={
-                                  object[k as keyof typeof object] as number
-                                }
-                                min={k === "period" ? 0.5 : 0}
-                                max={k === "period" ? 30 : 1000}
-                                step={k === "period" ? 0.5 : 10}
-                                onChange={(n) =>
-                                  edit({
-                                    ...map,
-                                    objects: map.objects.map((o) =>
-                                      o.id === selected ? { ...o, [k]: n } : o,
-                                    ),
-                                  })
-                                }
-                              />
-                            ))}
-                            <div className="row">
-                              <button
-                                className="button"
-                                onClick={() =>
-                                  edit({
-                                    ...map,
-                                    objects: [
-                                      ...map.objects,
-                                      {
-                                        ...object,
-                                        id: crypto.randomUUID(),
-                                        x: object.x + 20,
-                                        y: object.y + 20,
-                                      },
-                                    ],
-                                  })
-                                }
-                              >
-                                <Copy size={14} /> 복제
-                              </button>
-                              <button
-                                className="button"
-                                onClick={() => {
-                                  edit({
-                                    ...map,
-                                    objects: map.objects.filter(
-                                      (o) => o.id !== selected,
-                                    ),
-                                  });
-                                  setSelected("");
-                                }}
-                              >
-                                <Trash2 size={14} /> 삭제
-                              </button>
-                            </div>
-                          </section>
-                        )}
-                      </>
-                    )}
-                  </aside>
-                )}
-              </div>
-              {page === "lab" && (
-                <>
-                  <div className="metric-grid">
-                    {[
-                      {
-                        label: tab === "GA" ? "GENERATION" : "POLICY UPDATES",
-                        value: fmt(stats?.iteration),
-                        sub: tab === "GA" ? "진화 세대" : "정책 업데이트",
-                        icon: GitBranch,
-                      },
-                      {
-                        label: "ENVIRONMENT STEPS",
-                        value: fmt(stats?.steps),
-                        sub: fmt(stats?.episodes) + " episodes",
-                        icon: Layers,
-                      },
-                      {
-                        label: "BEST EVALUATION",
-                        value: fmt(stats?.best, 2),
-                        sub: "같은 시드 · 결정론적 정책 평가",
-                        icon: Target,
-                      },
-                      {
-                        label: "SUCCESS RATE",
-                        value: stats
-                          ? fmt(stats.successRate * 100, 1) + "%"
-                          : "—",
-                        sub: stats
-                          ? "평균 완주 " +
-                            (stats.completionTime
-                              ? fmt(stats.completionTime, 2) + " s"
-                              : "—")
-                          : "완료된 에피소드 기준",
-                        icon: Flag,
-                      },
-                    ].map(({ label, value, sub, icon: Icon }) => (
-                      <div className="metric-card" key={label}>
-                        <div>
-                          {label}
-                          <Icon size={15} />
-                        </div>
-                        <strong>{value}</strong>
-                        <small>{sub}</small>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="bottom-grid">
-                    <section className="graph-card">
-                      <div className="card-heading">
-                        <div>
-                          <h2>
-                            학습 성능 <span>Reward over environment steps</span>
-                          </h2>
-                        </div>
-                        <div className="legend">
-                          <span>
-                            <i className="ga-dot" /> GA
-                          </span>
-                          <span>
-                            <i className="ppo-dot" /> PPO
-                          </span>
-                        </div>
-                      </div>
-                      <Chart histories={histories} />
-                      <div className="graph-footer">
-                        <span>실제 환경 상호작용 횟수 기준</span>
-                        <button
-                          className="text-btn"
-                          onClick={() => navigate("compare")}
-                        >
-                          비교 대시보드 <ArrowRight size={13} />
-                        </button>
-                      </div>
-                    </section>
-                    <section className="session-card">
-                      <div className="card-heading">
-                        <h2>세션 정보</h2>
-                        <span className="small muted">{tab}</span>
-                      </div>
-                      <dl>
-                        <div>
-                          <dt>학습 상태</dt>
-                          <dd>{training.statuses[tab] ?? "idle"}</dd>
-                        </div>
-                        <div>
-                          <dt>경과 시간</dt>
-                          <dd>{stats ? fmt(stats.elapsed, 1) + " s" : "—"}</dd>
-                        </div>
-                        <div>
-                          <dt>최근 평균 보상</dt>
-                          <dd>{fmt(stats?.mean, 2)}</dd>
-                        </div>
-                        <div>
-                          <dt>
-                            {tab === "GA"
-                              ? "개체군 크기"
-                              : "정책 손실 / 가치 손실"}
-                          </dt>
-                          <dd>
-                            {tab === "GA"
-                              ? config.population
-                              : stats
-                                ? fmt(stats.policyLoss, 4) +
-                                  " / " +
-                                  fmt(stats.valueLoss, 4)
-                                : "—"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>{tab === "GA" ? "충돌 횟수" : "Entropy / KL"}</dt>
-                          <dd>
-                            {tab === "GA"
-                              ? fmt(stats?.collisions)
-                              : stats
-                                ? fmt(stats.entropy, 3) +
-                                  " / " +
-                                  fmt(stats.kl, 4)
-                                : "—"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>Tensor 메모리</dt>
-                          <dd>
-                            {stats
-                              ? fmt(stats.bytes / 1024, 1) +
-                                " KB · " +
-                                stats.tensors
-                              : "—"}
-                          </dd>
-                        </div>
-                      </dl>
-                      <div className="session-buttons">
-                        <button
-                          className="button"
-                          disabled={!snapshot}
-                          onClick={saveInference}
-                        >
-                          <Save size={14} /> 모델 저장
-                        </button>
-                        <button
-                          className="button"
-                          disabled={!snapshot || !locked}
-                          onClick={() =>
-                            training.send("SAVE_CHECKPOINT", undefined, tab)
-                          }
-                        >
-                          <ArrowDownToLine size={14} /> 체크포인트
-                        </button>
-                      </div>
-                    </section>
-                  </div>
-                </>
-              )}
-            </>
+            <Studio
+              editing={page === "editor"}
+              map={map}
+              maps={allMaps}
+              config={config}
+              onConfig={setConfig}
+              method={method}
+              onMethod={setMethod}
+              training={training}
+              tab={tab}
+              onTab={setTab}
+              options={options}
+              onOptions={setOptions}
+              onMapChange={edit}
+              onChooseMap={chooseMap}
+              canUndo={!!undo.current.length}
+              canRedo={!!redo.current.length}
+              onUndo={() => history()}
+              onRedo={() => history(true)}
+              onStart={start}
+              onSaveInference={() => void saveInference()}
+              onSaveMap={() => void saveMap()}
+              onCompare={() => navigate("compare")}
+              onModels={() => navigate("models")}
+              onError={(message) => notify(message, true)}
+            />
           )}
           {page === "home" && (
             <>
@@ -1739,11 +954,11 @@ export default function App() {
           )}
           <footer className="main-footer">
             <span>
-              <span className="tiny-dot" /> Computed on your device. Stored in
-              your browser.
+              <span className="tiny-dot" /> 학습과 저장은 이 브라우저에서
+              실행됩니다.
             </span>
             <span>
-              EvoTrack <span> / </span> Explore. Evolve. Understand.
+              EvoTrack <span> / </span> 자율 학습 실험 도구
             </span>
           </footer>
         </main>

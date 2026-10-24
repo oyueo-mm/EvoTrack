@@ -18,20 +18,37 @@ export function createPolicy(
     ),
   };
 }
-export function logits(policy: PolicyData, obs: ArrayLike<number>) {
-  const { input, hidden, output, weights: w } = policy;
-  const h = new Float32Array(hidden);
+const scratch = new WeakMap<
+  PolicyData,
+  { hidden: Float32Array; output: Float64Array }
+>();
+export function logitsInto(policy: PolicyData, obs: ArrayLike<number>) {
+  let buffers = scratch.get(policy);
+  if (!buffers) {
+    buffers = {
+      hidden: new Float32Array(policy.hidden),
+      output: new Float64Array(policy.output),
+    };
+    scratch.set(policy, buffers);
+  }
+  const { input, hidden, output, weights: w } = policy,
+    h = buffers.hidden,
+    out = buffers.output;
   for (let j = 0; j < hidden; j++) {
-    let s = w[input * hidden + j];
-    for (let i = 0; i < input; i++) s += obs[i] * w[i * hidden + j];
-    h[j] = Math.tanh(s);
+    let sum = w[input * hidden + j];
+    for (let i = 0; i < input; i++) sum += obs[i] * w[i * hidden + j];
+    h[j] = Math.tanh(sum);
   }
   const offset = input * hidden + hidden;
-  return Array.from({ length: output }, (_, k) => {
-    let v = w[offset + hidden * output + k];
-    for (let j = 0; j < hidden; j++) v += h[j] * w[offset + j * output + k];
-    return v;
-  });
+  for (let k = 0; k < output; k++) {
+    let sum = w[offset + hidden * output + k];
+    for (let j = 0; j < hidden; j++) sum += h[j] * w[offset + j * output + k];
+    out[k] = sum;
+  }
+  return out;
+}
+export function logits(policy: PolicyData, obs: ArrayLike<number>) {
+  return Array.from(logitsInto(policy, obs));
 }
 export function softmax(values: number[]) {
   const mx = Math.max(...values),
@@ -40,8 +57,10 @@ export function softmax(values: number[]) {
   return e.map((v) => v / sum);
 }
 export function actionOf(policy: PolicyData, obs: ArrayLike<number>) {
-  const v = logits(policy, obs);
-  return v.indexOf(Math.max(...v));
+  const v = logitsInto(policy, obs);
+  let best = 0;
+  for (let i = 1; i < v.length; i++) if (v[i] > v[best]) best = i;
+  return best;
 }
 export function sample(prob: number[], rng: Random) {
   let p = rng.next();

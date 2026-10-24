@@ -88,6 +88,7 @@ const labels = {
   wall: "벽",
   platform: "고정 발판",
   moving: "이동 발판",
+  crumble: "일회용 발판",
   spike: "가시",
   spring: "점프대",
   elastic: "탄성 발판",

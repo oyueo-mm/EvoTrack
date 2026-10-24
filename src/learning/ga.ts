@@ -1,5 +1,6 @@
 import { Simulator } from "../core/environment";
 import { Random } from "../core/random";
+import { observationSizeFor } from "../core/types";
 import type { AgentState, Config, PolicyData, TrackMap } from "../core/types";
 import { actionOf, createPolicy } from "./network";
 export interface GACheckpoint {
@@ -102,7 +103,11 @@ export class GeneticTrainer {
   ) {
     this.rng = new Random(config.seed);
     this.population = Array.from({ length: config.population }, () =>
-      createPolicy(12, map.mode === "racing" ? 5 : 6, this.rng),
+      createPolicy(
+        observationSizeFor(map),
+        map.mode === "racing" ? 5 : 6,
+        this.rng,
+      ),
     );
   }
   tournament(scores: number[]) {

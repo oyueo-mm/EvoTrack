@@ -229,7 +229,7 @@ test("inspector explains and persists launch properties; leaving dirty edits war
   await page.goto("./#maps");
   await page.reload();
   await page
-    .getByRole("button", { name: "속성 검증 (v4) 편집", exact: true })
+    .getByRole("button", { name: "속성 검증 (v5) 편집", exact: true })
     .click();
   await page.getByRole("tab", { name: "레이어", exact: true }).click();
   await page.getByRole("button", { name: /레이어 선택 탄성 발판/ }).click();

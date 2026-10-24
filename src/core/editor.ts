@@ -463,30 +463,34 @@ export function pasteSelection(
   };
 }
 
-export function v4EditorName(name: string) {
+export function latestEditorName(name: string) {
   let base = name.trim(),
     previous = "";
   while (base !== previous) {
     previous = base;
     base = base
       .replace(
-        /(?:\s*·\s*(?:확장 편집본|요소 확장본|게이트 편집본|편집본)|\s*\(v[1-4]\))\s*$/,
+        /(?:\s*·\s*(?:확장 편집본|요소 확장본|게이트 편집본|편집본)|\s+(?:확장 편집본|요소 확장본|게이트 편집본|편집본)|\s*\(v[1-5]\))\s*$/,
         "",
       )
       .trim();
   }
-  return `${base || "Untitled"} (v4)`;
+  return `${base || "Untitled"} (v5)`;
 }
-export function editableV4(map: TrackMap, forceCopy = false): TrackMap {
-  if (map.environmentVersion === 4 && !forceCopy) return structuredClone(map);
+export function editableLatest(map: TrackMap, forceCopy = false): TrackMap {
+  if (map.environmentVersion === 5 && !forceCopy) return structuredClone(map);
   const now = new Date().toISOString();
   return {
     ...structuredClone(map),
     id: crypto.randomUUID(),
     sourceMapId: map.sourceMapId ?? map.id,
-    name: v4EditorName(map.name),
-    environmentVersion: 4,
+    name: latestEditorName(map.name),
+    environmentVersion: 5,
     createdAt: now,
     updatedAt: now,
   };
 }
+
+/** Backward source aliases; editor always uses latest physics. */
+export const editableV4 = editableLatest;
+export const v4EditorName = latestEditorName;

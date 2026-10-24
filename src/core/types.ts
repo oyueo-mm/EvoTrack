@@ -13,8 +13,8 @@ export interface Checkpoint extends Point {
   directional?: boolean;
 }
 export interface Schemas {
-  environment: 1 | 2 | 3 | 4;
-  observation: 1;
+  environment: 1 | 2 | 3 | 4 | 5;
+  observation: 1 | 2;
   action: 1;
 }
 export interface MapObject extends Point {
@@ -23,6 +23,7 @@ export interface MapObject extends Point {
     | "wall"
     | "platform"
     | "moving"
+    | "crumble"
     | "spike"
     | "spring"
     | "elastic"
@@ -34,6 +35,12 @@ export interface MapObject extends Point {
   h: number;
   amplitude?: number;
   period?: number;
+  moveAxis?: "horizontal" | "vertical" | "custom";
+  moveAngle?: number;
+  phase?: number;
+  collapseDelay?: number;
+  regenerate?: boolean;
+  restoreDelay?: number;
   angle?: number;
   launchStrength?: number;
   /** Launch direction relative to the object's rotation, radians. */
@@ -65,9 +72,11 @@ export interface TrackMap {
   description: string;
   mode: Mode;
   version: 1;
-  environmentVersion?: 1 | 2 | 3 | 4;
+  environmentVersion?: 1 | 2 | 3 | 4 | 5;
   category?: "standard" | "tutorial";
   sourceMapId?: string;
+  variantOf?: string;
+  recommended?: boolean;
   difficulty?: "Easy" | "Medium" | "Hard";
   features?: string[];
   recommendedHorizon?: number;
@@ -104,6 +113,9 @@ export interface AgentState extends Point {
   progress: number;
   trail: Point[];
   sensors?: number[];
+  /** Per Simulator state, never written to TrackMap. */
+  platforms?: Record<string, { triggeredAt: number; collapsedAt?: number }>;
+  environmentSeed?: number;
   respawns?: number;
   shapingTotal?: number;
   shapingReward?: number;
@@ -139,7 +151,10 @@ export const SCHEMAS: Schemas = { environment: 2, observation: 1, action: 1 };
 export const schemasFor = (map: TrackMap): Schemas => ({
   ...SCHEMAS,
   environment: map.environmentVersion ?? 1,
+  observation: map.environmentVersion === 5 && map.mode === "bounce" ? 2 : 1,
 });
+export const observationSizeFor = (map: TrackMap) =>
+  schemasFor(map).observation === 2 ? 18 : 12;
 export const ACTIONS = {
   racing: [
     "accelerate",
@@ -168,6 +183,8 @@ export interface Config {
   entropy: number;
   speed: number;
   trainingMode?: "observe" | "fast";
+  targetKL?: number;
+  curriculum?: boolean;
 }
 export const DEFAULT_CONFIG: Config = {
   seed: 42,
@@ -207,6 +224,18 @@ export interface TrainingStats {
   tensors: number;
   bytes: number;
   stepsPerSecond: number;
+  diagnostics?: {
+    advantageMean: number;
+    advantageStd: number;
+    gradientNorm: number;
+    clipFraction: number;
+    actionProbabilities: number[];
+    episodeLength: number;
+    policyChange: number;
+    collectMs: number;
+    updateMs: number;
+    earlyStopped: boolean;
+  };
 }
 export interface PolicyData {
   input: number;
@@ -248,6 +277,7 @@ export interface SavedModel {
   checkpoint?: unknown;
   policySelection?: PolicySummary;
   bestPolicy?: PolicyRecord;
+  curriculumState?: { stage: number; passes: number; target: TrackMap };
 }
 export interface Snapshot {
   stats: TrainingStats;
@@ -271,6 +301,10 @@ export interface Snapshot {
     frameBytes: number;
     bestProgress: number;
     learningEnvironmentCount?: number;
+    backend?: string;
+    backendSupport?: Record<string, string>;
+    curriculum?: { stage: number; name: string; passes: number };
+    activeMap?: TrackMap;
   };
   debug?: { transition?: unknown; policyChecksum: number };
   live?: {
@@ -287,6 +321,7 @@ export interface Snapshot {
   };
 }
 export type CommandName =
+  | "BENCHMARK_BACKENDS"
   | "INSPECT_POLICIES"
   | "FRAME_ACK"
   | "START"
@@ -311,7 +346,7 @@ export interface Command {
   debug?: boolean;
 }
 export interface WorkerReply {
-  type: "ACK" | "SNAPSHOT" | "CHECKPOINT" | "ERROR" | "POLICIES";
+  type: "ACK" | "SNAPSHOT" | "CHECKPOINT" | "ERROR" | "POLICIES" | "BACKENDS";
   session: string;
   requestId: number;
   status?: "running" | "paused" | "stopped";
@@ -319,4 +354,5 @@ export interface WorkerReply {
   model?: SavedModel;
   error?: string;
   catalog?: PolicyCatalog;
+  backends?: Record<string, unknown>;
 }

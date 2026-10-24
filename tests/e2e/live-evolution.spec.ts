@@ -72,7 +72,7 @@ test("legacy backups preserve originals; v1 inference/evaluation stays on v1 aft
   await page.getByLabel("현재 맵").selectOption(map.id);
   await page.getByRole("button", { name: "맵 편집", exact: true }).click();
   await expect(page.getByLabel("맵 이름", { exact: true })).toHaveValue(
-    "이전 맵 (v4)",
+    "이전 맵 (v5)",
   );
   await page.getByRole("button", { name: "맵 저장", exact: true }).click();
   await page.getByRole("button", { name: "학습하기", exact: true }).click();
@@ -85,7 +85,7 @@ test("legacy backups preserve originals; v1 inference/evaluation stays on v1 aft
     }),
   ).toHaveCount(1);
   await expect(
-    page.locator(".map-card").filter({ hasText: "이전 맵 (v4)" }),
+    page.locator(".map-card").filter({ hasText: "이전 맵 (v5)" }),
   ).toHaveCount(1);
   await page
     .getByRole("button", { name: "모델 라이브러리", exact: false })
@@ -371,5 +371,5 @@ test("difficulty filters expose new physically validated maps", async ({
     page.locator(".map-card").filter({ hasText: "연속 헤어핀" }).first(),
   ).toBeVisible();
   await page.getByLabel("맵 난이도").selectOption("Medium");
-  await expect(page.locator(".map-card")).toHaveCount(4);
+  await expect(page.locator(".map-card")).toHaveCount(12);
 });

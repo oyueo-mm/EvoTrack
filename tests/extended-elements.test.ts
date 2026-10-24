@@ -233,7 +233,7 @@ describe("environment v4 elements", () => {
       },
     ]);
     expect(validateMap(JSON.parse(JSON.stringify(map)))).toEqual(map);
-    expect(schemasFor(newMap("bounce")).environment).toBe(4);
+    expect(schemasFor(newMap("bounce")).environment).toBe(5);
     expect(() => validateMap({ ...map, environmentVersion: 3 })).toThrow();
     expect(() =>
       validateMap(racing([zone({ rewardValue: Infinity })])),

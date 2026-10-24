@@ -1,3 +1,4 @@
+import { PlatformProperties } from "./PlatformProperties";
 import { ExtendedProperties } from "./ExtendedProperties";
 import { ELEMENT_INFO } from "../../core/elements";
 import { Copy, Trash2 } from "lucide-react";
@@ -115,6 +116,7 @@ export function EditorPanel({
                           wall: "벽",
                           platform: "고정 발판",
                           moving: "이동 발판",
+                          crumble: "일회용 발판",
                           spike: "가시",
                           spring: "점프대",
                           elastic: "탄성 발판",
@@ -308,7 +310,7 @@ export function EditorPanel({
                                 o.id === object.id
                                   ? {
                                       ...o,
-                                      ...(map.environmentVersion === 4
+                                      ...((map.environmentVersion ?? 1) >= 4
                                         ? { bounceCoefficient: restitution }
                                         : { restitution }),
                                     }
@@ -320,7 +322,7 @@ export function EditorPanel({
                       )}
                     </>
                   )}
-                  {map.environmentVersion === 4 && (
+                  {(map.environmentVersion ?? 1) >= 4 && (
                     <ExtendedProperties
                       object={object}
                       disabled={disabled}
@@ -352,6 +354,20 @@ export function EditorPanel({
                                   map,
                                 )
                               : o,
+                          ),
+                        })
+                      }
+                    />
+                  )}
+                  {map.environmentVersion === 5 && (
+                    <PlatformProperties
+                      object={object}
+                      disabled={disabled}
+                      onChange={(patch) =>
+                        onChange({
+                          ...map,
+                          objects: map.objects.map((o) =>
+                            o.id === object.id ? { ...o, ...patch } : o,
                           ),
                         })
                       }

@@ -1,0 +1,44 @@
+{
+  "cpu": {
+    "backend": "cpu",
+    "samples": 640,
+    "elapsedMs": 76.30000000447035,
+    "transitionsPerSecond": 8387.942332405019,
+    "collectMs": 25,
+    "updateMs": 49.5,
+    "updateMeanMs": 9.9,
+    "memory": {
+      "unreliable": true,
+      "reasons": [
+        "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+      ],
+      "numTensors": 26,
+      "numDataBuffers": 26,
+      "numBytes": 9296
+    },
+    "policyFinite": true
+  },
+  "webgl": {
+    "backend": "webgl",
+    "samples": 640,
+    "elapsedMs": 458.70000000298023,
+    "transitionsPerSecond": 1395.247438403841,
+    "collectMs": 22.600000001490116,
+    "updateMs": 355.1000000014901,
+    "updateMeanMs": 71.02000000029803,
+    "memory": {
+      "unreliable": false,
+      "numBytesInGPU": 10560,
+      "numBytesInGPUAllocated": 224712,
+      "numBytesInGPUFree": 214152,
+      "numTensors": 26,
+      "numDataBuffers": 26,
+      "numBytes": 9296
+    },
+    "policyFinite": true
+  },
+  "webgpu": {
+    "supported": false,
+    "reason": "Error: backend not registered"
+  }
+}

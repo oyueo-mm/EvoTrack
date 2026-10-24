@@ -1,0 +1,7506 @@
+{
+  "measuredAt": "2026-10-24T13:59:22.264Z",
+  "hardware": {
+    "cpu": "Intel(R) Core(TM) Ultra 7 256V",
+    "logicalCores": 8,
+    "os": "win32 10.0.26200"
+  },
+  "backend": "tfjs-cpu / Node",
+  "budget": 32768,
+  "seeds": [
+    17,
+    42,
+    89
+  ],
+  "note": "Preliminary 3-seed experiment; step timing includes observations; evaluation has separate wall time. Scripted reachability is not AI success. Node timings do not represent browser rendering.",
+  "profiles": [
+    {
+      "id": "r-straight",
+      "stepMs": 68.63409999999999,
+      "observeMs": 1.8643000000000143,
+      "inferenceMs": 5.015600000000006,
+      "resetMs": 2.0206000000000017,
+      "serializeMs": 2.8087000000000444,
+      "counts": {
+        "step": 4000,
+        "observe": 4000,
+        "inference": 4000,
+        "reset": 200,
+        "serialize": 1000
+      }
+    },
+    {
+      "id": "r-serpent",
+      "stepMs": 45.49779999999919,
+      "observeMs": 1.1625999999996566,
+      "inferenceMs": 5.228699999999662,
+      "resetMs": 2.10779999999977,
+      "serializeMs": 2.4496999999992113,
+      "counts": {
+        "step": 4000,
+        "observe": 4000,
+        "inference": 4000,
+        "reset": 200,
+        "serialize": 1000
+      }
+    },
+    {
+      "id": "r-angled-walls",
+      "stepMs": 84.01729999999952,
+      "observeMs": 1.3427999999985332,
+      "inferenceMs": 4.983099999997648,
+      "resetMs": 3.624500000001717,
+      "serializeMs": 2.313300000001618,
+      "counts": {
+        "step": 4000,
+        "observe": 4000,
+        "inference": 4000,
+        "reset": 200,
+        "serialize": 1000
+      }
+    },
+    {
+      "id": "b-jump",
+      "stepMs": 8.591099999997823,
+      "observeMs": 1.0305000000007567,
+      "inferenceMs": 5.527099999999336,
+      "resetMs": 0.11099999999714782,
+      "serializeMs": 2.2884000000049127,
+      "counts": {
+        "step": 4000,
+        "observe": 4000,
+        "inference": 4000,
+        "reset": 200,
+        "serialize": 1000
+      }
+    },
+    {
+      "id": "b-moving",
+      "stepMs": 3.441900000005262,
+      "observeMs": 0.8292999999976018,
+      "inferenceMs": 5.5645000000004075,
+      "resetMs": 0.0981000000028871,
+      "serializeMs": 2.273300000000745,
+      "counts": {
+        "step": 4000,
+        "observe": 4000,
+        "inference": 4000,
+        "reset": 200,
+        "serialize": 1000
+      }
+    },
+    {
+      "id": "b-spikes",
+      "stepMs": 7.263699999995879,
+      "observeMs": 0.7369000000035157,
+      "inferenceMs": 5.4174999999959255,
+      "resetMs": 0.12340000001131557,
+      "serializeMs": 2.9254000000073574,
+      "counts": {
+        "step": 4000,
+        "observe": 4000,
+        "inference": 4000,
+        "reset": 200,
+        "serialize": 1000
+      }
+    },
+    {
+      "algorithm": "GA",
+      "population": 32,
+      "steps": 63771,
+      "elapsedMs": 774.8447000000015,
+      "checksum": 1361.377296221548,
+      "score": 65.1364943565507
+    },
+    {
+      "algorithm": "GA",
+      "population": 64,
+      "steps": 118616,
+      "elapsedMs": 1451.7946999999986,
+      "checksum": 1808.055552245896,
+      "score": 65.08879956934845
+    }
+  ],
+  "runs": [
+    {
+      "id": "r-straight",
+      "algorithm": "GA",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32770,
+      "updates": 2,
+      "trainMs": 393.61100000000147,
+      "evalMs": 20.639099999999985,
+      "elapsedMs": 462.2072,
+      "transitionsPerSecond": 83254.78708674268,
+      "firstSuccess": 16760,
+      "collisions": 28,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 66.20030636778597,
+        "completionTime": 4.266666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 256,
+            "reward": 66.20030636778597,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.266666666666667
+          },
+          {
+            "steps": 256,
+            "reward": 66.20030636778597,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.266666666666667
+          },
+          {
+            "steps": 256,
+            "reward": 66.20030636778597,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.266666666666667
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.7089706664134,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "r-straight",
+      "algorithm": "GA",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32771,
+      "updates": 2,
+      "trainMs": 385.0560999999992,
+      "evalMs": 17.769700000000057,
+      "elapsedMs": 419.8587,
+      "transitionsPerSecond": 85107.0792022255,
+      "firstSuccess": 15616,
+      "collisions": 16,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.83093880099514,
+        "completionTime": 4.183333333333334,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 251,
+            "reward": 65.83093880099514,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.183333333333334
+          },
+          {
+            "steps": 251,
+            "reward": 65.83093880099514,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.183333333333334
+          },
+          {
+            "steps": 251,
+            "reward": 65.83093880099514,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.183333333333334
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.7089706664134,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 0,
+        "meanProgress": 0.16846913400401775,
+        "meanReward": 1.4160759010916035,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 98,
+            "reward": 1.4160759010916038,
+            "progress": 0.16846913400401775,
+            "success": false,
+            "collisions": 1,
+            "time": 1.6333333333333333
+          },
+          {
+            "steps": 98,
+            "reward": 1.4160759010916038,
+            "progress": 0.16846913400401775,
+            "success": false,
+            "collisions": 1,
+            "time": 1.6333333333333333
+          },
+          {
+            "steps": 98,
+            "reward": 1.4160759010916038,
+            "progress": 0.16846913400401775,
+            "success": false,
+            "collisions": 1,
+            "time": 1.6333333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "r-straight",
+      "algorithm": "GA",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32781,
+      "updates": 1,
+      "trainMs": 371.28899999999976,
+      "evalMs": 8.967399999999998,
+      "elapsedMs": 397.5682999999999,
+      "transitionsPerSecond": 88289.71501983635,
+      "firstSuccess": 17749,
+      "collisions": 10,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.7089706664134,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.7089706664134,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 0,
+        "meanProgress": 0.16846913400401775,
+        "meanReward": 1.4160759010916035,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 98,
+            "reward": 1.4160759010916038,
+            "progress": 0.16846913400401775,
+            "success": false,
+            "collisions": 1,
+            "time": 1.6333333333333333
+          },
+          {
+            "steps": 98,
+            "reward": 1.4160759010916038,
+            "progress": 0.16846913400401775,
+            "success": false,
+            "collisions": 1,
+            "time": 1.6333333333333333
+          },
+          {
+            "steps": 98,
+            "reward": 1.4160759010916038,
+            "progress": 0.16846913400401775,
+            "success": false,
+            "collisions": 1,
+            "time": 1.6333333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "r-straight",
+      "algorithm": "PPO",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 4114.190799999976,
+      "evalMs": 387.86619999999857,
+      "elapsedMs": 4524.1622,
+      "transitionsPerSecond": 7964.628183991903,
+      "firstSuccess": 7680,
+      "collisions": 54,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.7089706664134,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.86718584349879,
+        "completionTime": 4.2,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 252,
+            "reward": 65.86718584349879,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.2
+          },
+          {
+            "steps": 252,
+            "reward": 65.86718584349879,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.2
+          },
+          {
+            "steps": 252,
+            "reward": 65.86718584349879,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.2
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 58.50660095137508,
+        "completionTime": 14.433333333333332,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 866,
+            "reward": 58.50660095137508,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 14.433333333333334
+          },
+          {
+            "steps": 866,
+            "reward": 58.50660095137508,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 14.433333333333334
+          },
+          {
+            "steps": 866,
+            "reward": 58.50660095137508,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 14.433333333333334
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 0,
+        "meanProgress": 0.431787025219589,
+        "meanReward": 13.643465389130862,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 197,
+            "reward": 13.643465389130863,
+            "progress": 0.431787025219589,
+            "success": false,
+            "collisions": 1,
+            "time": 3.283333333333333
+          },
+          {
+            "steps": 197,
+            "reward": 13.643465389130863,
+            "progress": 0.431787025219589,
+            "success": false,
+            "collisions": 1,
+            "time": 3.283333333333333
+          },
+          {
+            "steps": 197,
+            "reward": 13.643465389130863,
+            "progress": 0.431787025219589,
+            "success": false,
+            "collisions": 1,
+            "time": 3.283333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9296
+      }
+    },
+    {
+      "id": "r-straight",
+      "algorithm": "PPO",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 3972.9005000000343,
+      "evalMs": 326.9968000000026,
+      "elapsedMs": 4322.750099999999,
+      "transitionsPerSecond": 8247.878344801164,
+      "firstSuccess": 6400,
+      "collisions": 49,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.7089706664134,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.69636872755808,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.69636872755808,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.69636872755808,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.69636872755808,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 0,
+        "meanProgress": 0.41553807901515866,
+        "meanReward": 13.196819350730827,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 191,
+            "reward": 13.196819350730827,
+            "progress": 0.41553807901515866,
+            "success": false,
+            "collisions": 1,
+            "time": 3.183333333333333
+          },
+          {
+            "steps": 191,
+            "reward": 13.196819350730827,
+            "progress": 0.41553807901515866,
+            "success": false,
+            "collisions": 1,
+            "time": 3.183333333333333
+          },
+          {
+            "steps": 191,
+            "reward": 13.196819350730827,
+            "progress": 0.41553807901515866,
+            "success": false,
+            "collisions": 1,
+            "time": 3.183333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9296
+      }
+    },
+    {
+      "id": "r-straight",
+      "algorithm": "PPO",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 4006.1186000000453,
+      "evalMs": 200.9945000000007,
+      "elapsedMs": 4236.098899999999,
+      "transitionsPerSecond": 8179.488245804712,
+      "firstSuccess": 10240,
+      "collisions": 70,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.72749186919441,
+        "completionTime": 4.166666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 250,
+            "reward": 65.72749186919441,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.166666666666667
+          },
+          {
+            "steps": 250,
+            "reward": 65.72749186919441,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.166666666666667
+          },
+          {
+            "steps": 250,
+            "reward": 65.72749186919441,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.166666666666667
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.69716173314171,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.69716173314171,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.69716173314171,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.69716173314171,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 75.11648064987381,
+        "completionTime": 5.566666666666666,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 334,
+            "reward": 75.11648064987381,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.566666666666666
+          },
+          {
+            "steps": 334,
+            "reward": 75.11648064987381,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.566666666666666
+          },
+          {
+            "steps": 334,
+            "reward": 75.11648064987381,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.566666666666666
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9296
+      }
+    },
+    {
+      "id": "r-serpent",
+      "algorithm": "GA",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32769,
+      "updates": 2,
+      "trainMs": 398.659999999978,
+      "evalMs": 18.38340000000062,
+      "elapsedMs": 442.8282999999992,
+      "transitionsPerSecond": 82197.86284052026,
+      "firstSuccess": null,
+      "collisions": 38,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.7272270617919516,
+        "meanReward": 26.992986056282387,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 268,
+            "reward": 26.992986056282387,
+            "progress": 0.7272270617919516,
+            "success": false,
+            "collisions": 1,
+            "time": 4.466666666666667
+          },
+          {
+            "steps": 268,
+            "reward": 26.992986056282387,
+            "progress": 0.7272270617919516,
+            "success": false,
+            "collisions": 1,
+            "time": 4.466666666666667
+          },
+          {
+            "steps": 268,
+            "reward": 26.992986056282387,
+            "progress": 0.7272270617919516,
+            "success": false,
+            "collisions": 1,
+            "time": 4.466666666666667
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.7272270617919516,
+        "meanReward": 26.992986056282387,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 268,
+            "reward": 26.992986056282387,
+            "progress": 0.7272270617919516,
+            "success": false,
+            "collisions": 1,
+            "time": 4.466666666666667
+          },
+          {
+            "steps": 268,
+            "reward": 26.992986056282387,
+            "progress": 0.7272270617919516,
+            "success": false,
+            "collisions": 1,
+            "time": 4.466666666666667
+          },
+          {
+            "steps": 268,
+            "reward": 26.992986056282387,
+            "progress": 0.7272270617919516,
+            "success": false,
+            "collisions": 1,
+            "time": 4.466666666666667
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 66.20030636778597,
+        "completionTime": 4.266666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 256,
+            "reward": 66.20030636778597,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.266666666666667
+          },
+          {
+            "steps": 256,
+            "reward": 66.20030636778597,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.266666666666667
+          },
+          {
+            "steps": 256,
+            "reward": 66.20030636778597,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.266666666666667
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "r-serpent",
+      "algorithm": "GA",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32773,
+      "updates": 2,
+      "trainMs": 403.106199999962,
+      "evalMs": 25.901099999999133,
+      "elapsedMs": 456.3022000000001,
+      "transitionsPerSecond": 81301.15587406766,
+      "firstSuccess": null,
+      "collisions": 36,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.9816675304602803,
+        "meanReward": 39.11868750143404,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 340,
+            "reward": 39.11868750143404,
+            "progress": 0.9816675304602803,
+            "success": false,
+            "collisions": 1,
+            "time": 5.666666666666667
+          },
+          {
+            "steps": 340,
+            "reward": 39.11868750143404,
+            "progress": 0.9816675304602803,
+            "success": false,
+            "collisions": 1,
+            "time": 5.666666666666667
+          },
+          {
+            "steps": 340,
+            "reward": 39.11868750143404,
+            "progress": 0.9816675304602803,
+            "success": false,
+            "collisions": 1,
+            "time": 5.666666666666667
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.9816675304602803,
+        "meanReward": 39.11868750143404,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 340,
+            "reward": 39.11868750143404,
+            "progress": 0.9816675304602803,
+            "success": false,
+            "collisions": 1,
+            "time": 5.666666666666667
+          },
+          {
+            "steps": 340,
+            "reward": 39.11868750143404,
+            "progress": 0.9816675304602803,
+            "success": false,
+            "collisions": 1,
+            "time": 5.666666666666667
+          },
+          {
+            "steps": 340,
+            "reward": 39.11868750143404,
+            "progress": 0.9816675304602803,
+            "success": false,
+            "collisions": 1,
+            "time": 5.666666666666667
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.84504217355939,
+        "completionTime": 4.2,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 252,
+            "reward": 65.84504217355939,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.2
+          },
+          {
+            "steps": 252,
+            "reward": 65.84504217355939,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.2
+          },
+          {
+            "steps": 252,
+            "reward": 65.84504217355939,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.2
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "r-serpent",
+      "algorithm": "GA",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32778,
+      "updates": 2,
+      "trainMs": 388.857600000023,
+      "evalMs": 13.92239999999947,
+      "elapsedMs": 434.8503000000019,
+      "transitionsPerSecond": 84293.06769367002,
+      "firstSuccess": null,
+      "collisions": 34,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.276193958421289,
+        "meanReward": 9.015850156492808,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 198,
+            "reward": 9.015850156492808,
+            "progress": 0.276193958421289,
+            "success": false,
+            "collisions": 1,
+            "time": 3.3
+          },
+          {
+            "steps": 198,
+            "reward": 9.015850156492808,
+            "progress": 0.276193958421289,
+            "success": false,
+            "collisions": 1,
+            "time": 3.3
+          },
+          {
+            "steps": 198,
+            "reward": 9.015850156492808,
+            "progress": 0.276193958421289,
+            "success": false,
+            "collisions": 1,
+            "time": 3.3
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.276193958421289,
+        "meanReward": 9.015850156492808,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 198,
+            "reward": 9.015850156492808,
+            "progress": 0.276193958421289,
+            "success": false,
+            "collisions": 1,
+            "time": 3.3
+          },
+          {
+            "steps": 198,
+            "reward": 9.015850156492808,
+            "progress": 0.276193958421289,
+            "success": false,
+            "collisions": 1,
+            "time": 3.3
+          },
+          {
+            "steps": 198,
+            "reward": 9.015850156492808,
+            "progress": 0.276193958421289,
+            "success": false,
+            "collisions": 1,
+            "time": 3.3
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 0,
+        "meanProgress": 0.467894152703648,
+        "meanReward": 8.558962439545233,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 408,
+            "reward": 8.558962439545233,
+            "progress": 0.467894152703648,
+            "success": false,
+            "collisions": 1,
+            "time": 6.8
+          },
+          {
+            "steps": 408,
+            "reward": 8.558962439545233,
+            "progress": 0.467894152703648,
+            "success": false,
+            "collisions": 1,
+            "time": 6.8
+          },
+          {
+            "steps": 408,
+            "reward": 8.558962439545233,
+            "progress": 0.467894152703648,
+            "success": false,
+            "collisions": 1,
+            "time": 6.8
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "r-serpent",
+      "algorithm": "PPO",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 4114.37889999996,
+      "evalMs": 188.82599999999366,
+      "elapsedMs": 4344.8848,
+      "transitionsPerSecond": 7964.264059394317,
+      "firstSuccess": 14080,
+      "collisions": 93,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.16846913400401775,
+        "meanReward": 1.4160759010916035,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 98,
+            "reward": 1.4160759010916038,
+            "progress": 0.16846913400401775,
+            "success": false,
+            "collisions": 1,
+            "time": 1.6333333333333333
+          },
+          {
+            "steps": 98,
+            "reward": 1.4160759010916038,
+            "progress": 0.16846913400401775,
+            "success": false,
+            "collisions": 1,
+            "time": 1.6333333333333333
+          },
+          {
+            "steps": 98,
+            "reward": 1.4160759010916038,
+            "progress": 0.16846913400401775,
+            "success": false,
+            "collisions": 1,
+            "time": 1.6333333333333333
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 75.27735331755204,
+        "completionTime": 5.400000000000001,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 324,
+            "reward": 75.27735331755204,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.4
+          },
+          {
+            "steps": 324,
+            "reward": 75.27735331755204,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.4
+          },
+          {
+            "steps": 324,
+            "reward": 75.27735331755204,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.4
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 75.31494278553771,
+        "completionTime": 5.333333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 320,
+            "reward": 75.31494278553771,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.333333333333333
+          },
+          {
+            "steps": 320,
+            "reward": 75.31494278553771,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.333333333333333
+          },
+          {
+            "steps": 320,
+            "reward": 75.31494278553771,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.333333333333333
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.69587908334887,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.69587908334887,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.69587908334887,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.69587908334887,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9296
+      }
+    },
+    {
+      "id": "r-serpent",
+      "algorithm": "PPO",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 4046.8169999996826,
+      "evalMs": 280.07920000000377,
+      "elapsedMs": 4350.9877000000015,
+      "transitionsPerSecond": 8097.228018959732,
+      "firstSuccess": 6400,
+      "collisions": 86,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.394222061585646,
+        "meanReward": 12.713664976448063,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 166,
+            "reward": 12.713664976448063,
+            "progress": 0.394222061585646,
+            "success": false,
+            "collisions": 1,
+            "time": 2.7666666666666666
+          },
+          {
+            "steps": 166,
+            "reward": 12.713664976448063,
+            "progress": 0.394222061585646,
+            "success": false,
+            "collisions": 1,
+            "time": 2.7666666666666666
+          },
+          {
+            "steps": 166,
+            "reward": 12.713664976448063,
+            "progress": 0.394222061585646,
+            "success": false,
+            "collisions": 1,
+            "time": 2.7666666666666666
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 75.01463190496406,
+        "completionTime": 5.849999999999999,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 351,
+            "reward": 75.01463190496406,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.85
+          },
+          {
+            "steps": 351,
+            "reward": 75.01463190496406,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.85
+          },
+          {
+            "steps": 351,
+            "reward": 75.01463190496406,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.85
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.62179738390624,
+        "completionTime": 4.316666666666666,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 259,
+            "reward": 65.62179738390624,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.316666666666666
+          },
+          {
+            "steps": 259,
+            "reward": 65.62179738390624,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.316666666666666
+          },
+          {
+            "steps": 259,
+            "reward": 65.62179738390624,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.316666666666666
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9296
+      }
+    },
+    {
+      "id": "r-serpent",
+      "algorithm": "PPO",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 4009.5750999999436,
+      "evalMs": 190.8411999999953,
+      "elapsedMs": 4229.131600000001,
+      "transitionsPerSecond": 8172.437024561646,
+      "firstSuccess": 14080,
+      "collisions": 93,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 75.0902478824438,
+        "completionTime": 5.633333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 338,
+            "reward": 75.0902478824438,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.633333333333333
+          },
+          {
+            "steps": 338,
+            "reward": 75.0902478824438,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.633333333333333
+          },
+          {
+            "steps": 338,
+            "reward": 75.0902478824438,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.633333333333333
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 75.16118503029045,
+        "completionTime": 5.566666666666666,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 334,
+            "reward": 75.16118503029045,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.566666666666666
+          },
+          {
+            "steps": 334,
+            "reward": 75.16118503029045,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.566666666666666
+          },
+          {
+            "steps": 334,
+            "reward": 75.16118503029045,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.566666666666666
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.6884868106038,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.6884868106038,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.6884868106038,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.6884868106038,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9296
+      }
+    },
+    {
+      "id": "r-angled-walls",
+      "algorithm": "GA",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32789,
+      "updates": 2,
+      "trainMs": 595.2325999999484,
+      "evalMs": 47.41370000000097,
+      "elapsedMs": 681.1486000000004,
+      "transitionsPerSecond": 55086.02855422038,
+      "firstSuccess": 16295,
+      "collisions": 32,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.89851662788139,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.89851662788139,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.7089706664134,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "r-angled-walls",
+      "algorithm": "GA",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32778,
+      "updates": 1,
+      "trainMs": 569.7941000000465,
+      "evalMs": 22.884600000001228,
+      "elapsedMs": 628.6451000000015,
+      "transitionsPerSecond": 57526.04317945259,
+      "firstSuccess": 17282,
+      "collisions": 9,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.89851662788139,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.89851662788139,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.7089706664134,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "r-angled-walls",
+      "algorithm": "GA",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32775,
+      "updates": 1,
+      "trainMs": 568.4207000000752,
+      "evalMs": 21.63959999999861,
+      "elapsedMs": 625.5691000000006,
+      "transitionsPerSecond": 57659.75799262002,
+      "firstSuccess": 18685,
+      "collisions": 10,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.89851662788139,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.89851662788139,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.7089706664134,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "r-angled-walls",
+      "algorithm": "PPO",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 4288.9458000001,
+      "evalMs": 509.6483999999946,
+      "elapsedMs": 4840.252099999998,
+      "transitionsPerSecond": 7640.105874035348,
+      "firstSuccess": 5120,
+      "collisions": 61,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.8456409354301,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.8456409354301,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.8456409354301,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.8456409354301,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.88762582461331,
+        "completionTime": 7.016666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 421,
+            "reward": 77.88762582461331,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7.016666666666667
+          },
+          {
+            "steps": 421,
+            "reward": 77.88762582461331,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7.016666666666667
+          },
+          {
+            "steps": 421,
+            "reward": 77.88762582461331,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7.016666666666667
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.72862211922518,
+        "completionTime": 4.166666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 250,
+            "reward": 65.72862211922518,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.166666666666667
+          },
+          {
+            "steps": 250,
+            "reward": 65.72862211922518,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.166666666666667
+          },
+          {
+            "steps": 250,
+            "reward": 65.72862211922518,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.166666666666667
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9296
+      }
+    },
+    {
+      "id": "r-angled-walls",
+      "algorithm": "PPO",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 4172.954099999974,
+      "evalMs": 501.3323999999848,
+      "elapsedMs": 4714.467300000004,
+      "transitionsPerSecond": 7852.470747281934,
+      "firstSuccess": 6400,
+      "collisions": 74,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.89851662788139,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.89851662788139,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.78046623601512,
+        "completionTime": 4.166666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 250,
+            "reward": 65.78046623601512,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.166666666666667
+          },
+          {
+            "steps": 250,
+            "reward": 65.78046623601512,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.166666666666667
+          },
+          {
+            "steps": 250,
+            "reward": 65.78046623601512,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.166666666666667
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9296
+      }
+    },
+    {
+      "id": "r-angled-walls",
+      "algorithm": "PPO",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 4238.259300000245,
+      "evalMs": 654.0129000000234,
+      "elapsedMs": 4932.791700000002,
+      "transitionsPerSecond": 7731.475985907257,
+      "firstSuccess": 2560,
+      "collisions": 72,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.84188044601308,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.84188044601308,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.84188044601308,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.84188044601308,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 77.89851662788139,
+        "completionTime": 7,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          },
+          {
+            "steps": 420,
+            "reward": 77.89851662788139,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 7
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 65.7089706664134,
+        "completionTime": 4.15,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          },
+          {
+            "steps": 249,
+            "reward": 65.7089706664134,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.15
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9296
+      }
+    },
+    {
+      "id": "b-jump",
+      "algorithm": "GA",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32772,
+      "updates": 1,
+      "trainMs": 88.09930000024906,
+      "evalMs": 3.0964999999996508,
+      "elapsedMs": 103.62039999999979,
+      "transitionsPerSecond": 371989.3347609726,
+      "firstSuccess": 22143,
+      "collisions": 5,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9750836680053544,
+        "meanReward": 52.03765277777783,
+        "completionTime": 4.616666666666666,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 277,
+            "reward": 52.03765277777783,
+            "progress": 0.9750836680053544,
+            "success": true,
+            "collisions": 0,
+            "time": 4.616666666666666
+          },
+          {
+            "steps": 277,
+            "reward": 52.03765277777783,
+            "progress": 0.9750836680053544,
+            "success": true,
+            "collisions": 0,
+            "time": 4.616666666666666
+          },
+          {
+            "steps": 277,
+            "reward": 52.03765277777783,
+            "progress": 0.9750836680053544,
+            "success": true,
+            "collisions": 0,
+            "time": 4.616666666666666
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9750836680053544,
+        "meanReward": 52.03765277777783,
+        "completionTime": 4.616666666666666,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 277,
+            "reward": 52.03765277777783,
+            "progress": 0.9750836680053544,
+            "success": true,
+            "collisions": 0,
+            "time": 4.616666666666666
+          },
+          {
+            "steps": 277,
+            "reward": 52.03765277777783,
+            "progress": 0.9750836680053544,
+            "success": true,
+            "collisions": 0,
+            "time": 4.616666666666666
+          },
+          {
+            "steps": 277,
+            "reward": 52.03765277777783,
+            "progress": 0.9750836680053544,
+            "success": true,
+            "collisions": 0,
+            "time": 4.616666666666666
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9711492990439701,
+        "meanReward": 51.674829436643925,
+        "completionTime": 5.022222222222222,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 302,
+            "reward": 51.693696249778796,
+            "progress": 0.9724298058795646,
+            "success": true,
+            "collisions": 0,
+            "time": 5.033333333333333
+          },
+          {
+            "steps": 301,
+            "reward": 51.652466429895796,
+            "progress": 0.969885932364453,
+            "success": true,
+            "collisions": 0,
+            "time": 5.016666666666667
+          },
+          {
+            "steps": 301,
+            "reward": 51.67832563025716,
+            "progress": 0.9711321588878924,
+            "success": true,
+            "collisions": 0,
+            "time": 5.016666666666667
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "b-jump",
+      "algorithm": "GA",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 1,
+      "trainMs": 69.75910000012664,
+      "evalMs": 1.7130999999935739,
+      "elapsedMs": 78.46719999999914,
+      "transitionsPerSecond": 469730.8308154852,
+      "firstSuccess": 17741,
+      "collisions": 9,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9711345381526094,
+        "meanReward": 51.35481944444447,
+        "completionTime": 5.483333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 329,
+            "reward": 51.35481944444447,
+            "progress": 0.9711345381526094,
+            "success": true,
+            "collisions": 0,
+            "time": 5.483333333333333
+          },
+          {
+            "steps": 329,
+            "reward": 51.35481944444447,
+            "progress": 0.9711345381526094,
+            "success": true,
+            "collisions": 0,
+            "time": 5.483333333333333
+          },
+          {
+            "steps": 329,
+            "reward": 51.35481944444447,
+            "progress": 0.9711345381526094,
+            "success": true,
+            "collisions": 0,
+            "time": 5.483333333333333
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 52.50668055555562,
+        "completionTime": 4.8,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 288,
+            "reward": 52.50668055555562,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.8
+          },
+          {
+            "steps": 288,
+            "reward": 52.50668055555562,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.8
+          },
+          {
+            "steps": 288,
+            "reward": 52.50668055555562,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.8
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 52.50668055555562,
+        "completionTime": 4.8,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 288,
+            "reward": 52.50668055555562,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.8
+          },
+          {
+            "steps": 288,
+            "reward": 52.50668055555562,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.8
+          },
+          {
+            "steps": 288,
+            "reward": 52.50668055555562,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.8
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9873968771526669,
+        "meanReward": 51.6807074231401,
+        "completionTime": 5.5,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 330,
+            "reward": 51.70647248012958,
+            "progress": 0.9886385666461354,
+            "success": true,
+            "collisions": 0,
+            "time": 5.5
+          },
+          {
+            "steps": 330,
+            "reward": 51.64705921785864,
+            "progress": 0.9857752768981386,
+            "success": true,
+            "collisions": 0,
+            "time": 5.5
+          },
+          {
+            "steps": 330,
+            "reward": 51.6885905714321,
+            "progress": 0.9877767879137268,
+            "success": true,
+            "collisions": 0,
+            "time": 5.5
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "b-jump",
+      "algorithm": "GA",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32784,
+      "updates": 1,
+      "trainMs": 64.48700000001554,
+      "evalMs": 1.7240999999994528,
+      "elapsedMs": 75.47660000000178,
+      "transitionsPerSecond": 508381.53426259704,
+      "firstSuccess": 23918,
+      "collisions": 3,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9597380787987944,
+        "meanReward": 51.68456513507505,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9597380787987944,
+        "meanReward": 51.68456513507505,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9597380787987944,
+        "meanReward": 51.68456513507505,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 0.3333333333333333,
+        "meanProgress": 1,
+        "meanReward": 28.91281659510848,
+        "completionTime": 6.116666666666666,
+        "failures": {
+          "collision": 0,
+          "timeout": 2
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": 17.369771675705238,
+            "progress": 1,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 17.3697773257867,
+            "progress": 1,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 367,
+            "reward": 51.998900783833506,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 6.116666666666666
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "b-jump",
+      "algorithm": "PPO",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 3776.3506999996534,
+      "evalMs": 89.62620000001334,
+      "elapsedMs": 3880.916900000004,
+      "transitionsPerSecond": 8677.160201250113,
+      "firstSuccess": 1280,
+      "collisions": 23,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.013487282463186026,
+        "meanReward": -5.120138888888862,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.120138888888862,
+            "progress": 0.013487282463186024,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.120138888888862,
+            "progress": 0.013487282463186024,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.120138888888862,
+            "progress": 0.013487282463186024,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.31204819277108437,
+        "meanReward": 1.074999999999995,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9744202883792261,
+        "meanReward": 51.80433209498011,
+        "completionTime": 4.933333333333334,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 296,
+            "reward": 51.76624301164666,
+            "progress": 0.9725846699053246,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.80261095986011,
+            "progress": 0.9743373421083826,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.84414231343357,
+            "progress": 0.9763388531239711,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9596
+      }
+    },
+    {
+      "id": "b-jump",
+      "algorithm": "PPO",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 3697.041899999698,
+      "evalMs": 134.21600000000035,
+      "elapsedMs": 3839.9691999999995,
+      "transitionsPerSecond": 8863.302306636739,
+      "firstSuccess": 5120,
+      "collisions": 26,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -3.48,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 80,
+            "reward": -3.48,
+            "progress": 0,
+            "success": false,
+            "collisions": 1,
+            "time": 1.3333333333333333
+          },
+          {
+            "steps": 80,
+            "reward": -3.48,
+            "progress": 0,
+            "success": false,
+            "collisions": 1,
+            "time": 1.3333333333333333
+          },
+          {
+            "steps": 80,
+            "reward": -3.48,
+            "progress": 0,
+            "success": false,
+            "collisions": 1,
+            "time": 1.3333333333333333
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9744202883792261,
+        "meanReward": 51.80433209498011,
+        "completionTime": 4.933333333333334,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 296,
+            "reward": 51.76624301164666,
+            "progress": 0.9725846699053246,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.80261095986011,
+            "progress": 0.9743373421083826,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.84414231343357,
+            "progress": 0.9763388531239711,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9596
+      }
+    },
+    {
+      "id": "b-jump",
+      "algorithm": "PPO",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 3735.1681999999782,
+      "evalMs": 56.06939999999304,
+      "elapsedMs": 3802.460500000001,
+      "transitionsPerSecond": 8772.831167281889,
+      "firstSuccess": 1280,
+      "collisions": 21,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9632530120481925,
+        "meanReward": 51.80372222222227,
+        "completionTime": 4.6,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 276,
+            "reward": 51.80372222222228,
+            "progress": 0.9632530120481925,
+            "success": true,
+            "collisions": 0,
+            "time": 4.6
+          },
+          {
+            "steps": 276,
+            "reward": 51.80372222222228,
+            "progress": 0.9632530120481925,
+            "success": true,
+            "collisions": 0,
+            "time": 4.6
+          },
+          {
+            "steps": 276,
+            "reward": 51.80372222222228,
+            "progress": 0.9632530120481925,
+            "success": true,
+            "collisions": 0,
+            "time": 4.6
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.31204819277108437,
+        "meanReward": 1.074999999999995,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 53.008666666666706,
+        "completionTime": 4.883333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 293,
+            "reward": 53.00866666666671,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.883333333333333
+          },
+          {
+            "steps": 293,
+            "reward": 53.00866666666671,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.883333333333333
+          },
+          {
+            "steps": 293,
+            "reward": 53.00866666666671,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 4.883333333333333
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9744202883792261,
+        "meanReward": 51.80433209498011,
+        "completionTime": 4.933333333333334,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 296,
+            "reward": 51.76624301164666,
+            "progress": 0.9725846699053246,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.80261095986011,
+            "progress": 0.9743373421083826,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.84414231343357,
+            "progress": 0.9763388531239711,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9596
+      }
+    },
+    {
+      "id": "b-moving",
+      "algorithm": "GA",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32788,
+      "updates": 1,
+      "trainMs": 73.37509999989561,
+      "evalMs": 1.8830000000016298,
+      "elapsedMs": 85.44139999999607,
+      "transitionsPerSecond": 446854.5869109091,
+      "firstSuccess": 21886,
+      "collisions": 6,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9616633199464525,
+        "meanReward": 51.80540277777785,
+        "completionTime": 4.55,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          },
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          },
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9616633199464525,
+        "meanReward": 51.80540277777785,
+        "completionTime": 4.55,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          },
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          },
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 0,
+        "meanProgress": 0.31204819277108437,
+        "meanReward": 1.074999999999995,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "b-moving",
+      "algorithm": "GA",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32784,
+      "updates": 1,
+      "trainMs": 73.06510000005073,
+      "evalMs": 2.056400000001304,
+      "elapsedMs": 81.3917999999976,
+      "transitionsPerSecond": 448695.75214400905,
+      "firstSuccess": 17220,
+      "collisions": 9,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 1,
+        "meanReward": 17.369681769887126,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": 17.36972964463507,
+            "progress": 1,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 17.36973607667072,
+            "progress": 1,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 17.369579588355585,
+            "progress": 1,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9711113598570238,
+        "meanReward": 51.73181997629257,
+        "completionTime": 4.938888888888889,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 297,
+            "reward": 51.75080953472845,
+            "progress": 0.9723977821288112,
+            "success": true,
+            "collisions": 0,
+            "time": 4.95
+          },
+          {
+            "steps": 296,
+            "reward": 51.70948526344106,
+            "progress": 0.9698493567387897,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.73516513070818,
+            "progress": 0.9710869407034706,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9711113598570238,
+        "meanReward": 51.73181997629257,
+        "completionTime": 4.938888888888889,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 297,
+            "reward": 51.75080953472845,
+            "progress": 0.9723977821288112,
+            "success": true,
+            "collisions": 0,
+            "time": 4.95
+          },
+          {
+            "steps": 296,
+            "reward": 51.70948526344106,
+            "progress": 0.9698493567387897,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.73516513070818,
+            "progress": 0.9710869407034706,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "b-moving",
+      "algorithm": "GA",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32778,
+      "updates": 1,
+      "trainMs": 71.57800000005955,
+      "evalMs": 2.0028999999994994,
+      "elapsedMs": 108.42759999999544,
+      "transitionsPerSecond": 457934.00206729345,
+      "firstSuccess": 21550,
+      "collisions": 4,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0.3333333333333333,
+        "meanProgress": 0.9943780030916973,
+        "meanReward": 28.623163327242775,
+        "completionTime": 6.166666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 2
+        },
+        "results": [
+          {
+            "steps": 370,
+            "reward": 51.13003069245819,
+            "progress": 0.9831340092750919,
+            "success": true,
+            "collisions": 0,
+            "time": 6.166666666666667
+          },
+          {
+            "steps": 900,
+            "reward": 17.369729644635058,
+            "progress": 1,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 17.369729644635065,
+            "progress": 1,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9616633199464525,
+        "meanReward": 51.80540277777785,
+        "completionTime": 4.55,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          },
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          },
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9616633199464525,
+        "meanReward": 51.80540277777785,
+        "completionTime": 4.55,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          },
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          },
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 0,
+        "meanProgress": 0.31204819277108437,
+        "meanReward": 1.074999999999995,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": 1.074999999999995,
+            "progress": 0.31204819277108437,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "b-moving",
+      "algorithm": "PPO",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 3689.9401999996335,
+      "evalMs": 56.58579999998619,
+      "elapsedMs": 3752.924700000003,
+      "transitionsPerSecond": 8880.360716957759,
+      "firstSuccess": 1280,
+      "collisions": 28,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.013487282463186026,
+        "meanReward": -5.120138888888862,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.120138888888862,
+            "progress": 0.013487282463186024,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.120138888888862,
+            "progress": 0.013487282463186024,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.120138888888862,
+            "progress": 0.013487282463186024,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9782128514056225,
+        "meanReward": 52.09102777777784,
+        "completionTime": 4.633333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 278,
+            "reward": 52.09102777777784,
+            "progress": 0.9782128514056225,
+            "success": true,
+            "collisions": 0,
+            "time": 4.633333333333333
+          },
+          {
+            "steps": 278,
+            "reward": 52.09102777777784,
+            "progress": 0.9782128514056225,
+            "success": true,
+            "collisions": 0,
+            "time": 4.633333333333333
+          },
+          {
+            "steps": 278,
+            "reward": 52.09102777777784,
+            "progress": 0.9782128514056225,
+            "success": true,
+            "collisions": 0,
+            "time": 4.633333333333333
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9711113598570238,
+        "meanReward": 51.73181997629257,
+        "completionTime": 4.938888888888889,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 297,
+            "reward": 51.75080953472845,
+            "progress": 0.9723977821288112,
+            "success": true,
+            "collisions": 0,
+            "time": 4.95
+          },
+          {
+            "steps": 296,
+            "reward": 51.70948526344106,
+            "progress": 0.9698493567387897,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.73516513070818,
+            "progress": 0.9710869407034706,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9596
+      }
+    },
+    {
+      "id": "b-moving",
+      "algorithm": "PPO",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 3703.819900000526,
+      "evalMs": 65.22849999999744,
+      "elapsedMs": 3775.85119999999,
+      "transitionsPerSecond": 8847.082440481337,
+      "firstSuccess": 5120,
+      "collisions": 35,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -3.48,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 80,
+            "reward": -3.48,
+            "progress": 0,
+            "success": false,
+            "collisions": 1,
+            "time": 1.3333333333333333
+          },
+          {
+            "steps": 80,
+            "reward": -3.48,
+            "progress": 0,
+            "success": false,
+            "collisions": 1,
+            "time": 1.3333333333333333
+          },
+          {
+            "steps": 80,
+            "reward": -3.48,
+            "progress": 0,
+            "success": false,
+            "collisions": 1,
+            "time": 1.3333333333333333
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9616633199464525,
+        "meanReward": 51.80540277777785,
+        "completionTime": 4.55,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          },
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          },
+          {
+            "steps": 273,
+            "reward": 51.80540277777784,
+            "progress": 0.9616633199464525,
+            "success": true,
+            "collisions": 0,
+            "time": 4.55
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9711113598570238,
+        "meanReward": 51.73181997629257,
+        "completionTime": 4.938888888888889,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 297,
+            "reward": 51.75080953472845,
+            "progress": 0.9723977821288112,
+            "success": true,
+            "collisions": 0,
+            "time": 4.95
+          },
+          {
+            "steps": 296,
+            "reward": 51.70948526344106,
+            "progress": 0.9698493567387897,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.73516513070818,
+            "progress": 0.9710869407034706,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9596
+      }
+    },
+    {
+      "id": "b-moving",
+      "algorithm": "PPO",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 3800.9691000003804,
+      "evalMs": 56.29669999999169,
+      "elapsedMs": 3865.121199999994,
+      "transitionsPerSecond": 8620.959323241203,
+      "firstSuccess": 1280,
+      "collisions": 24,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 1,
+        "meanReward": 52.0367797911073,
+        "completionTime": 5.5055555555555555,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 331,
+            "reward": 51.998744534728374,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.516666666666667
+          },
+          {
+            "steps": 330,
+            "reward": 52.03392970788542,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.5
+          },
+          {
+            "steps": 330,
+            "reward": 52.0776651307081,
+            "progress": 1,
+            "success": true,
+            "collisions": 0,
+            "time": 5.5
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9711113598570238,
+        "meanReward": 51.73181997629257,
+        "completionTime": 4.938888888888889,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 297,
+            "reward": 51.75080953472845,
+            "progress": 0.9723977821288112,
+            "success": true,
+            "collisions": 0,
+            "time": 4.95
+          },
+          {
+            "steps": 296,
+            "reward": 51.70948526344106,
+            "progress": 0.9698493567387897,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.73516513070818,
+            "progress": 0.9710869407034706,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9711113598570238,
+        "meanReward": 51.73181997629257,
+        "completionTime": 4.938888888888889,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 297,
+            "reward": 51.75080953472845,
+            "progress": 0.9723977821288112,
+            "success": true,
+            "collisions": 0,
+            "time": 4.95
+          },
+          {
+            "steps": 296,
+            "reward": 51.70948526344106,
+            "progress": 0.9698493567387897,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          },
+          {
+            "steps": 296,
+            "reward": 51.73516513070818,
+            "progress": 0.9710869407034706,
+            "success": true,
+            "collisions": 0,
+            "time": 4.933333333333334
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9596
+      }
+    },
+    {
+      "id": "b-spikes",
+      "algorithm": "GA",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32774,
+      "updates": 1,
+      "trainMs": 76.9129999998695,
+      "evalMs": 1.8803999999945518,
+      "elapsedMs": 85.14859999998589,
+      "transitionsPerSecond": 426117.8214353309,
+      "firstSuccess": 19907,
+      "collisions": 8,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -5.399999999999982,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.399999999999983,
+            "progress": 0,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9838018741633198,
+        "meanReward": 52.18388888888895,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9838018741633198,
+        "meanReward": 52.18388888888895,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "b-spikes",
+      "algorithm": "GA",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32785,
+      "updates": 2,
+      "trainMs": 67.27090000017779,
+      "evalMs": 3.6031000000075437,
+      "elapsedMs": 77.93959999999788,
+      "transitionsPerSecond": 487357.8322857782,
+      "firstSuccess": 15140,
+      "collisions": 28,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.5323813847389558,
+        "meanReward": 7.026913733333352,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 170,
+            "reward": 7.026913733333352,
+            "progress": 0.5323813847389558,
+            "success": false,
+            "collisions": 1,
+            "time": 2.8333333333333335
+          },
+          {
+            "steps": 170,
+            "reward": 7.026913733333352,
+            "progress": 0.5323813847389558,
+            "success": false,
+            "collisions": 1,
+            "time": 2.8333333333333335
+          },
+          {
+            "steps": 170,
+            "reward": 7.026913733333352,
+            "progress": 0.5323813847389558,
+            "success": false,
+            "collisions": 1,
+            "time": 2.8333333333333335
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9838018741633198,
+        "meanReward": 52.18388888888895,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9838018741633198,
+        "meanReward": 52.18388888888895,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "b-spikes",
+      "algorithm": "GA",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32775,
+      "updates": 1,
+      "trainMs": 64.69320000022708,
+      "evalMs": 2.090200000006007,
+      "elapsedMs": 74.22840000000724,
+      "transitionsPerSecond": 506622.0251878862,
+      "firstSuccess": 17193,
+      "collisions": 15,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9697893975903605,
+        "meanReward": 51.88157444444448,
+        "completionTime": 4.683333333333334,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 281,
+            "reward": 51.88157444444448,
+            "progress": 0.9697893975903604,
+            "success": true,
+            "collisions": 0,
+            "time": 4.683333333333334
+          },
+          {
+            "steps": 281,
+            "reward": 51.88157444444448,
+            "progress": 0.9697893975903604,
+            "success": true,
+            "collisions": 0,
+            "time": 4.683333333333334
+          },
+          {
+            "steps": 281,
+            "reward": 51.88157444444448,
+            "progress": 0.9697893975903604,
+            "success": true,
+            "collisions": 0,
+            "time": 4.683333333333334
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9697893975903605,
+        "meanReward": 51.88157444444448,
+        "completionTime": 4.683333333333334,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 281,
+            "reward": 51.88157444444448,
+            "progress": 0.9697893975903604,
+            "success": true,
+            "collisions": 0,
+            "time": 4.683333333333334
+          },
+          {
+            "steps": 281,
+            "reward": 51.88157444444448,
+            "progress": 0.9697893975903604,
+            "success": true,
+            "collisions": 0,
+            "time": 4.683333333333334
+          },
+          {
+            "steps": 281,
+            "reward": 51.88157444444448,
+            "progress": 0.9697893975903604,
+            "success": true,
+            "collisions": 0,
+            "time": 4.683333333333334
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9697893975903605,
+        "meanReward": 51.88157444444448,
+        "completionTime": 4.683333333333334,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 281,
+            "reward": 51.88157444444448,
+            "progress": 0.9697893975903604,
+            "success": true,
+            "collisions": 0,
+            "time": 4.683333333333334
+          },
+          {
+            "steps": 281,
+            "reward": 51.88157444444448,
+            "progress": 0.9697893975903604,
+            "success": true,
+            "collisions": 0,
+            "time": 4.683333333333334
+          },
+          {
+            "steps": 281,
+            "reward": 51.88157444444448,
+            "progress": 0.9697893975903604,
+            "success": true,
+            "collisions": 0,
+            "time": 4.683333333333334
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9597380787987944,
+        "meanReward": 51.68456513507505,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 51.68456513507505,
+            "progress": 0.9597380787987944,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 0,
+        "numDataBuffers": 0,
+        "numBytes": 0
+      }
+    },
+    {
+      "id": "b-spikes",
+      "algorithm": "PPO",
+      "seed": 17,
+      "config": {
+        "seed": 17,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 3591.8095000002068,
+      "evalMs": 24.815800000054878,
+      "elapsedMs": 3624.181899999996,
+      "transitionsPerSecond": 9122.978264854557,
+      "firstSuccess": 1280,
+      "collisions": 40,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.013487282463186026,
+        "meanReward": -5.120138888888862,
+        "completionTime": null,
+        "failures": {
+          "collision": 0,
+          "timeout": 3
+        },
+        "results": [
+          {
+            "steps": 900,
+            "reward": -5.120138888888862,
+            "progress": 0.013487282463186024,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.120138888888862,
+            "progress": 0.013487282463186024,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          },
+          {
+            "steps": 900,
+            "reward": -5.120138888888862,
+            "progress": 0.013487282463186024,
+            "success": false,
+            "collisions": 0,
+            "time": 15
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9838018741633198,
+        "meanReward": 52.18388888888895,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9838018741633198,
+        "meanReward": 52.18388888888895,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9596
+      }
+    },
+    {
+      "id": "b-spikes",
+      "algorithm": "PPO",
+      "seed": 42,
+      "config": {
+        "seed": 42,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 3638.7643999981665,
+      "evalMs": 45.23010000002978,
+      "elapsedMs": 3689.8206000000064,
+      "transitionsPerSecond": 9005.254640838113,
+      "firstSuccess": 7680,
+      "collisions": 44,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0,
+        "meanReward": -3.48,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 80,
+            "reward": -3.48,
+            "progress": 0,
+            "success": false,
+            "collisions": 1,
+            "time": 1.3333333333333333
+          },
+          {
+            "steps": 80,
+            "reward": -3.48,
+            "progress": 0,
+            "success": false,
+            "collisions": 1,
+            "time": 1.3333333333333333
+          },
+          {
+            "steps": 80,
+            "reward": -3.48,
+            "progress": 0,
+            "success": false,
+            "collisions": 1,
+            "time": 1.3333333333333333
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 0,
+        "meanProgress": 0.42130187416331993,
+        "meanReward": 4.998013888888883,
+        "completionTime": null,
+        "failures": {
+          "collision": 3,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 124,
+            "reward": 4.998013888888883,
+            "progress": 0.42130187416331993,
+            "success": false,
+            "collisions": 1,
+            "time": 2.0666666666666664
+          },
+          {
+            "steps": 124,
+            "reward": 4.998013888888883,
+            "progress": 0.42130187416331993,
+            "success": false,
+            "collisions": 1,
+            "time": 2.0666666666666664
+          },
+          {
+            "steps": 124,
+            "reward": 4.998013888888883,
+            "progress": 0.42130187416331993,
+            "success": false,
+            "collisions": 1,
+            "time": 2.0666666666666664
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9838018741633198,
+        "meanReward": 52.18388888888895,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9596
+      }
+    },
+    {
+      "id": "b-spikes",
+      "algorithm": "PPO",
+      "seed": 89,
+      "config": {
+        "seed": 89,
+        "population": 32,
+        "elite": 0.125,
+        "crossover": 0.8,
+        "mutation": 0.12,
+        "sigma": 0.2,
+        "horizon": 900,
+        "rollout": 256,
+        "epochs": 4,
+        "minibatch": 64,
+        "learningRate": 0.001,
+        "gamma": 0.99,
+        "lambda": 0.95,
+        "clip": 0.2,
+        "entropy": 0.01,
+        "speed": 2
+      },
+      "budget": 32768,
+      "steps": 32768,
+      "updates": 127,
+      "trainMs": 3700.9426999974676,
+      "evalMs": 45.33379999996396,
+      "elapsedMs": 3752.657600000006,
+      "transitionsPerSecond": 8853.960370697558,
+      "firstSuccess": 1280,
+      "collisions": 15,
+      "initial": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9803212851405613,
+        "meanReward": 52.1116666666667,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 52.1116666666667,
+            "progress": 0.9803212851405612,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.1116666666667,
+            "progress": 0.9803212851405612,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.1116666666667,
+            "progress": 0.9803212851405612,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "final": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9838018741633198,
+        "meanReward": 52.18388888888895,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "best": {
+        "seeds": [
+          101,
+          202,
+          303
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9838018741633198,
+        "meanReward": 52.18388888888895,
+        "completionTime": 4.666666666666667,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          },
+          {
+            "steps": 280,
+            "reward": 52.18388888888895,
+            "progress": 0.9838018741633199,
+            "success": true,
+            "collisions": 0,
+            "time": 4.666666666666667
+          }
+        ]
+      },
+      "heldOut": {
+        "seeds": [
+          404,
+          505,
+          606
+        ],
+        "successRate": 1,
+        "meanProgress": 0.9657295850066935,
+        "meanReward": 51.86666666666673,
+        "completionTime": 4.583333333333333,
+        "failures": {
+          "collision": 0,
+          "timeout": 0
+        },
+        "results": [
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          },
+          {
+            "steps": 275,
+            "reward": 51.86666666666673,
+            "progress": 0.9657295850066935,
+            "success": true,
+            "collisions": 0,
+            "time": 4.583333333333333
+          }
+        ]
+      },
+      "memory": {
+        "unreliable": true,
+        "reasons": [
+          "The reported memory is an upper bound. Due to automatic garbage collection, the true allocated memory may be less."
+        ],
+        "numTensors": 26,
+        "numDataBuffers": 26,
+        "numBytes": 9596
+      }
+    }
+  ]
+}

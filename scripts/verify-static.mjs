@@ -51,24 +51,40 @@ try {
   await page.goto(url);
   await page.getByRole("heading", { name: "학습 실험실" }).waitFor();
   await page.getByLabel("현재 맵").selectOption("r-straight");
-  await page
-    .getByRole("button", { name: "Genetic Algorithm", exact: false })
-    .click();
+  await page.getByLabel("학습 알고리즘").selectOption("GA");
+  await page.getByRole("button", { name: "학습 설정", exact: true }).click();
   await page.getByLabel("개체군 크기", { exact: true }).fill("4");
   await page.getByLabel("에피소드 최대 스텝", { exact: true }).fill("60");
+  await page.getByRole("button", { name: "패널 닫기", exact: true }).click();
   await page.getByRole("button", { name: "학습 시작", exact: true }).click();
   await page.waitForFunction(
-    () => document.querySelector(".metric-card strong")?.textContent !== "—",
+    () =>
+      Number(
+        document
+          .querySelector('canvas[aria-label="AI 시뮬레이션 캔버스"]')
+          ?.getAttribute("data-live-count"),
+      ) === 4,
   );
   await page.getByRole("button", { name: "학습 중지", exact: true }).click();
+  await page.getByRole("button", { name: "학습 시작", exact: true }).waitFor();
+  await page.getByLabel("학습 알고리즘").selectOption("PPO");
+  await page.getByRole("button", { name: "학습 시작", exact: true }).click();
+  await page.waitForFunction(
+    () =>
+      Number(
+        document
+          .querySelector('canvas[aria-label="AI 시뮬레이션 캔버스"]')
+          ?.getAttribute("data-updates"),
+      ) > 0,
+  );
+  await page.getByRole("button", { name: "학습 중지", exact: true }).click();
+  await page.getByRole("button", { name: "학습 시작", exact: true }).waitFor();
   if (process.argv.includes("--screenshots")) {
     await page
       .getByRole("button", { name: "학습 시작", exact: true })
       .waitFor();
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.locator(".settings-card").evaluate((element) => {
-      element.scrollTop = 0;
-    });
+
     await page.screenshot({
       path: ".cache/ui-review/lab-final.png",
       fullPage: true,
@@ -98,8 +114,15 @@ try {
     .click();
   await page.reload();
   await page.getByRole("heading", { name: "맵 라이브러리" }).waitFor();
-  if ((await page.locator(".map-card").count()) !== 9)
-    throw Error("Static map library did not load");
+  await page.getByLabel("맵 모음", { exact: true }).selectOption("recommended");
+  await page.waitForFunction(
+    () => document.querySelectorAll(".map-card").length === 16,
+  );
+  await page.getByLabel("맵 모음", { exact: true }).selectOption("all");
+  await page.getByLabel("튜토리얼 맵도 보기", { exact: false }).check();
+  await page.waitForFunction(
+    () => document.querySelectorAll(".map-card").length === 38,
+  );
   if (errors.length || external.length)
     throw Error(JSON.stringify({ errors, external }));
   console.log(
@@ -108,10 +131,10 @@ try {
       mount: "/EvoTrack/",
       checks: [
         "relative assets",
-        "bundled GA Worker",
+        "bundled GA and PPO Workers",
         "training snapshot",
         "hash route refresh",
-        "9 built-in maps",
+        "38 built-in maps; 16 recommendations",
         "no external requests",
         "no browser errors",
       ],

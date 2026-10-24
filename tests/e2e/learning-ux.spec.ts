@@ -69,7 +69,7 @@ test("elastic assist, belts and shaping properties persist and affect manual pla
   await page.goto("./#maps");
   await page.reload();
   await page
-    .getByRole("button", { name: "새 요소 검증 편집", exact: true })
+    .getByRole("button", { name: "새 요소 검증 (v5) 편집", exact: true })
     .click();
   await selectObject(page, "탄성 발판");
   await expect(page.getByLabel("점프 보조", { exact: true })).toHaveValue(
@@ -123,7 +123,7 @@ test("elastic assist, belts and shaping properties persist and affect manual pla
   await page
     .getByRole("button", { name: "모델 라이브러리", exact: true })
     .click();
-  await expect(page.locator(".model-compatibility")).toContainText("환경 v4");
+  await expect(page.locator(".model-compatibility")).toContainText("환경 v5");
 });
 test("test hints close, stay dismissed after reload, and can be restored", async ({
   page,
@@ -309,7 +309,7 @@ test("home removes draft notices and caption text; recommended previews really m
   await expect(page.locator(".hero-demo-caption")).toHaveCount(0);
   await expect(page.getByText(/시도 \d ·/)).toHaveCount(0);
   const previews = page.locator('canvas[data-preview="true"]');
-  await expect(previews).toHaveCount(3);
+  await expect(previews).toHaveCount(4);
   const first = await previews.evaluateAll((nodes) =>
     nodes.map((n) => (n as HTMLElement).dataset.demoX),
   );

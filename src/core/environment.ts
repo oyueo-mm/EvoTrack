@@ -1,3 +1,5 @@
+import { advanceBounce, collapsed, movingPose } from "./bounce-v5";
+import { observationSizeFor } from "./types";
 import type { AgentState, Environment, MapObject, TrackMap } from "./types";
 import { clamp, distance, wrapAngle } from "./random";
 import { segmentDistance } from "./maps";
@@ -20,18 +22,14 @@ export interface ManualInput {
   brake?: boolean;
 }
 export function objectPosition(o: MapObject, time: number, seed = 42) {
-  return {
-    ...o,
-    x:
-      o.x +
-      (o.kind === "moving"
-        ? Math.sin((time * 2 * Math.PI) / (o.period ?? 3) + (seed % 17) / 17) *
-          (o.amplitude ?? 50)
-        : 0),
-  };
+  return o.kind === "moving" ? { ...o, ...movingPose(o, time, seed) } : o;
 }
 export class Simulator implements Environment {
-  readonly observationSize = 12;
+  get observationSize() {
+    return observationSizeFor(this.map);
+  }
+  private supportId?: string;
+  private sensorCache?: { key: string; values: number[] };
   get actionSize() {
     return this.map.mode === "racing" ? 5 : 6;
   }
@@ -45,6 +43,7 @@ export class Simulator implements Environment {
   private segment = 0;
   private gateArcs: number[] = [];
   private roadGrid = new Map<string, number[]>();
+  private solidObjects: MapObject[];
   private manual: ManualInput | null = null;
   private respawnPoint: { x: number; y: number; angle: number } | null = null;
   private respawnCount = 0;
@@ -52,7 +51,7 @@ export class Simulator implements Environment {
   private rewardFired = new Set<string>();
   private rewardLast = new Map<string, number>();
   private applyBelts() {
-    if (this.map.environmentVersion !== 4) return;
+    if ((this.map.environmentVersion ?? 1) < 4) return;
     const s = this.state;
     for (const o of this.map.objects.filter(
       (o) => o.kind === "belt" && circleObject(o, s, 11),
@@ -96,7 +95,7 @@ export class Simulator implements Environment {
     }
   }
   private shaping(old: { x: number; y: number }) {
-    if (this.map.environmentVersion !== 4) return 0;
+    if ((this.map.environmentVersion ?? 1) < 4) return 0;
     let reward = 0;
     const s = this.state;
     const events: string[] = [];
@@ -159,6 +158,9 @@ export class Simulator implements Environment {
     horizon = 600,
   ) {
     this.limit = horizon;
+    this.solidObjects = map.objects.filter(
+      (o) => !["respawn", "belt", "reward"].includes(o.kind),
+    );
     this.lengths = roadLengths(map.road);
     this.gateArcs = map.checkpoints.map(
       (p) => projectRoad(p, map.road, this.lengths).arc,
@@ -194,6 +196,8 @@ export class Simulator implements Environment {
     this.rewardFired.clear();
     this.rewardLast.clear();
     this.seed = seed;
+    this.sensorCache = undefined;
+    this.supportId = undefined;
     this.bestX = this.map.start.x;
     const projected = projectRoad(this.map.start, this.map.road, this.lengths);
     this.arc = this.bestArc = projected.arc;
@@ -212,6 +216,9 @@ export class Simulator implements Environment {
       collision: false,
       progress: 0,
       trail: [],
+      ...(this.map.environmentVersion === 5
+        ? { platforms: {}, environmentSeed: seed }
+        : {}),
     };
     return this.observe();
   }
@@ -253,6 +260,32 @@ export class Simulator implements Environment {
       this.manual = null;
     }
   }
+  checkpoint() {
+    return {
+      state: this.getState(),
+      seed: this.seed,
+      bestX: this.bestX,
+      arc: this.arc,
+      bestArc: this.bestArc,
+      segment: this.segment,
+      supportId: this.supportId,
+      rewardInside: [...this.rewardInside],
+      rewardFired: [...this.rewardFired],
+      rewardLast: [...this.rewardLast],
+    };
+  }
+  restore(c: ReturnType<Simulator["checkpoint"]>) {
+    this.reset(c.seed);
+    this.state = structuredClone(c.state);
+    this.bestX = c.bestX;
+    this.arc = c.arc;
+    this.bestArc = c.bestArc;
+    this.segment = c.segment;
+    this.supportId = c.supportId;
+    this.rewardInside = new Set(c.rewardInside);
+    this.rewardFired = new Set(c.rewardFired);
+    this.rewardLast = new Map(c.rewardLast);
+  }
   serialize() {
     return structuredClone(this.map);
   }
@@ -265,7 +298,13 @@ export class Simulator implements Environment {
   getState(includeTrail = true, includeSensors = false) {
     const state = includeTrail
       ? structuredClone(this.state)
-      : { ...this.state, trail: [] };
+      : {
+          ...this.state,
+          trail: [],
+          ...(this.state.platforms
+            ? { platforms: structuredClone(this.state.platforms) }
+            : {}),
+        };
     if (includeSensors && this.map.mode === "racing")
       state.sensors = this.sensors();
     return state;
@@ -318,15 +357,15 @@ export class Simulator implements Environment {
         y > this.map.height - radius ||
         (this.map.mode === "racing" &&
           this.roadDistance(x, y) > this.map.roadWidth / 2 - radius) ||
-        this.map.objects
-          .filter((o) => !["respawn", "belt", "reward"].includes(o.kind))
-          .some((o) =>
+        this.solidObjects.some(
+          (o) =>
+            !collapsed(this.state, o.id) &&
             circleObject(
               objectPosition(o, this.state.steps * DT, this.seed),
               { x, y },
               radius,
             ),
-          )
+        )
       );
     return (
       x < radius ||
@@ -346,7 +385,9 @@ export class Simulator implements Environment {
   }
   sensors() {
     const s = this.state;
-    return [-1.35, -0.9, -0.45, 0, 0.45, 0.9, 1.35].map((a) => {
+    const key = `${s.x}:${s.y}:${s.angle}:${s.steps}`;
+    if (this.sensorCache?.key === key) return this.sensorCache.values;
+    const values = [-1.35, -0.9, -0.45, 0, 0.45, 0.9, 1.35].map((a) => {
       let d = 0;
       for (d = 0; d < 180; d += 6)
         if (
@@ -359,6 +400,8 @@ export class Simulator implements Environment {
           break;
       return d / 180;
     });
+    this.sensorCache = { key, values };
+    return values;
   }
   observe() {
     const s = this.state,
@@ -375,6 +418,66 @@ export class Simulator implements Environment {
         clamp(distance(s, target) / 1000, 0, 1),
         s.progress,
         1,
+      ]);
+    }
+    if (m.environmentVersion === 5) {
+      const candidates = m.objects
+        .filter((o) => !["respawn", "belt", "reward"].includes(o.kind))
+        .map((o) => objectPosition(o, s.steps * DT, this.seed));
+      const supports = candidates.filter(
+        (o) => !["spike", "bomb"].includes(o.kind) && !collapsed(s, o.id),
+      );
+      const support = supports.find(
+        (o) =>
+          s.x >= o.x - 10 &&
+          s.x <= o.x + o.w + 10 &&
+          Math.abs(s.y + 11 - o.y) < 18,
+      );
+      const next =
+        supports
+          .filter((o) => o.x > s.x + 15 && o.x < s.x + 240)
+          .sort((a, b) => a.x - b.x)[0] ?? support;
+      const motion = support?.kind === "moving" ? support : next;
+      const hazard = candidates.find(
+        (o) =>
+          ["spike", "bomb"].includes(o.kind) && o.x > s.x && o.x - s.x < 180,
+      );
+      const pose =
+        motion?.kind === "moving"
+          ? movingPose(motion, s.steps * DT, this.seed)
+          : { vx: 0, vy: 0 };
+      const fragile = support?.kind === "crumble" ? support : next;
+      const entry = fragile ? s.platforms?.[fragile.id] : undefined;
+      return Float32Array.from([
+        clamp(s.vx / m.physics.maxSpeed, -2, 2),
+        clamp(s.vy / 650, -2, 2),
+        (m.goal.x - s.x) / m.width,
+        (m.goal.y - s.y) / m.height,
+        +s.grounded,
+        hazard ? clamp((hazard.x - s.x) / 180, -1, 1) : 1,
+        hazard ? clamp((s.y - hazard.y) / 200, -1, 1) : 0,
+        hazard ? 1 : 0,
+        s.x / m.width,
+        s.y / m.height,
+        s.progress,
+        1,
+        support ? clamp((support.x + support.w - s.x) / 220, 0, 1) : 0,
+        next ? clamp((next.y - s.y) / 230, -1, 1) : 1,
+        clamp(pose.vx / 650, -2, 2),
+        clamp(pose.vy / 650, -2, 2),
+        fragile?.kind === "crumble"
+          ? collapsed(s, fragile.id)
+            ? -1
+            : entry
+              ? Math.max(
+                  0,
+                  1 -
+                    (s.steps * DT - entry.triggeredAt) /
+                      (fragile.collapseDelay ?? 0.4),
+                )
+              : 1
+          : 0,
+        next?.kind === "moving" ? 1 : next?.kind === "crumble" ? -1 : 0,
       ]);
     }
     const objs = m.objects
@@ -577,183 +680,189 @@ export class Simulator implements Environment {
         );
       }
     } else {
-      const move =
-        action === 1 || action === 4
-          ? -1
-          : action === 2 || action === 5
-            ? 1
-            : 0;
-      const jump = action >= 3;
-      if (jump && s.grounded) {
-        s.vy = -350;
+      if (m.environmentVersion === 5) {
+        this.applyBelts();
+        this.supportId = advanceBounce(m, s, action, this.seed, this.supportId);
+      } else {
+        const move =
+          action === 1 || action === 4
+            ? -1
+            : action === 2 || action === 5
+              ? 1
+              : 0;
+        const jump = action >= 3;
+        if (jump && s.grounded) {
+          s.vy = -350;
+          s.grounded = false;
+        }
+        s.vx =
+          (m.environmentVersion ?? 1) >= 3 &&
+          Math.abs(s.vx) > m.physics.maxSpeed
+            ? s.vx * 0.99
+            : clamp(
+                s.vx + move * (s.grounded ? 950 : 650) * DT,
+                -m.physics.maxSpeed,
+                m.physics.maxSpeed,
+              );
+        if (!move) s.vx *= 0.84;
+        this.applyBelts();
+        const previousGrounded = s.grounded;
         s.grounded = false;
-      }
-      s.vx =
-        (m.environmentVersion ?? 1) >= 3 && Math.abs(s.vx) > m.physics.maxSpeed
-          ? s.vx * 0.99
-          : clamp(
-              s.vx + move * (s.grounded ? 950 : 650) * DT,
-              -m.physics.maxSpeed,
-              m.physics.maxSpeed,
-            );
-      if (!move) s.vx *= 0.84;
-      this.applyBelts();
-      const previousGrounded = s.grounded;
-      s.grounded = false;
-      const objects = m.objects.map((o) =>
-        objectPosition(o, s.steps * DT, this.seed),
-      );
-      const substeps = Math.max(
-        4,
-        Math.ceil((Math.max(Math.abs(s.vx), Math.abs(s.vy)) * DT) / 4),
-      );
-      for (let j = 0; j < substeps && !s.done; j++) {
-        const dt = DT / substeps;
-        s.vy = clamp(
-          s.vy + m.physics.gravity * dt,
-          (m.environmentVersion ?? 1) >= 3 ? -1400 : -800,
-          650,
+        const objects = m.objects.map((o) =>
+          objectPosition(o, s.steps * DT, this.seed),
         );
-        if (this.modern) {
-          s.x = clamp(s.x + s.vx * dt, 11, m.width - 11);
-          s.y += s.vy * dt;
-          for (const o of objects) {
-            if (["respawn", "belt", "reward"].includes(o.kind)) continue;
-            const contact = circleContact(o, s, 11);
-            if (!contact) continue;
-            if (o.kind === "spike" || o.kind === "bomb") {
-              s.failureReason = o.kind;
+        const substeps = Math.max(
+          4,
+          Math.ceil((Math.max(Math.abs(s.vx), Math.abs(s.vy)) * DT) / 4),
+        );
+        for (let j = 0; j < substeps && !s.done; j++) {
+          const dt = DT / substeps;
+          s.vy = clamp(
+            s.vy + m.physics.gravity * dt,
+            (m.environmentVersion ?? 1) >= 3 ? -1400 : -800,
+            650,
+          );
+          if (this.modern) {
+            s.x = clamp(s.x + s.vx * dt, 11, m.width - 11);
+            s.y += s.vy * dt;
+            for (const o of objects) {
+              if (["respawn", "belt", "reward"].includes(o.kind)) continue;
+              const contact = circleContact(o, s, 11);
+              if (!contact) continue;
+              if (o.kind === "spike" || o.kind === "bomb") {
+                s.failureReason = o.kind;
+                s.collision = true;
+                s.done = true;
+                break;
+              }
+              const n = contact.normal;
+              s.x += n.x * contact.depth;
+              s.y += n.y * contact.depth;
+              const into = s.vx * n.x + s.vy * n.y;
+              if (into < 0) {
+                s.vx -= into * n.x;
+                s.vy -= into * n.y;
+              }
+              if ((m.environmentVersion ?? 1) >= 3 && o.kind === "spring") {
+                const direction =
+                    (o.angle ?? 0) + (o.launchAngle ?? -Math.PI / 2),
+                  strength = o.launchStrength ?? 520;
+                s.vx = Math.cos(direction) * strength;
+                s.vy = Math.sin(direction) * strength;
+                s.grounded = false;
+                continue;
+              }
+              if (
+                (m.environmentVersion ?? 1) >= 4 &&
+                o.kind === "elastic" &&
+                n.y < -0.3 &&
+                into < 0
+              ) {
+                const impulse = clamp(
+                  Math.max(
+                    o.minLaunchSpeed ?? 260,
+                    -into * (o.bounceCoefficient ?? o.restitution ?? 0.8) +
+                      (o.liftBoost ?? 120),
+                  ),
+                  0,
+                  o.maxLaunchSpeed ?? 900,
+                );
+                s.vx += n.x * impulse - n.y * (o.tangentBoost ?? 0);
+                s.vy += n.y * impulse + n.x * (o.tangentBoost ?? 0);
+                s.grounded = impulse <= 1;
+                continue;
+              }
+              if (
+                (m.environmentVersion ?? 1) >= 3 &&
+                o.kind === "elastic" &&
+                into < -30
+              ) {
+                const bounce = -into * (o.restitution ?? 0.8);
+                s.vx += n.x * bounce;
+                s.vy += n.y * bounce;
+                s.grounded = false;
+                continue;
+              }
+              if (n.y < -0.45) {
+                s.grounded = true;
+                if (
+                  (m.environmentVersion ?? 1) < 3 &&
+                  (o.kind === "spring" || o.kind === "elastic")
+                ) {
+                  const impulse = o.kind === "spring" ? 520 : 410;
+                  s.vx += n.x * impulse;
+                  s.vy += n.y * impulse;
+                  s.grounded = false;
+                }
+                if (o.kind === "moving" && previousGrounded) {
+                  const next = objectPosition(
+                    m.objects.find((a) => a.id === o.id)!,
+                    s.steps * DT + DT,
+                    this.seed,
+                  );
+                  s.x += (next.x - o.x) / substeps;
+                }
+              }
+            }
+            if (s.y > m.height + 20) {
               s.collision = true;
               s.done = true;
-              break;
             }
-            const n = contact.normal;
-            s.x += n.x * contact.depth;
-            s.y += n.y * contact.depth;
-            const into = s.vx * n.x + s.vy * n.y;
-            if (into < 0) {
-              s.vx -= into * n.x;
-              s.vy -= into * n.y;
-            }
-            if ((m.environmentVersion ?? 1) >= 3 && o.kind === "spring") {
-              const direction =
-                  (o.angle ?? 0) + (o.launchAngle ?? -Math.PI / 2),
-                strength = o.launchStrength ?? 520;
-              s.vx = Math.cos(direction) * strength;
-              s.vy = Math.sin(direction) * strength;
-              s.grounded = false;
-              continue;
-            }
-            if (
-              m.environmentVersion === 4 &&
-              o.kind === "elastic" &&
-              n.y < -0.3 &&
-              into < 0
-            ) {
-              const impulse = clamp(
-                Math.max(
-                  o.minLaunchSpeed ?? 260,
-                  -into * (o.bounceCoefficient ?? o.restitution ?? 0.8) +
-                    (o.liftBoost ?? 120),
-                ),
-                0,
-                o.maxLaunchSpeed ?? 900,
-              );
-              s.vx += n.x * impulse - n.y * (o.tangentBoost ?? 0);
-              s.vy += n.y * impulse + n.x * (o.tangentBoost ?? 0);
-              s.grounded = impulse <= 1;
-              continue;
-            }
-            if (
-              (m.environmentVersion ?? 1) >= 3 &&
-              o.kind === "elastic" &&
-              into < -30
-            ) {
-              const bounce = -into * (o.restitution ?? 0.8);
-              s.vx += n.x * bounce;
-              s.vy += n.y * bounce;
-              s.grounded = false;
-              continue;
-            }
-            if (n.y < -0.45) {
-              s.grounded = true;
-              if (
-                (m.environmentVersion ?? 1) < 3 &&
-                (o.kind === "spring" || o.kind === "elastic")
-              ) {
-                const impulse = o.kind === "spring" ? 520 : 410;
-                s.vx += n.x * impulse;
-                s.vy += n.y * impulse;
-                s.grounded = false;
-              }
-              if (o.kind === "moving" && previousGrounded) {
-                const next = objectPosition(
-                  m.objects.find((a) => a.id === o.id)!,
-                  s.steps * DT + DT,
-                  this.seed,
-                );
-                s.x += (next.x - o.x) / substeps;
-              }
-            }
+            continue;
           }
+          s.x = clamp(s.x + s.vx * dt, 11, m.width - 11);
+          for (const o of objects)
+            if (
+              s.x + 11 > o.x &&
+              s.x - 11 < o.x + o.w &&
+              s.y + 10 > o.y + 0.1 &&
+              s.y - 10 < o.y + o.h
+            ) {
+              if (o.kind === "spike") {
+                s.collision = true;
+                s.done = true;
+                break;
+              }
+              s.x = s.vx > 0 ? o.x - 11 : o.x + o.w + 11;
+              s.vx = 0;
+            }
+          const py = s.y;
+          s.y += s.vy * dt;
+          for (const o of objects)
+            if (
+              s.x + 10 > o.x &&
+              s.x - 10 < o.x + o.w &&
+              s.y + 11 > o.y &&
+              s.y - 11 < o.y + o.h
+            ) {
+              if (o.kind === "spike") {
+                s.collision = true;
+                s.done = true;
+                break;
+              }
+              if (s.vy >= 0 && py + 11 <= o.y + 4) {
+                s.y = o.y - 11;
+                s.grounded = true;
+                s.vy =
+                  o.kind === "spring" ? -520 : o.kind === "elastic" ? -410 : 0;
+                if (s.vy < 0) s.grounded = false;
+                if (o.kind === "moving" && previousGrounded) {
+                  const next = objectPosition(
+                    m.objects.find((a) => a.id === o.id)!,
+                    s.steps * DT + DT,
+                    this.seed,
+                  );
+                  s.x += (next.x - o.x) / substeps;
+                }
+              } else if (s.vy < 0 && py - 11 >= o.y + o.h - 4) {
+                s.y = o.y + o.h + 11;
+                s.vy = 0;
+              }
+            }
           if (s.y > m.height + 20) {
             s.collision = true;
             s.done = true;
           }
-          continue;
-        }
-        s.x = clamp(s.x + s.vx * dt, 11, m.width - 11);
-        for (const o of objects)
-          if (
-            s.x + 11 > o.x &&
-            s.x - 11 < o.x + o.w &&
-            s.y + 10 > o.y + 0.1 &&
-            s.y - 10 < o.y + o.h
-          ) {
-            if (o.kind === "spike") {
-              s.collision = true;
-              s.done = true;
-              break;
-            }
-            s.x = s.vx > 0 ? o.x - 11 : o.x + o.w + 11;
-            s.vx = 0;
-          }
-        const py = s.y;
-        s.y += s.vy * dt;
-        for (const o of objects)
-          if (
-            s.x + 10 > o.x &&
-            s.x - 10 < o.x + o.w &&
-            s.y + 11 > o.y &&
-            s.y - 11 < o.y + o.h
-          ) {
-            if (o.kind === "spike") {
-              s.collision = true;
-              s.done = true;
-              break;
-            }
-            if (s.vy >= 0 && py + 11 <= o.y + 4) {
-              s.y = o.y - 11;
-              s.grounded = true;
-              s.vy =
-                o.kind === "spring" ? -520 : o.kind === "elastic" ? -410 : 0;
-              if (s.vy < 0) s.grounded = false;
-              if (o.kind === "moving" && previousGrounded) {
-                const next = objectPosition(
-                  m.objects.find((a) => a.id === o.id)!,
-                  s.steps * DT + DT,
-                  this.seed,
-                );
-                s.x += (next.x - o.x) / substeps;
-              }
-            } else if (s.vy < 0 && py - 11 >= o.y + o.h - 4) {
-              s.y = o.y + o.h + 11;
-              s.vy = 0;
-            }
-          }
-        if (s.y > m.height + 20) {
-          s.collision = true;
-          s.done = true;
         }
       }
       reward += Math.max(0, s.x - this.bestX) * 0.025;
@@ -764,7 +873,10 @@ export class Simulator implements Environment {
         0,
         1,
       );
-      if (distance(s, m.goal) < 35) {
+      if (
+        distance(s, m.goal) < 35 &&
+        (m.environmentVersion !== 5 || !s.collision)
+      ) {
         s.success = true;
         s.done = true;
         reward += 30 + ((this.limit - s.steps) / this.limit) * 5;

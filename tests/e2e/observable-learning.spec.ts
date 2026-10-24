@@ -83,7 +83,7 @@ test("v1 rotation explains upgrade; real handle magnet snaps at 87 and rotates f
   await expect(page.locator(".toast")).toContainText("가져왔습니다");
   await page.getByRole("button", { name: "맵 에디터", exact: true }).click();
   await expect(page.getByLabel("맵 이름", { exact: true })).toHaveValue(
-    "회전 원본 (v4)",
+    "회전 원본 (v5)",
   );
   await page.getByRole("tab", { name: "레이어", exact: true }).click();
   await page.getByRole("button", { name: /레이어 선택 벽/ }).click();
@@ -114,7 +114,7 @@ test("v1 rotation explains upgrade; real handle magnet snaps at 87 and rotates f
     page.getByRole("heading", { name: "회전 원본", exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "회전 원본 (v4) 편집", exact: true })
+    .getByRole("button", { name: "회전 원본 (v5) 편집", exact: true })
     .click();
   await page.getByRole("tab", { name: "레이어", exact: true }).click();
   await page.getByRole("button", { name: /레이어 선택 벽/ }).click();
@@ -309,7 +309,7 @@ test("both algorithms use separate real canvases; navigation and hidden tabs pau
   await page.getByRole("button", { name: "학습 재개", exact: true }).click();
   await page.getByRole("button", { name: "맵 편집", exact: true }).click();
   await expect(page.getByLabel("맵 이름", { exact: true })).toHaveValue(
-    /\(v4\)/,
+    /\(v5\)/,
   );
   await page.getByRole("button", { name: "학습하기", exact: true }).click();
   await expect(

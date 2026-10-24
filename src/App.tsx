@@ -1,4 +1,4 @@
-import { editableV4 } from "./core/editor";
+import { editableLatest } from "./core/editor";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -135,6 +135,9 @@ export default function App() {
     [draftSession, setDraftSession] = useState(false),
     [saveChoice, setSaveChoice] = useState(false),
     [showTutorials, setShowTutorials] = useState(false),
+    [mapCollection, setMapCollection] = useState("all"),
+    [mapMode, setMapMode] = useState("all"),
+    [mapSkill, setMapSkill] = useState("all"),
     [compactNav, setCompactNav] = useState(() => window.innerWidth <= 1100),
     [light, setLight] = useState(
       () => localStorage.getItem("evotrack-theme") !== "dark",
@@ -240,7 +243,7 @@ export default function App() {
               a.find((m) => m.id === source) ??
               EXAMPLE_MAPS.find((m) => m.id === source) ??
               current;
-            const draft = editableV4(validateMap(original));
+            const draft = editableLatest(validateMap(original));
             baseline.current = structuredClone(draft);
             localStorage.setItem("evotrack-editor-map", draft.id);
             localStorage.setItem(
@@ -299,7 +302,7 @@ export default function App() {
         setSessionMap(structuredClone(source));
         setDraftSession(true);
       }
-      const draft = editableV4(source, forkSession);
+      const draft = editableLatest(source, forkSession);
       baseline.current = structuredClone(draft);
       setMap(draft);
       undo.current = [];
@@ -309,8 +312,8 @@ export default function App() {
         "evotrack-editor-source",
         draft.sourceMapId ?? draft.id,
       );
-      if (source.environmentVersion !== 4)
-        notify("원본을 보존한 v4 편집본을 열었습니다.");
+      if (source.environmentVersion !== 5)
+        notify("원본을 보존한 v5 편집본을 열었습니다.");
     }
     setPage(p);
     location.hash = p;
@@ -366,11 +369,11 @@ export default function App() {
   function chooseMap(m: TrackMap) {
     if (page === "editor") {
       const source = m;
-      m = editableV4(source);
+      m = editableLatest(source);
       localStorage.setItem("evotrack-editor-map", m.id);
       localStorage.setItem("evotrack-editor-source", m.sourceMapId ?? m.id);
-      if (source.environmentVersion !== 4)
-        notify("원본을 보존한 v4 편집본을 열었습니다.");
+      if (source.environmentVersion !== 5)
+        notify("원본을 보존한 v5 편집본을 열었습니다.");
     }
     const restart = locked && page !== "editor";
     if (!locked || restart) {
@@ -382,6 +385,10 @@ export default function App() {
     setMap(structuredClone(m));
     const nextConfig = {
       ...config,
+      curriculum:
+        m.mode === "bounce" && m.environmentVersion === 5
+          ? config.curriculum
+          : false,
       ...(m.recommendedHorizon ? { horizon: m.recommendedHorizon } : {}),
     };
     if (!locked || restart) setConfig(nextConfig);
@@ -699,7 +706,7 @@ export default function App() {
           </p>
           <div className="sidebar-footer">
             <span>
-              v0.1.0 <b>LOCAL</b>
+              v0.5.0 <b>LOCAL</b>
             </span>
             <IconButton
               icon={Sun}
@@ -950,9 +957,10 @@ export default function App() {
               </div>
               <div className="library-grid">
                 {[
-                  EXAMPLE_MAPS.find((m) => m.id === "r-sparse-expert")!,
-                  EXAMPLE_MAPS.find((m) => m.id === "b-timing-hazards")!,
-                  EXAMPLE_MAPS.find((m) => m.id === "b-bomb-relay")!,
+                  EXAMPLE_MAPS.find((m) => m.id === "r-straight")!,
+                  EXAMPLE_MAPS.find((m) => m.id === "b-v5-elevator")!,
+                  EXAMPLE_MAPS.find((m) => m.id === "r-v5-precision")!,
+                  EXAMPLE_MAPS.find((m) => m.id === "b-v5-crumble")!,
                 ].map((m) => (
                   <MapCard
                     key={m.id}
@@ -986,6 +994,46 @@ export default function App() {
                     <option value="Medium">Medium</option>
                     <option value="Hard">Hard</option>
                   </select>
+                  <select
+                    aria-label="맵 모음"
+                    value={mapCollection}
+                    onChange={(e) => setMapCollection(e.target.value)}
+                  >
+                    <option value="recommended">추천</option>
+                    <option value="all">전체</option>
+                    <option value="variants">변형 맵</option>
+                    <option value="tutorial">튜토리얼</option>
+                    <option value="mine">내가 만든 맵</option>
+                  </select>
+                  <select
+                    aria-label="맵 모드"
+                    value={mapMode}
+                    onChange={(e) => setMapMode(e.target.value)}
+                  >
+                    <option value="all">모든 모드</option>
+                    <option value="racing">Racing</option>
+                    <option value="bounce">Bounce</option>
+                  </select>
+                  <select
+                    aria-label="학습 목표"
+                    value={mapSkill}
+                    onChange={(e) => setMapSkill(e.target.value)}
+                  >
+                    <option value="all">모든 학습 목표</option>
+                    {[
+                      "조향",
+                      "속도",
+                      "장애물 회피",
+                      "점프",
+                      "이동 발판",
+                      "타이밍",
+                      "탄성",
+                      "일회용 발판",
+                      "보상 전략",
+                    ].map((t) => (
+                      <option key={t}>{t}</option>
+                    ))}
+                  </select>
                   <span className="muted small">
                     {EXAMPLE_MAPS.length}가지 예제와 직접 만든 환경
                   </span>
@@ -1009,7 +1057,26 @@ export default function App() {
                 {allMaps
                   .filter(
                     (m) =>
+                      mapCollection === "all" ||
+                      (mapCollection === "recommended" &&
+                        (m.recommended ||
+                          maps.some((saved) => saved.id === m.id))) ||
+                      (mapCollection === "variants" && m.variantOf) ||
+                      (mapCollection === "tutorial" &&
+                        m.category === "tutorial") ||
+                      (mapCollection === "mine" &&
+                        maps.some((saved) => saved.id === m.id)),
+                  )
+                  .filter((m) => mapMode === "all" || m.mode === mapMode)
+                  .filter(
+                    (m) =>
+                      mapSkill === "all" ||
+                      m.features?.some((f) => f.includes(mapSkill)),
+                  )
+                  .filter(
+                    (m) =>
                       showTutorials ||
+                      mapCollection === "tutorial" ||
                       m.category !== "tutorial" ||
                       maps.some((saved) => saved.id === m.id),
                   )
@@ -1094,7 +1161,7 @@ export default function App() {
                         </p>
                         <small className="model-compatibility">
                           환경 v{m.schemas.environment} ·{" "}
-                          {m.schemas.environment === 4
+                          {m.schemas.environment >= 4
                             ? "속도 벨트·중간 보상·점프 보조"
                             : m.schemas.environment === 1
                               ? "이전 판정 규칙"

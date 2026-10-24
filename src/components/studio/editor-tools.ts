@@ -2,6 +2,7 @@ import {
   MousePointer2,
   Pencil,
   Layers,
+  BrickWall,
   MoveHorizontal,
   TriangleAlert,
   Bomb,
@@ -38,6 +39,15 @@ export const TOOL_GROUPS = [
   "편집 기록",
 ];
 export const EDITOR_TOOLS: EditorTool[] = [
+  {
+    id: "crumble",
+    icon: BrickWall,
+    iconName: "BrickWall",
+    label: "일회용 발판",
+    description: "한 번 밟으면 일정 시간 뒤 붕괴",
+    group: "지형 제작",
+    modes: ["bounce"],
+  },
   {
     id: "select",
     icon: MousePointer2,

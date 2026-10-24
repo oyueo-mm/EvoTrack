@@ -6,7 +6,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { DEFAULT_CONFIG, type Config } from "../../core/types";
-import { NumberField, RangeField, Section } from "../ui";
+import { NumberField, RangeField, Section, Toggle } from "../ui";
 export function TrainingPanel({
   config,
   onConfig,
@@ -14,12 +14,14 @@ export function TrainingPanel({
   onMethod,
   locked,
   onModels,
+  curriculumAllowed = false,
 }: {
   config: Config;
   onConfig: (c: Config) => void;
   method: "GA" | "PPO" | "both";
   onMethod: (m: "GA" | "PPO" | "both") => void;
   locked: boolean;
+  curriculumAllowed?: boolean;
   onModels: () => void;
 }) {
   const field = (key: keyof Config, n: number) =>
@@ -163,6 +165,30 @@ export function TrainingPanel({
           disabled={locked}
           onChange={(n) => field("seed", n)}
         />
+        {method !== "GA" && (
+          <>
+            <Toggle
+              label="PPO 커리큘럼 (v5 Bounce)"
+              checked={config.curriculum ?? false}
+              disabled={locked || !curriculumAllowed}
+              onChange={(curriculum) => onConfig({ ...config, curriculum })}
+            />
+            <p className="helper">
+              v5 Bounce 전용 · 쉬운 단계부터 같은 정책으로 학습합니다. 고정 평가
+              완주율 2/3 이상·진행도 90% 이상을 연속 2회 달성하면 다음 단계로
+              넘어갑니다.
+            </p>
+            <NumberField
+              label="Target KL"
+              value={config.targetKL ?? 0.03}
+              min={0.001}
+              max={0.2}
+              step={0.001}
+              disabled={locked}
+              onChange={(n) => field("targetKL", n)}
+            />
+          </>
+        )}
         <details className="disclosure">
           <summary>고급 설정</summary>
           {(

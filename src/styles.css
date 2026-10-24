@@ -4048,3 +4048,51 @@ input[type="range"] {
 .full-view .training-card-header .map-context {
   display: none;
 }
+
+.demo-scenario {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  font-size: 11px;
+  color: var(--muted);
+  max-width: 80%;
+  pointer-events: none;
+}
+.demo-next {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  font-size: 11px;
+}
+.demo-provenance {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  font-size: 11px;
+  max-width: 65%;
+  background: var(--surface);
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+.demo-provenance p {
+  max-width: 340px;
+  margin: 6px 0;
+  line-height: 1.6;
+}
+.ppo-diagnostics {
+  padding: 8px 14px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.ppo-diagnostics pre {
+  max-height: 200px;
+  overflow: auto;
+}
+.library-toolbar .row {
+  flex-wrap: wrap;
+}
+
+.demo-play-toggle {
+  right: 104px;
+  z-index: 1;
+}

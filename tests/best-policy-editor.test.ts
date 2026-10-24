@@ -6,9 +6,9 @@ import { GeneticTrainer } from "../src/learning/ga";
 import { PPOTrainer, initTensorflow } from "../src/learning/ppo";
 import { evaluatedPolicy, betterPolicy } from "../src/learning/best-policy";
 import { DEFAULT_CONFIG } from "../src/core/types";
-describe("v4 editor", () => {
-  it.each([1, 2, 3] as const)(
-    "preserves v%i original while creating an independent v4 copy",
+describe("latest editor", () => {
+  it.each([1, 2, 3, 4] as const)(
+    "preserves v%i original while creating an independent v5 copy",
     (version) => {
       const original = {
         ...structuredClone(EXAMPLE_MAPS[0]),
@@ -16,7 +16,7 @@ describe("v4 editor", () => {
       };
       const before = JSON.stringify(original),
         draft = editableV4(original);
-      expect(draft.environmentVersion).toBe(4);
+      expect(draft.environmentVersion).toBe(5);
       expect(draft.id).not.toBe(original.id);
       expect(draft.sourceMapId).toBe(original.id);
       expect(JSON.stringify(original)).toBe(before);
@@ -24,16 +24,17 @@ describe("v4 editor", () => {
       expect(JSON.stringify(original)).toBe(before);
     },
   );
-  it("keeps v4 identity, both new modes and concise names", () => {
+  it("keeps latest identity, both new modes and concise names", () => {
     for (const mode of ["racing", "bounce"] as const) {
       const m = newMap(mode);
       expect(editableV4(m).id).toBe(m.id);
-      expect(m.environmentVersion).toBe(4);
+      expect(m.environmentVersion).toBe(5);
     }
     expect(
-      v4EditorName("09 / 도약 회랑 · 편집본 · 확장 편집본 · 요소 확장본 (v4)"),
-    ).toBe("09 / 도약 회랑 (v4)");
-    expect(v4EditorName(v4EditorName("Map"))).toBe("Map (v4)");
+      v4EditorName("09 / 도약 회랑 · 편집본 · 확장 편집본 · 요소 확장본 (v5)"),
+    ).toBe("09 / 도약 회랑 (v5)");
+    expect(v4EditorName(v4EditorName("Map"))).toBe("Map (v5)");
+    expect(v4EditorName("Map (v4) (v5) 편집본 편집본")).toBe("Map (v5)");
   });
   it("assigns unique icons and descriptions to every available tool", () => {
     expect(new Set(EDITOR_TOOLS.map((t) => t.iconName)).size).toBe(

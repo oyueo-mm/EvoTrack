@@ -1,3 +1,5 @@
+import { backendCapabilities, benchmarkBackends } from "../learning/backends";
+import { curriculumStages, curriculumPass } from "../learning/curriculum";
 import {
   evaluatedPolicy,
   betterPolicy,
@@ -41,6 +43,10 @@ let lastTick = 0,
 let wallOffset = 0;
 let pendingCheckpoints: number[] = [];
 let catalog: PolicyCatalog = {};
+let backendReport = { backend: "cpu", support: {} as Record<string, string> };
+let curriculum:
+  | { stage: number; passes: number; stages: TrackMap[]; target: TrackMap }
+  | undefined;
 function capturePolicies(evaluateCurrent = false) {
   if (trainer instanceof GeneticTrainer) {
     const ga = trainer,
@@ -121,7 +127,7 @@ function mode() {
 function schedule() {
   clearTimeout(timer);
   if (running && (!awaitingFrame || mode() === "fast"))
-    timer = setTimeout(next, 16);
+    timer = setTimeout(next, mode() === "fast" ? 0 : 16);
 }
 function emit() {
   if (!snapshot) return;
@@ -166,10 +172,24 @@ function runtime(
     frameBytes: 0,
     bestProgress,
     learningEnvironmentCount: ppo ? 1 : config.population,
+    ...(ppo
+      ? {
+          backend: backendReport.backend,
+          backendSupport: backendReport.support,
+          activeMap: curriculum ? map : undefined,
+          curriculum: curriculum
+            ? {
+                stage: curriculum.stage + 1,
+                name: map.name,
+                passes: curriculum.passes,
+              }
+            : undefined,
+        }
+      : {}),
   };
 }
 function publishPPO(ppo: PPOTrainer) {
-  const state = ppo.displayState;
+  const state = { ...ppo.displayState, trail: ppo.environment.recentTrail() };
   bestProgress = Math.max(bestProgress, state.progress);
   stats.elapsed = (wallOffset + gaWall) / 1000;
   stats.progress = state.progress;
@@ -194,10 +214,13 @@ function next() {
       elapsed = Math.max(0, now - lastTick);
     lastTick = now;
     gaWall += elapsed;
-    accumulator = Math.min(
-      mode() === "observe" ? Math.ceil(config.speed * 4) : 120,
-      accumulator + (Math.min(100, elapsed) * 60 * config.speed) / 1000,
-    );
+    accumulator =
+      mode() === "fast"
+        ? 120
+        : Math.min(
+            mode() === "observe" ? Math.ceil(config.speed * 4) : 120,
+            accumulator + (Math.min(100, elapsed) * 60 * config.speed) / 1000,
+          );
     const begin = performance.now();
     let budget = mode() === "observe" ? Math.ceil(config.speed * 2) : 120;
     while (budget-- > 0 && performance.now() - begin < 10) {
@@ -244,8 +267,24 @@ function next() {
           if (
             ppo.updates === 1 ||
             ppo.updates % POLICY_EVALUATION_INTERVAL === 0
-          )
+          ) {
             capturePolicies(true);
+            if (curriculum && catalog.current) {
+              curriculum.passes = curriculumPass(catalog.current)
+                ? curriculum.passes + 1
+                : 0;
+              if (
+                curriculum.passes >= 2 &&
+                curriculum.stage < curriculum.stages.length - 1
+              ) {
+                curriculum.stage++;
+                curriculum.passes = 0;
+                map = curriculum.stages[curriculum.stage];
+                ppo.changeEnvironment(map);
+                catalog = {};
+              }
+            }
+          }
           stats.iteration = ppo.updates;
           stats.mean = result.mean;
           stats.episodes += result.episodes;
@@ -260,6 +299,7 @@ function next() {
           stats.valueLoss = result.valueLoss;
           stats.entropy = result.entropy;
           stats.kl = result.kl;
+          stats.diagnostics = result.diagnostics;
           for (const id of pendingCheckpoints.splice(0)) void checkpoint(id);
           break;
         }
@@ -336,6 +376,13 @@ async function checkpoint(requestId: number) {
     createdAt: new Date().toISOString(),
     checkpoint: cp,
     bestPolicy: catalog.best ? structuredClone(catalog.best) : undefined,
+    curriculumState: curriculum
+      ? {
+          stage: curriculum.stage,
+          passes: curriculum.passes,
+          target: curriculum.target,
+        }
+      : undefined,
   };
   reply({ type: "CHECKPOINT", requestId, model });
 }
@@ -344,16 +391,45 @@ self.onmessage = (event: MessageEvent<Command>) => {
   const cmd = event.data;
   queue = queue
     .then(async () => {
+      if (cmd.type === "BENCHMARK_BACKENDS") {
+        if (trainer) throw Error("별도 Worker에서만 백엔드를 측정하세요.");
+        session = cmd.session;
+        reply({
+          type: "BACKENDS",
+          requestId: cmd.requestId,
+          backends: await benchmarkBackends(
+            validateMap(cmd.map),
+            validateConfig(cmd.config!),
+          ),
+        });
+        return;
+      }
       if (cmd.type === "START" || cmd.type === "LOAD_CHECKPOINT") {
         dispose();
         session = cmd.session;
         map = validateMap(cmd.map);
         config = validateConfig(cmd.config!);
+        curriculum = undefined;
+        if (cmd.algorithm === "PPO" && config.curriculum) {
+          const target = cmd.model?.curriculumState?.target ?? map;
+          const stages = curriculumStages(target);
+          const stage = cmd.model?.curriculumState?.stage ?? 0;
+          curriculum = {
+            target,
+            stages,
+            stage,
+            passes: cmd.model?.curriculumState?.passes ?? 0,
+          };
+          map = stages[stage];
+        }
         if (cmd.model) {
           validateModel(cmd.model);
           assertCompatible(cmd.model, map);
         }
-        if (cmd.algorithm === "PPO") await initTensorflow();
+        if (cmd.algorithm === "PPO") {
+          await initTensorflow();
+          backendReport = await backendCapabilities();
+        }
         trainer =
           cmd.algorithm === "GA"
             ? new GeneticTrainer(map, config)
@@ -481,6 +557,7 @@ self.onmessage = (event: MessageEvent<Command>) => {
         if (cmd.type === "RESET") {
           snapshot = undefined;
           catalog = {};
+          curriculum = undefined;
         }
         reply({ type: "ACK", requestId: cmd.requestId, status: "stopped" });
       } else if (cmd.type === "UPDATE_CONFIG") {

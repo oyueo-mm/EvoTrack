@@ -23,6 +23,7 @@ import type {
   Snapshot,
   TrackMap,
 } from "../core/types";
+import { motionAngle, movingPose } from "../core/bounce-v5";
 import { objectPosition, Simulator } from "../core/environment";
 import { gateAt, gateEnds } from "../core/geometry";
 export type Tool =
@@ -31,6 +32,7 @@ export type Tool =
   | "wall"
   | "platform"
   | "moving"
+  | "crumble"
   | "spike"
   | "spring"
   | "elastic"
@@ -66,6 +68,7 @@ export function drawWorld(
   light = false,
   unit = 1,
   seed = 42,
+  previewTime = 0,
 ) {
   const w = map.width,
     h = map.height;
@@ -169,12 +172,45 @@ export function drawWorld(
       (original.kind === "reward" && original.visible === false && !editing)
     )
       return;
+    if (
+      editing &&
+      original.kind === "moving" &&
+      selected?.kind === "object" &&
+      selected.id === original.id
+    ) {
+      const a = motionAngle(original),
+        amplitude = original.amplitude ?? 50,
+        cx = original.x + original.w / 2,
+        cy = original.y + original.h / 2;
+      ctx.strokeStyle = "#4d9dc2";
+      ctx.lineWidth = 2 * unit;
+      ctx.setLineDash([7 * unit, 5 * unit]);
+      ctx.beginPath();
+      ctx.moveTo(cx - Math.cos(a) * amplitude, cy - Math.sin(a) * amplitude);
+      ctx.lineTo(cx + Math.cos(a) * amplitude, cy + Math.sin(a) * amplitude);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      for (const sign of [-1, 1]) {
+        ctx.beginPath();
+        ctx.arc(
+          cx + Math.cos(a) * amplitude * sign,
+          cy + Math.sin(a) * amplitude * sign,
+          5 * unit,
+          0,
+          Math.PI * 2,
+        );
+        ctx.stroke();
+      }
+      const pose = movingPose(original, previewTime, seed);
+      ctx.fillStyle = "#4d9dc244";
+      ctx.fillRect(pose.x, pose.y, original.w, original.h);
+    }
     const o = editing
       ? original
       : objectPosition(
           original,
           (snapshot?.live?.tick ?? state?.steps ?? 0) / 60,
-          seed,
+          state?.environmentSeed ?? seed,
         );
     ctx.save();
     ctx.translate(o.x + o.w / 2, o.y + o.h / 2);
@@ -197,7 +233,38 @@ export function drawWorld(
           : "#e9ecef"
         : "#a3b0b6";
     ctx.lineWidth = selected?.kind === "object" && selected.id === o.id ? 3 : 1;
-    if (o.kind === "belt") {
+    if (o.kind === "crumble") {
+      const entry = state?.platforms?.[o.id],
+        t = (state?.steps ?? 0) / 60;
+      ctx.fillStyle =
+        entry?.collapsedAt !== undefined
+          ? "#b78e5322"
+          : entry
+            ? "#e99c5e"
+            : "#c4a170";
+      if (entry?.collapsedAt !== undefined)
+        ctx.globalAlpha = Math.max(0.08, 1 - (t - entry.collapsedAt) / 0.3);
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+      ctx.strokeRect(o.x, o.y, o.w, o.h);
+      ctx.strokeStyle = "#684e36";
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(o.x + o.w * 0.35, o.y);
+      ctx.lineTo(o.x + o.w * 0.5, o.y + o.h * 0.5);
+      ctx.lineTo(o.x + o.w * 0.4, o.y + o.h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (entry && entry.collapsedAt === undefined) {
+        ctx.fillStyle = "#9b3f2d";
+        ctx.fillRect(
+          o.x,
+          o.y - 4,
+          o.w *
+            Math.max(0, 1 - (t - entry.triggeredAt) / (o.collapseDelay ?? 0.4)),
+          2,
+        );
+      }
+    } else if (o.kind === "belt") {
       ctx.fillStyle = o.beltType === "brake" ? "#d78f5577" : "#55b7a177";
       ctx.fillRect(o.x, o.y, o.w, o.h);
       ctx.strokeRect(o.x, o.y, o.w, o.h);
@@ -723,6 +790,7 @@ export function World({
         };
       }
     };
+    let previewTime = 0;
     const draw = () => {
       const p = latest.current,
         r = canvas.getBoundingClientRect(),
@@ -784,6 +852,7 @@ export function World({
         !!canvas.closest(".light"),
         1 / (baseScale(p.map, r) * effective.zoom),
         p.seed,
+        previewTime,
       );
       if (p.editing && tool === "erase" && brush.current) {
         ctx.beginPath();
@@ -851,6 +920,7 @@ export function World({
     draw();
     const tick = (now: number) => {
       const p = latest.current;
+      if (p.editing && !document.hidden) previewTime = now / 1000;
       ensureManualTest();
       const r = replay.current;
       accumulator += Math.min(0.1, (now - last) / 1000);
@@ -897,7 +967,12 @@ export function World({
       }
       raf = requestAnimationFrame(tick);
     };
-    if (testing) raf = requestAnimationFrame(tick);
+    if (
+      testing ||
+      (editing &&
+        (tool === "moving" || map.objects.some((o) => o.kind === "moving")))
+    )
+      raf = requestAnimationFrame(tick);
     const resize = new ResizeObserver(draw);
     resize.observe(canvas);
     return () => {
@@ -1233,7 +1308,18 @@ export function World({
                 : tool === "reward"
                   ? 90
                   : 20,
-        ...(tool === "moving" ? { amplitude: 60, period: 3 } : {}),
+        ...(tool === "moving"
+          ? {
+              amplitude: 60,
+              period: 3,
+              ...(map.environmentVersion === 5
+                ? { moveAxis: "horizontal" as const, phase: 0 }
+                : {}),
+            }
+          : {}),
+        ...(tool === "crumble"
+          ? { collapseDelay: 0.4, regenerate: false, restoreDelay: 2 }
+          : {}),
       };
       m.objects.push(o);
       onSelect?.({ kind: "object", id: o.id });
@@ -1473,6 +1559,13 @@ export function World({
         data-training-environments={snapshot?.runtime?.learningEnvironmentCount}
         data-training-phase={snapshot?.runtime?.phase}
         data-environment-id={snapshot?.runtime?.environmentId}
+        data-backend={snapshot?.runtime?.backend}
+        data-backend-support={JSON.stringify(
+          snapshot?.runtime?.backendSupport ?? {},
+        )}
+        data-env-version={map.environmentVersion ?? 1}
+        data-policy-input={snapshot?.policy.input}
+        data-platforms={JSON.stringify(snapshot?.state.platforms ?? {})}
         data-training-samples={snapshot?.runtime?.sample}
         data-training-ticks={snapshot?.runtime?.ticks}
         data-rollout={snapshot?.runtime?.rollout}

@@ -184,11 +184,11 @@ test("GA stores the generation winner, resumes after inspection, and preserves b
     "generation",
   );
 });
-test("v1/v2/v3 open directly as concise v4 copies while original JSON remains unchanged", async ({
+test("v1/v2/v3/v4 open directly as concise v5 copies while original JSON remains unchanged", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
-  for (const version of [1, 2, 3]) {
+  for (const version of [1, 2, 3, 4]) {
     const original = {
       ...structuredClone(EXAMPLE_MAPS[0]),
       id: "legacy-edit-" + version,
@@ -207,9 +207,9 @@ test("v1/v2/v3 open directly as concise v4 copies while original JSON remains un
     await page.getByRole("button", { name: "맵 에디터", exact: true }).click();
     await expect(
       page.getByRole("region", { name: "맵 편집 작업 공간" }),
-    ).toHaveAttribute("data-environment-version", "4");
+    ).toHaveAttribute("data-environment-version", "5");
     await expect(page.getByLabel("맵 이름", { exact: true })).toHaveValue(
-      `Legacy ${version} (v4)`,
+      `Legacy ${version} (v5)`,
     );
     await expect(
       page.getByRole("button", { name: /편집본 만들기/ }),
@@ -226,7 +226,7 @@ test("v1/v2/v3 open directly as concise v4 copies while original JSON remains un
       page.getByRole("heading", { name: original.name, exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: `${original.name} (v4)`, exact: true }),
+      page.getByRole("heading", { name: `${original.name} (v5)`, exact: true }),
     ).toBeVisible();
     const download = page.waitForEvent("download");
     await page
@@ -240,7 +240,7 @@ test("v1/v2/v3 open directly as concise v4 copies while original JSON remains un
       .getByRole("button", { name: `${original.name} 편집`, exact: true })
       .click();
     await expect(page.getByLabel("맵 이름", { exact: true })).toHaveValue(
-      `${original.name} (v4)`,
+      `${original.name} (v5)`,
     );
   }
 });

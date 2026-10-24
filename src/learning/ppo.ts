@@ -1,7 +1,14 @@
 ﻿import * as tf from "@tensorflow/tfjs";
 import { Simulator } from "../core/environment";
 import { Random } from "../core/random";
-import type { AgentState, Config, PolicyData, TrackMap } from "../core/types";
+import { observationSizeFor } from "../core/types";
+import type {
+  TrainingStats,
+  AgentState,
+  Config,
+  PolicyData,
+  TrackMap,
+} from "../core/types";
 import { createPolicy, logits, sample, softmax } from "./network";
 export function gae(
   rewards: number[],
@@ -24,6 +31,13 @@ export function gae(
 }
 export const clippedObjective = (ratio: number, adv: number, clip = 0.2) =>
   Math.min(ratio * adv, Math.max(1 - clip, Math.min(1 + clip, ratio)) * adv);
+export const combinedPPOLoss = (
+  policy: tf.Scalar,
+  valueMSE: tf.Scalar,
+  entropy: tf.Scalar,
+  entropyCoefficient: number,
+) => policy.add(valueMSE.mul(0.5)).sub(entropy.mul(entropyCoefficient));
+
 type SerializedTensor = { name: string; shape: number[]; values: number[] };
 export interface PPOCheckpoint {
   actor: PolicyData;
@@ -31,6 +45,9 @@ export interface PPOCheckpoint {
   optimizer: SerializedTensor[];
   rng: number;
   updates: number;
+  environment?: ReturnType<Simulator["checkpoint"]>;
+  episodeSerial?: number;
+  totalSamples?: number;
 }
 export interface PPORunResult {
   steps: number;
@@ -44,6 +61,7 @@ export interface PPORunResult {
   valueLoss: number;
   entropy: number;
   kl: number;
+  diagnostics: NonNullable<TrainingStats["diagnostics"]>;
 }
 export class PPOTrainer {
   rng: Random;
@@ -51,8 +69,11 @@ export class PPOTrainer {
   critic: tf.Variable[];
   optimizer: tf.AdamOptimizer;
   updates = 0;
+  private episodeSerial = 0;
+  private valueCache?: number;
+  private currentObservation?: Float32Array;
   private names: string[];
-  readonly environmentId = crypto.randomUUID();
+  environmentId = crypto.randomUUID();
   environment: Simulator;
   phase: "READY" | "COLLECTING" | "OPTIMIZING" = "READY";
   collected = 0;
@@ -87,14 +108,44 @@ export class PPOTrainer {
     public config: Config,
   ) {
     this.environment = new Simulator(map, config.horizon);
+    this.environment.reset(config.seed);
     this.displayState = this.environment.getState(true, true);
     this.rng = new Random(config.seed);
-    this.actor = this.variables(
-      createPolicy(12, map.mode === "racing" ? 5 : 6, this.rng),
+    const initial = createPolicy(
+      observationSizeFor(map),
+      map.mode === "racing" ? 5 : 6,
+      this.rng,
     );
-    this.critic = this.variables(createPolicy(12, 1, this.rng));
+    // Near-uniform initial action distribution avoids a randomly dominant wait/turn action.
+    const outputOffset = initial.input * initial.hidden + initial.hidden;
+    for (let i = outputOffset; i < initial.weights.length; i++)
+      initial.weights[i] =
+        i < initial.weights.length - initial.output
+          ? initial.weights[i] * 0.033333333333
+          : 0;
+    this.actor = this.variables(initial);
+    this.critic = this.variables(
+      createPolicy(observationSizeFor(map), 1, this.rng),
+    );
     this.names = [...this.actor, ...this.critic].map((v) => v.name);
     this.optimizer = tf.train.adam(config.learningRate);
+  }
+  changeEnvironment(map: TrackMap) {
+    if (this.phase !== "READY")
+      throw Error("커리큘럼은 업데이트 경계에서만 전환합니다.");
+    if (
+      observationSizeFor(map) !== observationSizeFor(this.map) ||
+      map.mode !== this.map.mode ||
+      map.environmentVersion !== this.map.environmentVersion
+    )
+      throw Error("커리큘럼 환경 스키마가 다릅니다.");
+    this.map = map;
+    this.environment = new Simulator(map, this.config.horizon);
+    this.environment.reset(this.config.seed + ++this.episodeSerial);
+    this.environmentId = crypto.randomUUID();
+    this.currentObservation = undefined;
+    this.valueCache = undefined;
+    this.displayState = this.environment.getState();
   }
   private variables(p: PolicyData) {
     let at = 0;
@@ -121,7 +172,7 @@ export class PPOTrainer {
   }
   private policy(vars: tf.Variable[]): PolicyData {
     return {
-      input: 12,
+      input: observationSizeFor(this.map),
       hidden: 24,
       output: vars[3].shape[0],
       weights: vars.flatMap((v) => Array.from(v.dataSync())),
@@ -134,7 +185,9 @@ export class PPOTrainer {
     this.phase = "COLLECTING";
     this.collected = 0;
     const env = this.environment;
-    env.reset(this.config.seed + this.updates);
+    const collectStarted = performance.now();
+    let collectMs = 0,
+      updateMs = 0;
     const obs: number[][] = [],
       acts: number[] = [],
       logs: number[] = [],
@@ -147,22 +200,31 @@ export class PPOTrainer {
       successes = 0,
       collisions = 0,
       completion = 0,
-      totalReward = 0;
+      totalReward = 0,
+      episodeLengths = 0;
     let state = env.getState();
     const policy = this.getPolicy(),
       critic = this.policy(this.critic);
+    this.valueCache = undefined;
+    const actionProbabilities = new Array(env.actionSize).fill(0);
     for (let i = 0; i < this.config.rollout; i++) {
-      const o = Array.from(env.observe()),
+      const sampleStarted = performance.now();
+      const o = Array.from(this.currentObservation ?? env.observe()),
         prob = softmax(logits(policy, o)),
         a = sample(prob, this.rng),
-        value = logits(critic, o)[0],
+        value = this.valueCache ?? logits(critic, o)[0],
         r = env.step(a);
+      this.currentObservation = r.observation;
       obs.push(o);
       acts.push(a);
       logs.push(Math.log(Math.max(1e-8, prob[a])));
       values.push(value);
       rewards.push(r.reward);
-      nextValues.push(logits(critic, r.observation)[0]);
+      this.valueCache = r.terminated ? 0 : logits(critic, r.observation)[0];
+      nextValues.push(this.valueCache);
+      prob.forEach(
+        (v, i) => (actionProbabilities[i] += v / this.config.rollout),
+      );
       terms.push(r.terminated);
       bounds.push(r.terminated || r.truncated);
       state = env.getState(true, true);
@@ -178,14 +240,18 @@ export class PPOTrainer {
         value,
         state,
       };
+      collectMs += performance.now() - sampleStarted;
       yield null;
       if (r.terminated || r.truncated) {
         episodes++;
         successes += +state.success;
         collisions += +state.collision;
         totalReward += state.reward;
+        episodeLengths += state.steps;
         if (state.success) completion += state.steps / 60;
-        env.reset(this.config.seed + this.updates + episodes);
+        env.reset(this.config.seed + ++this.episodeSerial);
+        this.valueCache = undefined;
+        this.currentObservation = undefined;
       }
     }
     this.phase = "OPTIMIZING";
@@ -210,8 +276,11 @@ export class PPOTrainer {
       valueLoss = 0,
       entropy = 0,
       kl = 0,
-      batches = 0;
-    for (let epoch = 0; epoch < this.config.epochs; epoch++) {
+      batches = 0,
+      gradientNorm = 0,
+      clipFraction = 0,
+      earlyStopped = false;
+    optimization: for (let epoch = 0; epoch < this.config.epochs; epoch++) {
       const order = Array.from({ length: obs.length }, (_, i) => i);
       for (let i = order.length - 1; i > 0; i--) {
         const j = this.rng.int(i + 1);
@@ -219,7 +288,9 @@ export class PPOTrainer {
       }
       for (let start = 0; start < obs.length; start += this.config.minibatch) {
         const ids = order.slice(start, start + this.config.minibatch);
+        const updateStarted = performance.now();
         const losses = tf.tidy(() => {
+          let measurements: number[] = [];
           const x = tf.tensor2d(ids.map((i) => obs[i])),
             a = tf.tensor1d(
               ids.map((i) => acts[i]),
@@ -248,22 +319,36 @@ export class PPOTrainer {
               .reshape([-1])
               .sub(ret)
               .square()
-              .mean()
-              .mul(0.5);
+              .mean();
             const ent = p.mul(logAll).sum(1).mean().neg();
-            const kl = old.sub(logp).mean();
+            const kl = ratio.sub(1).sub(logp.sub(old)).mean();
+            const clippedFraction = ratio
+              .sub(1)
+              .abs()
+              .greater(this.config.clip)
+              .cast("float32")
+              .mean();
             return {
               pl,
               vl,
               ent,
               kl,
-              total: pl.add(vl.mul(0.5)).sub(ent.mul(this.config.entropy)),
+              clippedFraction,
+              total: combinedPPOLoss(
+                pl as tf.Scalar,
+                vl as tf.Scalar,
+                ent as tf.Scalar,
+                this.config.entropy,
+              ),
             };
           };
-          const grads = tf.variableGrads(
-            () => calc().total as tf.Scalar,
-            [...this.actor, ...this.critic],
-          );
+          const grads = tf.variableGrads(() => {
+            const l = calc();
+            measurements = Array.from(
+              tf.stack([l.pl, l.vl, l.ent, l.kl, l.clippedFraction]).dataSync(),
+            );
+            return l.total as tf.Scalar;
+          }, [...this.actor, ...this.critic]);
           const norm = tf.sqrt(
             tf.addN(Object.values(grads.grads).map((g) => g.square().sum())),
           );
@@ -271,25 +356,30 @@ export class PPOTrainer {
           const clipped: tf.NamedTensorMap = {};
           for (const [name, g] of Object.entries(grads.grads))
             clipped[name] = g.mul(scale);
-          if (!Number.isFinite(grads.value.dataSync()[0]))
+          const gradNorm = norm.dataSync()[0];
+          if (
+            !Number.isFinite(gradNorm) ||
+            !Number.isFinite(grads.value.dataSync()[0])
+          )
             throw Error("PPO loss is not finite");
           this.optimizer.applyGradients(
             Object.entries(clipped).map(([name, tensor]) => ({ name, tensor })),
           );
-          const l = calc();
-          return [
-            l.pl.dataSync()[0],
-            l.vl.dataSync()[0],
-            l.ent.dataSync()[0],
-            l.kl.dataSync()[0],
-          ];
+          return [...measurements, gradNorm];
         });
         policyLoss += losses[0];
         valueLoss += losses[1];
         entropy += losses[2];
         kl += losses[3];
+        clipFraction += losses[4];
+        gradientNorm += losses[5];
+        updateMs += performance.now() - updateStarted;
         batches++;
         yield null;
+        if (losses[3] > 1.5 * (this.config.targetKL ?? 0.03)) {
+          earlyStopped = true;
+          break optimization;
+        }
       }
     }
     this.updates++;
@@ -306,6 +396,23 @@ export class PPOTrainer {
       valueLoss: valueLoss / batches,
       entropy: entropy / batches,
       kl: kl / batches,
+      diagnostics: {
+        advantageMean: mean,
+        advantageStd: std,
+        gradientNorm: gradientNorm / batches,
+        clipFraction: clipFraction / batches,
+        actionProbabilities,
+        episodeLength: episodes ? episodeLengths / episodes : state.steps,
+        policyChange: Math.sqrt(
+          this.getPolicy().weights.reduce(
+            (a, w, i) => a + (w - policy.weights[i]) ** 2,
+            0,
+          ),
+        ),
+        collectMs,
+        updateMs,
+        earlyStopped,
+      },
     };
   }
   async checkpoint(): Promise<PPOCheckpoint> {
@@ -324,6 +431,9 @@ export class PPOTrainer {
       optimizer: serialized,
       rng: this.rng.state,
       updates: this.updates,
+      environment: this.environment.checkpoint(),
+      episodeSerial: this.episodeSerial,
+      totalSamples: this.totalSamples,
     };
   }
   async restore(c: PPOCheckpoint) {
@@ -355,6 +465,13 @@ export class PPOTrainer {
     weights.forEach((w) => w.tensor.dispose());
     this.rng.state = c.rng;
     this.updates = c.updates;
+    this.episodeSerial = c.episodeSerial ?? c.updates;
+    this.totalSamples = c.totalSamples ?? 0;
+    if (c.environment) this.environment.restore(c.environment);
+    else this.environment.reset(this.config.seed + c.updates);
+    this.currentObservation = undefined;
+    this.valueCache = undefined;
+    this.displayState = this.environment.getState(true, true);
   }
   dispose() {
     this.actor.forEach((v) => v.dispose());

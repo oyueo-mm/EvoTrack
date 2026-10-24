@@ -13,6 +13,11 @@ export const ELEMENT_INFO = {
     description:
       "이동 범위와 주기에 따라 왕복합니다. Bounce에서는 올라탈 수 있습니다.",
   },
+  crumble: {
+    name: "일회용 발판",
+    description:
+      "한 번 밟으면 일정 시간 뒤 무너지는 발판입니다. 다음 시도에서 복원됩니다.",
+  },
   spike: {
     name: "가시",
     description:

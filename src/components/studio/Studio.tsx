@@ -68,8 +68,8 @@ export interface Props {
   onSaveModel: (model: SavedModel) => Promise<void>;
 }
 export function Studio(props: Props) {
-  if (props.editing && props.map.environmentVersion !== 4)
-    return <section role="status">v4 편집 환경 준비 중…</section>;
+  if (props.editing && props.map.environmentVersion !== 5)
+    return <section role="status">v5 편집 환경 준비 중…</section>;
   return props.editing ? (
     <EditorWorkspace
       map={props.map}
@@ -135,8 +135,23 @@ function TrainingStudio({
     }
   };
 
-  const [viewport, setViewport] = useState<Viewport>(FIT_VIEW);
-  const [follow, setFollow] = useState(false);
+  const [cameras, setCameras] = useState<Record<Algorithm, Viewport>>({
+    GA: FIT_VIEW,
+    PPO: FIT_VIEW,
+  });
+  const [following, setFollowing] = useState<Record<Algorithm, boolean>>({
+    GA: false,
+    PPO: false,
+  });
+  const viewport = cameras[tab],
+    follow = following[tab];
+  const setViewport = (next: Viewport | ((v: Viewport) => Viewport)) =>
+    setCameras((c) => ({
+      ...c,
+      [tab]: typeof next === "function" ? next(c[tab]) : next,
+    }));
+  const setFollow = (value: boolean) =>
+    setFollowing((f) => ({ ...f, [tab]: value }));
   const [chartMetric, setChartMetric] = useState<"best" | "mean">("best");
   const [windowSize, setWindowSize] = useState(100);
   const snapshot = training.snapshots[tab],
@@ -145,8 +160,8 @@ function TrainingStudio({
   const locked = training.active || training.paused,
     status = training.statuses[tab] ?? "idle";
   useEffect(() => {
-    setViewport(FIT_VIEW);
-    setFollow(false);
+    setCameras({ GA: FIT_VIEW, PPO: FIT_VIEW });
+    setFollowing({ GA: false, PPO: false });
   }, [map.id]);
   useEffect(() => {
     if (!panel || innerWidth > 900) return;
@@ -349,6 +364,13 @@ function TrainingStudio({
               <span>일시정지 · 학습 재개로 이어서 관찰하세요.</span>
             )}
           </section>
+          {training.snapshots.PPO?.runtime?.curriculum && (
+            <p className="helper" aria-label="커리큘럼 진행">
+              단계 {training.snapshots.PPO.runtime.curriculum.stage} ·{" "}
+              {training.snapshots.PPO.runtime.curriculum.name} · 연속 통과{" "}
+              {training.snapshots.PPO.runtime.curriculum.passes}/2
+            </p>
+          )}
           <div className="view-toolbar">
             <div className="row">
               <div className="algorithm-switch">
@@ -494,12 +516,20 @@ function TrainingStudio({
               "viewport " + (method === "both" ? "split-learning" : "")
             }
           >
-            <div className="learning-pane">
+            <div
+              className="learning-pane"
+              onPointerDownCapture={() => method === "both" && onTab("GA")}
+              onWheelCapture={() => method === "both" && onTab("GA")}
+            >
               {method === "both" && (
                 <span className="pane-label">GA · 실시간 개체군</span>
               )}
               <World
-                map={map}
+                map={
+                  method === "both"
+                    ? map
+                    : (snapshot?.runtime?.activeMap ?? map)
+                }
                 options={options}
                 snapshot={method === "both" ? training.snapshots.GA : snapshot}
                 animate={false}
@@ -511,26 +541,49 @@ function TrainingStudio({
                     session,
                   )
                 }
-                viewport={viewport}
-                onViewportChange={setViewport}
+                viewport={cameras[method === "both" ? "GA" : tab]}
+                onViewportChange={(v) =>
+                  setCameras((c) => ({
+                    ...c,
+                    [method === "both" ? "GA" : tab]: v,
+                  }))
+                }
                 interactive
                 onAgentSelect={(index) =>
                   onOptions({ ...options, selectedAgent: index })
                 }
-                follow={follow}
-                onNavigate={() => setFollow(false)}
+                follow={following[method === "both" ? "GA" : tab]}
+                onNavigate={() =>
+                  setFollowing((f) => ({
+                    ...f,
+                    [method === "both" ? "GA" : tab]: false,
+                  }))
+                }
                 seed={config.seed}
                 horizon={config.horizon}
               />
             </div>
             {method === "both" && (
-              <div className="learning-pane">
+              <div
+                className="learning-pane"
+                onPointerDownCapture={() => onTab("PPO")}
+                onWheelCapture={() => onTab("PPO")}
+              >
                 <span className="pane-label">PPO · 단일 에이전트 Rollout</span>
                 <World
-                  map={map}
+                  map={training.snapshots.PPO?.runtime?.activeMap ?? map}
                   options={options}
                   snapshot={training.snapshots.PPO}
                   label="PPO 실제 학습 캔버스"
+                  interactive
+                  viewport={cameras.PPO}
+                  onViewportChange={(v) =>
+                    setCameras((c) => ({ ...c, PPO: v }))
+                  }
+                  follow={following.PPO}
+                  onNavigate={() => setFollowing((f) => ({ ...f, PPO: false }))}
+                  seed={config.seed}
+                  horizon={config.horizon}
                   onFrame={(sequence, session) =>
                     training.presentFrame("PPO", sequence, undefined, session)
                   }
@@ -560,6 +613,22 @@ function TrainingStudio({
                 );
               })}
             </div>
+          )}
+          {training.snapshots.PPO?.stats.diagnostics && (
+            <details className="ppo-diagnostics">
+              <summary>PPO 진단</summary>
+              <pre>
+                {JSON.stringify(
+                  training.snapshots.PPO.stats.diagnostics,
+                  null,
+                  2,
+                )}
+              </pre>
+              <p>
+                백엔드 {training.snapshots.PPO.runtime?.backend} · 학습
+                Simulator 1개
+              </p>
+            </details>
           )}
           {training.snapshots.PPO?.runtime && (
             <div className="ppo-runtime" aria-label="PPO 경험 수집 상태">
@@ -664,6 +733,9 @@ function TrainingStudio({
                 </button>
               </div>
               <TrainingPanel
+                curriculumAllowed={
+                  map.mode === "bounce" && map.environmentVersion === 5
+                }
                 config={config}
                 onConfig={changeConfig}
                 method={method}

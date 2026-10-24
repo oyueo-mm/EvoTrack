@@ -1,20 +1,21 @@
 import { Simulator } from "../core/environment";
 import {
   SCHEMAS,
+  observationSizeFor,
   schemasFor,
   type PolicyData,
   type SavedModel,
   type TrackMap,
 } from "../core/types";
 import { actionOf, weightCount } from "./network";
-export function validatePolicy(p: PolicyData, output: number) {
+export function validatePolicy(p: PolicyData, output: number, input = 12) {
   if (
     !p ||
-    p.input !== 12 ||
+    p.input !== input ||
     p.hidden !== 24 ||
     p.output !== output ||
     !Array.isArray(p.weights) ||
-    p.weights.length !== weightCount(12, 24, output) ||
+    p.weights.length !== weightCount(input, 24, output) ||
     !p.weights.every((v) => Number.isFinite(v) && Math.abs(v) < 1e6)
   )
     throw Error("신경망 구조 또는 가중치가 유효하지 않습니다.");
@@ -30,7 +31,11 @@ export function assertCompatible(model: SavedModel, map: TrackMap) {
     throw Error(
       "환경 버전 또는 관측·행동 스키마가 호환되지 않습니다. 기존 모델은 원래 환경에서 실행하세요.",
     );
-  validatePolicy(model.policy, map.mode === "racing" ? 5 : 6);
+  validatePolicy(
+    model.policy,
+    map.mode === "racing" ? 5 : 6,
+    observationSizeFor(map),
+  );
 }
 export function evaluate(
   policy: PolicyData,
@@ -38,7 +43,11 @@ export function evaluate(
   seeds = [101, 202, 303],
   horizon = 600,
 ) {
-  validatePolicy(policy, map.mode === "racing" ? 5 : 6);
+  validatePolicy(
+    policy,
+    map.mode === "racing" ? 5 : 6,
+    observationSizeFor(map),
+  );
   const results = seeds.map((seed) => {
     const env = new Simulator(map, horizon);
     env.reset(seed);

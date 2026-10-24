@@ -2,6 +2,7 @@
 import {
   SCHEMAS,
   schemasFor,
+  observationSizeFor,
   type Config,
   type SavedModel,
   type TrackMap,
@@ -21,7 +22,8 @@ export function validateConfig(c: Config) {
   if (
     !c ||
     Object.entries(c).some(
-      ([key, v]) => key !== "trainingMode" && !Number.isFinite(v),
+      ([key, v]) =>
+        !["trainingMode", "curriculum"].includes(key) && !Number.isFinite(v),
     )
   )
     throw Error("학습 설정이 손상되었습니다.");
@@ -45,6 +47,8 @@ export function validateConfig(c: Config) {
     !range(c.entropy, 0, 1) ||
     (c.trainingMode !== undefined &&
       !["observe", "fast"].includes(c.trainingMode)) ||
+    (c.curriculum !== undefined && typeof c.curriculum !== "boolean") ||
+    (c.targetKL !== undefined && !range(c.targetKL, 0.001, 0.2)) ||
     !range(c.speed, 0.5, 10)
   )
     throw Error("학습 설정의 허용 범위를 벗어났습니다.");
@@ -90,8 +94,8 @@ export function validateModel(value: unknown): SavedModel {
     typeof m.mapId !== "string" ||
     typeof m.createdAt !== "string" ||
     !m.schemas ||
-    ![1, 2, 3, 4].includes(m.schemas.environment) ||
-    m.schemas.observation !== 1 ||
+    ![1, 2, 3, 4, 5].includes(m.schemas.environment) ||
+    ![1, 2].includes(m.schemas.observation) ||
     m.schemas.action !== 1
   )
     throw Error("모델 메타데이터 또는 스키마가 호환되지 않습니다.");
@@ -100,15 +104,34 @@ export function validateModel(value: unknown): SavedModel {
     throw Error("학습 맵 정보가 일치하지 않습니다.");
   if (m.schemas.environment !== schemasFor(trainingMap).environment)
     throw Error("모델과 학습 맵의 환경 버전이 다릅니다.");
-  validatePolicy(m.policy, m.mode === "racing" ? 5 : 6);
+  if (m.schemas.observation !== schemasFor(trainingMap).observation)
+    throw Error("관측 스키마가 다릅니다.");
+  const input = observationSizeFor(trainingMap);
+  validatePolicy(m.policy, m.mode === "racing" ? 5 : 6, input);
   if (m.policySelection && !validPolicySummary(m.policySelection, m.algorithm))
     throw Error("정책 선정 정보가 손상되었습니다.");
   if (m.bestPolicy) {
     if (!validPolicySummary(m.bestPolicy, m.algorithm))
       throw Error("최고 정책 정보가 손상되었습니다.");
-    validatePolicy(m.bestPolicy.policy, m.policy.output);
+    validatePolicy(m.bestPolicy.policy, m.policy.output, input);
   }
 
+  if (m.curriculumState) {
+    const c = m.curriculumState;
+    const target = validateMap(c.target);
+    if (
+      m.algorithm !== "PPO" ||
+      target.mode !== "bounce" ||
+      target.environmentVersion !== 5 ||
+      !Number.isInteger(c.stage) ||
+      c.stage < 0 ||
+      c.stage > 7 ||
+      !Number.isInteger(c.passes) ||
+      c.passes < 0 ||
+      c.passes > 2
+    )
+      throw Error("커리큘럼 상태가 손상되었습니다.");
+  }
   validateConfig(m.config);
   const numericStats = [
     "iteration",
@@ -183,19 +206,93 @@ export function validateModel(value: unknown): SavedModel {
           ))
       )
         throw Error("최고 정책 상태가 손상되었습니다.");
-      c.population.forEach((p: any) => validatePolicy(p, m.policy.output));
-      if (c.best) validatePolicy(c.best, m.policy.output);
+      c.population.forEach((p: any) =>
+        validatePolicy(p, m.policy.output, input),
+      );
+      if (c.best) validatePolicy(c.best, m.policy.output, input);
     } else {
-      validatePolicy(c.actor, m.policy.output);
-      validatePolicy(c.critic, 1);
+      if (
+        [c.episodeSerial, c.totalSamples].some(
+          (v) => v !== undefined && (!Number.isSafeInteger(v) || v < 0),
+        )
+      )
+        throw Error("PPO 경험 수집 상태가 손상되었습니다.");
+      validatePolicy(c.actor, m.policy.output, input);
+      validatePolicy(c.critic, 1, input);
+      if (c.environment) {
+        const e = c.environment;
+        if (
+          ![
+            e.state?.angle,
+            e.state?.speed,
+            e.state?.progress,
+            e.state?.checkpoint,
+          ].every(Number.isFinite) ||
+          !["grounded", "done", "success", "collision"].every(
+            (k) => typeof e.state?.[k] === "boolean",
+          ) ||
+          ![e.rewardInside, e.rewardFired].every(
+            (a) =>
+              Array.isArray(a) &&
+              a.length <= 1000 &&
+              a.every((v) => typeof v === "string"),
+          ) ||
+          !Array.isArray(e.rewardLast) ||
+          e.rewardLast.length > 1000 ||
+          e.rewardLast.some(
+            (v: any) =>
+              !Array.isArray(v) ||
+              typeof v[0] !== "string" ||
+              !Number.isFinite(v[1]),
+          )
+        )
+          throw Error("PPO 환경 상태가 손상되었습니다.");
+        if (
+          e.state.platforms &&
+          Object.entries(e.state.platforms).some(
+            ([id, v]: [string, any]) =>
+              !trainingMap.objects.some(
+                (o) => o.id === id && o.kind === "crumble",
+              ) ||
+              !Number.isFinite(v?.triggeredAt) ||
+              v.triggeredAt < 0 ||
+              (v.collapsedAt !== undefined &&
+                (!Number.isFinite(v.collapsedAt) ||
+                  v.collapsedAt < v.triggeredAt)),
+          )
+        )
+          throw Error("발판 실행 상태가 손상되었습니다.");
+        if (
+          !e.state ||
+          ![
+            e.seed,
+            e.bestX,
+            e.arc,
+            e.bestArc,
+            e.segment,
+            e.state.steps,
+            e.state.x,
+            e.state.y,
+            e.state.vx,
+            e.state.vy,
+            e.state.reward,
+          ].every(Number.isFinite) ||
+          e.state.steps < 0 ||
+          e.state.steps > m.config.horizon ||
+          !Array.isArray(e.state.trail) ||
+          e.state.trail.length > 200 ||
+          ![e.rewardInside, e.rewardFired, e.rewardLast].every(Array.isArray)
+        )
+          throw Error("PPO 환경 상태가 손상되었습니다.");
+      }
       const slotShapes = [
         [],
         ...Array.from({ length: 2 }, () => [
-          [12, 24],
+          [input, 24],
           [24],
           [24, m.policy.output],
           [m.policy.output],
-          [12, 24],
+          [input, 24],
           [24],
           [24, 1],
           [1],
@@ -327,7 +424,7 @@ export function validateWorkspace(value: unknown): Workspace {
     (w.format !== "evotrack-workspace" ||
       w.version !== 1 ||
       !w.schemas ||
-      ![1, 2, 3, 4].includes(w.schemas.environment) ||
+      ![1, 2, 3, 4, 5].includes(w.schemas.environment) ||
       w.schemas.observation !== 1 ||
       w.schemas.action !== 1)
   )

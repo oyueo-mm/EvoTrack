@@ -1,3 +1,4 @@
+import { V05_MAPS, MAP_VARIANTS } from "./v05-maps";
 import { UX_MAPS } from "./ux-maps";
 import { CHALLENGE_MAPS } from "./challenge-maps";
 import { circleObject } from "./geometry";
@@ -190,13 +191,21 @@ for (const m of EXAMPLE_MAPS) {
     directional: true,
   }));
 }
-EXAMPLE_MAPS.push(...CHALLENGE_MAPS, ...UX_MAPS);
+EXAMPLE_MAPS.push(...CHALLENGE_MAPS, ...UX_MAPS, ...V05_MAPS);
+for (const m of EXAMPLE_MAPS) {
+  if (MAP_VARIANTS[m.id]) m.variantOf = MAP_VARIANTS[m.id];
+  if (["r-straight", "r-serpent"].includes(m.id)) m.recommended = true;
+}
 for (const m of EXAMPLE_MAPS)
   if (["b-jump", "b-stairs", "b-moving"].includes(m.id))
     m.category = "tutorial";
 export function newMap(mode: Mode): TrackMap {
   const map = structuredClone(EXAMPLE_MAPS[mode === "racing" ? 0 : 4]);
-  map.environmentVersion = 4;
+  map.environmentVersion = 5;
+  map.category = "standard";
+  map.recommended = false;
+  delete map.variantOf;
+  delete map.sourceMapId;
   map.id = crypto.randomUUID();
   map.name = "Untitled " + (mode === "racing" ? "circuit" : "puzzle");
   map.createdAt = map.updatedAt = new Date().toISOString();
@@ -237,7 +246,7 @@ export function validateMap(value: unknown): TrackMap {
     );
   if (
     (m.environmentVersion !== undefined &&
-      ![1, 2, 3, 4].includes(m.environmentVersion)) ||
+      ![1, 2, 3, 4, 5].includes(m.environmentVersion)) ||
     (m.recommendedHorizon !== undefined &&
       (!Number.isInteger(m.recommendedHorizon) ||
         m.recommendedHorizon < 30 ||
@@ -317,6 +326,7 @@ export function validateMap(value: unknown): TrackMap {
           "wall",
           "platform",
           "moving",
+          "crumble",
           "spike",
           "spring",
           "elastic",
@@ -390,8 +400,35 @@ export function validateMap(value: unknown): TrackMap {
           o.minLaunchSpeed,
           o.maxLaunchSpeed,
         ].some((v) => v !== undefined);
-      if (extended && m.environmentVersion !== 4) return true;
+      if (extended && (m.environmentVersion ?? 1) < 4) return true;
+      const v5 =
+        o.kind === "crumble" ||
+        [
+          o.moveAxis,
+          o.moveAngle,
+          o.phase,
+          o.collapseDelay,
+          o.regenerate,
+          o.restoreDelay,
+        ].some((v) => v !== undefined);
+      if (
+        v5 &&
+        ((m.environmentVersion ?? 1) < 5 ||
+          (m.mode !== "bounce" && o.kind === "crumble"))
+      )
+        return true;
+      if (
+        o.moveAxis !== undefined &&
+        !["horizontal", "vertical", "custom"].includes(o.moveAxis)
+      )
+        return true;
+      if (o.regenerate !== undefined && typeof o.regenerate !== "boolean")
+        return true;
       const numeric: [unknown, number, number][] = [
+        [o.moveAngle, -Math.PI * 2, Math.PI * 2],
+        [o.phase, -Math.PI * 2, Math.PI * 2],
+        [o.collapseDelay, 0.05, 10],
+        [o.restoreDelay, 0.1, 120],
         [o.bounceCoefficient, 0, 2],
         [o.liftBoost, 0, 1000],
         [o.tangentBoost, -1000, 1000],

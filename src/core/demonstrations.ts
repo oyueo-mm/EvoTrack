@@ -13,6 +13,10 @@ export function demonstrate(
       ? 70
       : 25,
 ) {
+  if (map.environmentVersion === 5 && map.mode === "bounce") {
+    edgeDistance = 45;
+    obstacleDistance = 70;
+  }
   const env = new Simulator(map, horizon);
   env.reset(42);
   const lengths = roadLengths(map.road);
@@ -43,7 +47,9 @@ export function demonstrate(
       );
       action = Math.abs(error) > 0.035 ? (error < 0 ? 1 : 2) : 0;
     } else {
-      const objects = map.objects.map((o) => objectPosition(o, i / 60, 42));
+      const objects = map.objects
+        .filter((o) => s.platforms?.[o.id]?.collapsedAt === undefined)
+        .map((o) => objectPosition(o, i / 60, 42));
       const ground = objects
         .filter(
           (o) =>
@@ -76,7 +82,8 @@ export function demonstrate(
         ground &&
         ground.x + ground.w - s.x < edgeDistance &&
         ground.x + ground.w < map.goal.x;
-      action = s.grounded && (edge || danger || blocker) ? 5 : 2;
+      const fragile = ground?.kind === "crumble" && !!s.platforms?.[ground.id];
+      action = s.grounded && (edge || danger || blocker || fragile) ? 5 : 2;
       if (!s.grounded && s.x > map.goal.x - 45 && s.y < map.goal.y - 25)
         action = s.vx > 10 ? 1 : 0;
     }

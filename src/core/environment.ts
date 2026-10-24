@@ -1,6 +1,15 @@
 import type { AgentState, Environment, MapObject, TrackMap } from "./types";
 import { clamp, distance, wrapAngle } from "./random";
 import { segmentDistance } from "./maps";
+import {
+  circleObject,
+  circleContact,
+  objectBounds,
+  gateCrossing,
+  gateAt,
+  projectRoad,
+  roadLengths,
+} from "./geometry";
 export const DT = 1 / 60;
 export function objectPosition(o: MapObject, time: number, seed = 42) {
   return {
@@ -22,16 +31,54 @@ export class Simulator implements Environment {
   private seed = 42;
   private limit: number;
   private bestX = 0;
+  private lengths: number[] = [];
+  private arc = 0;
+  private bestArc = 0;
+  private segment = 0;
+  private gateArcs: number[] = [];
+  private roadGrid = new Map<string, number[]>();
+  private get modern() {
+    return this.map.environmentVersion === 2;
+  }
   constructor(
     private map: TrackMap,
     horizon = 600,
   ) {
     this.limit = horizon;
+    this.lengths = roadLengths(map.road);
+    this.gateArcs = map.checkpoints.map(
+      (p) => projectRoad(p, map.road, this.lengths).arc,
+    );
+    if (this.modern) {
+      const margin = map.roadWidth / 2 + 1;
+      for (let i = 1; i < map.road.length; i++) {
+        const a = map.road[i - 1],
+          b = map.road[i];
+        for (
+          let x = Math.floor((Math.min(a.x, b.x) - margin) / 80);
+          x <= Math.floor((Math.max(a.x, b.x) + margin) / 80);
+          x++
+        )
+          for (
+            let y = Math.floor((Math.min(a.y, b.y) - margin) / 80);
+            y <= Math.floor((Math.max(a.y, b.y) + margin) / 80);
+            y++
+          ) {
+            const key = x + ":" + y,
+              entries = this.roadGrid.get(key) ?? [];
+            entries.push(i);
+            this.roadGrid.set(key, entries);
+          }
+      }
+    }
     this.reset(42);
   }
   reset(seed: number) {
     this.seed = seed;
     this.bestX = this.map.start.x;
+    const projected = projectRoad(this.map.start, this.map.road, this.lengths);
+    this.arc = this.bestArc = projected.arc;
+    this.segment = projected.segment;
     this.state = {
       ...this.map.start,
       vx: 0,
@@ -52,8 +99,19 @@ export class Simulator implements Environment {
   serialize() {
     return structuredClone(this.map);
   }
-  getState() {
-    return structuredClone(this.state);
+  recentTrail(limit = 48) {
+    return this.state.trail.slice(-limit);
+  }
+  get done() {
+    return this.state.done;
+  }
+  getState(includeTrail = true, includeSensors = false) {
+    const state = includeTrail
+      ? structuredClone(this.state)
+      : { ...this.state, trail: [] };
+    if (includeSensors && this.map.mode === "racing")
+      state.sensors = this.sensors();
+    return state;
   }
   getMetrics() {
     const s = this.state;
@@ -67,13 +125,50 @@ export class Simulator implements Environment {
     };
   }
   roadDistance(x: number, y: number) {
-    return Math.min(
-      ...this.map.road
-        .slice(1)
-        .map((p, i) => segmentDistance({ x, y }, this.map.road[i], p)),
-    );
+    if (!this.modern)
+      return Math.min(
+        ...this.map.road
+          .slice(1)
+          .map((p, i) => segmentDistance({ x, y }, this.map.road[i], p)),
+      );
+    let best = Infinity;
+    for (const i of this.roadGrid.get(
+      Math.floor(x / 80) + ":" + Math.floor(y / 80),
+    ) ?? []) {
+      const a = this.map.road[i - 1],
+        b = this.map.road[i],
+        dx = b.x - a.x,
+        dy = b.y - a.y;
+      const t = Math.max(
+        0,
+        Math.min(
+          1,
+          ((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy || 1),
+        ),
+      );
+      const d = (x - a.x - t * dx) ** 2 + (y - a.y - t * dy) ** 2;
+      if (d < best) best = d;
+    }
+    return Math.sqrt(best);
   }
+
   blocked(x: number, y: number, radius = 9) {
+    if (this.modern)
+      return (
+        x < radius ||
+        y < radius ||
+        x > this.map.width - radius ||
+        y > this.map.height - radius ||
+        (this.map.mode === "racing" &&
+          this.roadDistance(x, y) > this.map.roadWidth / 2 - radius) ||
+        this.map.objects.some((o) =>
+          circleObject(
+            objectPosition(o, this.state.steps * DT, this.seed),
+            { x, y },
+            radius,
+          ),
+        )
+      );
     return (
       x < radius ||
       y < radius ||
@@ -123,9 +218,18 @@ export class Simulator implements Environment {
         1,
       ]);
     }
-    const objs = m.objects.map((o) =>
-      objectPosition(o, s.steps * DT, this.seed),
-    );
+    const objs = m.objects.map((original) => {
+      const o = objectPosition(original, s.steps * DT, this.seed);
+      if (!this.modern || !o.angle) return o;
+      const b = objectBounds(o);
+      return {
+        ...o,
+        x: o.x + o.w / 2 - b.x,
+        y: o.y + o.h / 2 - b.y,
+        w: b.x * 2,
+        h: b.y * 2,
+      };
+    });
     const ahead = objs
       .filter(
         (o) =>
@@ -188,29 +292,85 @@ export class Simulator implements Environment {
         s.x = x;
         s.y = y;
       }
-      reward += (before - distance(s, target)) * 0.025;
-      if (
-        !s.collision &&
-        distance(s, target) < Math.max(24, Math.min(45, m.roadWidth * 0.35))
-      ) {
-        s.checkpoint++;
-        reward += 5;
-        if (s.checkpoint >= m.checkpoints.length && distance(s, m.goal) < 55) {
+      if (this.modern) {
+        // Only the next gate may advance. A finite segment crossing is required.
+        let crossingStart = old;
+        while (!s.collision && s.checkpoint < m.checkpoints.length) {
+          const t = gateCrossing(crossingStart, s, gateAt(m, s.checkpoint));
+          if (t === null) break;
+          crossingStart = {
+            x:
+              crossingStart.x + (s.x - crossingStart.x) * Math.min(1, t + 1e-7),
+            y:
+              crossingStart.y + (s.y - crossingStart.y) * Math.min(1, t + 1e-7),
+          };
+          s.checkpoint++;
+          reward += 5;
+        }
+        const travel = Math.hypot(s.x - old.x, s.y - old.y),
+          reach = travel * 2 + 1e-6;
+        const indices = m.road
+          .slice(1)
+          .map((_, i) => i)
+          .filter(
+            (i) =>
+              this.lengths[i] <= this.arc + reach &&
+              this.lengths[i + 1] >= this.arc - reach,
+          );
+        const projected = projectRoad(s, m.road, this.lengths, indices);
+        if (Number.isFinite(projected.distance) && travel > 0) {
+          this.arc = Math.max(
+            this.arc - reach,
+            Math.min(this.arc + reach, projected.arc),
+          );
+          this.segment = projected.segment;
+        }
+        const gatedArc = Math.min(
+          this.arc,
+          this.gateArcs[s.checkpoint] ?? this.lengths.at(-1) ?? 0,
+        );
+        reward += Math.max(0, gatedArc - this.bestArc) * 0.025;
+        this.bestArc = Math.max(this.bestArc, gatedArc);
+        s.progress = clamp(this.bestArc / (this.lengths.at(-1) || 1), 0, 1);
+        if (
+          !s.collision &&
+          s.checkpoint === m.checkpoints.length &&
+          this.arc >= (this.lengths.at(-1) ?? 0) - 35 &&
+          distance(s, m.goal) < 30
+        ) {
           s.success = true;
           s.done = true;
-          reward += 25 + ((this.limit - s.steps) / this.limit) * 5;
+          s.progress = 1;
+          reward += 30 + ((this.limit - s.steps) / this.limit) * 5;
         }
+      } else {
+        reward += (before - distance(s, target)) * 0.025;
+        if (
+          !s.collision &&
+          distance(s, target) < Math.max(24, Math.min(45, m.roadWidth * 0.35))
+        ) {
+          s.checkpoint++;
+          reward += 5;
+          if (
+            s.checkpoint >= m.checkpoints.length &&
+            distance(s, m.goal) < 55
+          ) {
+            s.success = true;
+            s.done = true;
+            reward += 25 + ((this.limit - s.steps) / this.limit) * 5;
+          }
+        }
+        s.progress = clamp(
+          (s.checkpoint +
+            Math.max(
+              0,
+              1 - distance(s, m.checkpoints[s.checkpoint] ?? m.goal) / 300,
+            )) /
+            Math.max(1, m.checkpoints.length),
+          0,
+          1,
+        );
       }
-      s.progress = clamp(
-        (s.checkpoint +
-          Math.max(
-            0,
-            1 - distance(s, m.checkpoints[s.checkpoint] ?? m.goal) / 300,
-          )) /
-          Math.max(1, m.checkpoints.length),
-        0,
-        1,
-      );
     } else {
       const move =
         action === 1 || action === 4
@@ -241,6 +401,49 @@ export class Simulator implements Environment {
       for (let j = 0; j < substeps && !s.done; j++) {
         const dt = DT / substeps;
         s.vy = clamp(s.vy + m.physics.gravity * dt, -800, 650);
+        if (this.modern) {
+          s.x = clamp(s.x + s.vx * dt, 11, m.width - 11);
+          s.y += s.vy * dt;
+          for (const o of objects) {
+            const contact = circleContact(o, s, 11);
+            if (!contact) continue;
+            if (o.kind === "spike") {
+              s.collision = true;
+              s.done = true;
+              break;
+            }
+            const n = contact.normal;
+            s.x += n.x * contact.depth;
+            s.y += n.y * contact.depth;
+            const into = s.vx * n.x + s.vy * n.y;
+            if (into < 0) {
+              s.vx -= into * n.x;
+              s.vy -= into * n.y;
+            }
+            if (n.y < -0.45) {
+              s.grounded = true;
+              if (o.kind === "spring" || o.kind === "elastic") {
+                const impulse = o.kind === "spring" ? 520 : 410;
+                s.vx += n.x * impulse;
+                s.vy += n.y * impulse;
+                s.grounded = false;
+              }
+              if (o.kind === "moving" && previousGrounded) {
+                const next = objectPosition(
+                  m.objects.find((a) => a.id === o.id)!,
+                  s.steps * DT + DT,
+                  this.seed,
+                );
+                s.x += (next.x - o.x) / substeps;
+              }
+            }
+          }
+          if (s.y > m.height + 20) {
+            s.collision = true;
+            s.done = true;
+          }
+          continue;
+        }
         s.x = clamp(s.x + s.vx * dt, 11, m.width - 11);
         for (const o of objects)
           if (

@@ -70,4 +70,5 @@ jobs:
           path: |
             .cache/deployment-qa/
             .cache/ui-review/
+            .cache/live-population-performance.json
             test-results/

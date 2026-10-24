@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "validate:learning": "tsx scripts/validate-learning.ts"
+    "validate:learning": "tsx scripts/validate-learning.ts",
+    "validate:maps": "tsx scripts/validate-challenges.ts",
+    "validate:rewards": "tsx scripts/validate-rewards.ts"
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",

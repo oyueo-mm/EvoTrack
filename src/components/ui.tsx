@@ -78,7 +78,15 @@ export function NumberField({
         <input
           type="number"
           aria-label={label}
-          value={Number.isFinite(value) ? value : ""}
+          value={
+            Number.isFinite(value)
+              ? Number(
+                  value.toFixed(
+                    Math.min(12, Math.max(2, Math.ceil(-Math.log10(step)))),
+                  ),
+                )
+              : ""
+          }
           min={min}
           max={max}
           step={step}

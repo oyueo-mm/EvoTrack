@@ -33,6 +33,9 @@ import { EXAMPLE_MAPS, validateMap } from "../../core/maps";
 import {
   FIT_VIEW,
   removeSelection,
+  copySelection,
+  pasteSelection,
+  type EditorClipboard,
   remapCheckpointLayers,
   selectionKey,
   selectionPoint,
@@ -40,6 +43,7 @@ import {
   type Selection,
   type Viewport,
 } from "../../core/editor";
+import { gateAt } from "../../core/geometry";
 import { World, type Tool, type ViewOptions } from "../World";
 import { NumberField, RangeField, Section, ToolButton } from "../ui";
 import { EditorPanel } from "./EditorPanel";
@@ -118,8 +122,19 @@ export function EditorWorkspace({
   const [pressed, setPressed] = useState<string[]>([]);
   const [append, setAppend] = useState(true);
   const lastMap = useRef(map.id);
+  const clipboard = useRef<EditorClipboard | null>(null);
+  const pasteOffset = useRef(20);
   const onChange = (next: TrackMap, group?: string) => {
-    if (next.checkpoints.length !== map.checkpoints.length) {
+    next = {
+      ...next,
+      checkpoints: next.checkpoints.map((p, order) =>
+        p.id ? { ...p, order } : p,
+      ),
+    };
+    if (
+      next.checkpoints.length !== map.checkpoints.length ||
+      next.checkpoints.some((p, i) => p.id !== map.checkpoints[i]?.id)
+    ) {
       setHidden((keys) => remapCheckpointLayers(map, next, keys));
       setLocks((keys) => remapCheckpointLayers(map, next, keys));
       if (selected?.kind === "checkpoint") setSelected(null);
@@ -174,7 +189,46 @@ export function EditorWorkspace({
       }
       if (disabled) return;
       const meta = e.ctrlKey || e.metaKey;
-      if (meta && ["KeyZ", "KeyY", "KeyS"].includes(e.code)) {
+      if (meta && ["KeyC", "KeyV", "KeyX", "KeyD"].includes(e.code)) {
+        if (e.code === "KeyC" || e.code === "KeyX") {
+          const copied = copySelection(map, selected);
+          if (copied) {
+            e.preventDefault();
+            clipboard.current = copied;
+            pasteOffset.current = 20;
+          }
+          if (copied && e.code === "KeyX" && selected && !selectedLocked) {
+            onChange(removeSelection(map, selected));
+            setSelected(null);
+          }
+        } else {
+          if (e.code === "KeyD") {
+            const copied = copySelection(map, selected);
+            if (!copied) return;
+            clipboard.current = copied;
+            pasteOffset.current = 20;
+          }
+          if (!clipboard.current) return;
+          e.preventDefault();
+          if (
+            map.environmentVersion !== 2 &&
+            (clipboard.current.value.angle ?? 0) !== 0
+          ) {
+            onError(
+              "회전 요소를 붙여넣으려면 맵 설정에서 새 환경 편집본을 만드세요.",
+            );
+            return;
+          }
+          const pasted = pasteSelection(
+            map,
+            clipboard.current,
+            pasteOffset.current,
+          );
+          pasteOffset.current += 20;
+          onChange(pasted.map);
+          setSelected(pasted.selection);
+        }
+      } else if (meta && ["KeyZ", "KeyY", "KeyS"].includes(e.code)) {
         e.preventDefault();
         if (e.code === "KeyS") onSave();
         else if (e.shiftKey || e.code === "KeyY") onRedo();
@@ -340,22 +394,6 @@ export function EditorWorkspace({
           <option value="racing">Racing</option>
           <option value="bounce">Bounce</option>
         </select>
-        <div className="editor-history">
-          <ToolButton
-            icon={Undo2}
-            label="실행 취소"
-            hint="Ctrl Z"
-            disabled={!canUndo || disabled}
-            onClick={onUndo}
-          />
-          <ToolButton
-            icon={Redo2}
-            label="다시 실행"
-            hint="Ctrl Shift Z"
-            disabled={!canRedo || disabled}
-            onClick={onRedo}
-          />
-        </div>
         <div className="editor-header-actions">
           <button
             className="button"
@@ -406,6 +444,22 @@ export function EditorWorkspace({
                 }}
               />
             ))}
+            <div className="floating-history">
+              <ToolButton
+                icon={Undo2}
+                label="실행 취소"
+                hint="Ctrl Z"
+                disabled={!canUndo || disabled}
+                onClick={onUndo}
+              />
+              <ToolButton
+                icon={Redo2}
+                label="다시 실행"
+                hint="Ctrl Shift Z"
+                disabled={!canRedo || disabled}
+                onClick={onRedo}
+              />
+            </div>
           </div>
           <div className="editor-canvas">
             <World
@@ -553,6 +607,33 @@ export function EditorWorkspace({
                 id={`inspector-${tab}`}
                 aria-labelledby={`tab-${tab}`}
               >
+                {map.environmentVersion !== 2 && (
+                  <Section title="이전 환경 v1">
+                    <p className="helper">
+                      기존 모델과 같은 규칙으로 실행됩니다. 회전·게이트 판정을
+                      쓰려면 원본을 보존하는 새 편집본을 만드세요.
+                    </p>
+                    <button
+                      className="button full-width"
+                      disabled={disabled}
+                      onClick={() =>
+                        onChoose({
+                          ...structuredClone(map),
+                          id: crypto.randomUUID(),
+                          name: map.name + " · 게이트 편집본",
+                          environmentVersion: 2,
+                          checkpoints: map.checkpoints.map((_, i) =>
+                            gateAt(map, i),
+                          ),
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
+                        })
+                      }
+                    >
+                      새 환경 v2 편집본 만들기
+                    </button>
+                  </Section>
+                )}
                 {tab === "properties" && (
                   <>
                     <Section
@@ -618,7 +699,8 @@ export function EditorWorkspace({
                             도로 곡선 다듬기
                           </button>
                           <p className="helper">
-                            다듬은 경로는 충돌 지형에도 동일하게 적용됩니다.
+                            도로만 다듬습니다. 체크포인트는 추가하거나 이동하지
+                            않습니다.
                           </p>
                         </>
                       )}

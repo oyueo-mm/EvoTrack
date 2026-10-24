@@ -1,6 +1,7 @@
 ﻿import { validateMap } from "./core/maps";
 import {
   SCHEMAS,
+  schemasFor,
   type Config,
   type SavedModel,
   type TrackMap,
@@ -56,14 +57,16 @@ export function validateModel(value: unknown): SavedModel {
     typeof m.mapId !== "string" ||
     typeof m.createdAt !== "string" ||
     !m.schemas ||
-    Object.entries(SCHEMAS).some(
-      ([k, v]) => m.schemas[k as keyof typeof SCHEMAS] !== v,
-    )
+    ![1, 2].includes(m.schemas.environment) ||
+    m.schemas.observation !== 1 ||
+    m.schemas.action !== 1
   )
     throw Error("모델 메타데이터 또는 스키마가 호환되지 않습니다.");
   const trainingMap = validateMap(m.trainingMap);
   if (trainingMap.id !== m.mapId || trainingMap.mode !== m.mode)
     throw Error("학습 맵 정보가 일치하지 않습니다.");
+  if (m.schemas.environment !== schemasFor(trainingMap).environment)
+    throw Error("모델과 학습 맵의 환경 버전이 다릅니다.");
   validatePolicy(m.policy, m.mode === "racing" ? 5 : 6);
   validateConfig(m.config);
   const numericStats = [
@@ -101,6 +104,7 @@ export function validateModel(value: unknown): SavedModel {
       throw Error("체크포인트 난수 상태가 손상되었습니다.");
     if (m.algorithm === "GA") {
       if (
+        (c.boundary !== undefined && c.boundary !== "generation") ||
         !Array.isArray(c.population) ||
         c.population.length !== m.config.population ||
         !Number.isInteger(c.generation) ||
@@ -252,9 +256,9 @@ export function validateWorkspace(value: unknown): Workspace {
     (w.format !== "evotrack-workspace" ||
       w.version !== 1 ||
       !w.schemas ||
-      Object.entries(SCHEMAS).some(
-        ([k, v]) => w.schemas?.[k as keyof typeof SCHEMAS] !== v,
-      ))
+      ![1, 2].includes(w.schemas.environment) ||
+      w.schemas.observation !== 1 ||
+      w.schemas.action !== 1)
   )
     throw Error("지원하지 않는 작업 공간 버전 또는 스키마입니다.");
   for (const store of STORES) {

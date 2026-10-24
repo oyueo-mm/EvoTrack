@@ -7,7 +7,7 @@
   TrainingStats,
   WorkerReply,
 } from "../core/types";
-import { SCHEMAS } from "../core/types";
+import { schemasFor } from "../core/types";
 import { Simulator } from "../core/environment";
 import { GeneticTrainer, type GACheckpoint } from "../learning/ga";
 import {
@@ -31,6 +31,12 @@ let session = "",
   started = 0,
   activeElapsed = 0,
   lastSent = 0;
+let lastTick = 0,
+  accumulator = 0,
+  totalTicks = 0,
+  gaWall = 0,
+  gaSteps = 0;
+let pendingCheckpoints: number[] = [];
 function reply(message: Omit<WorkerReply, "session">) {
   self.postMessage({ ...message, session });
 }
@@ -39,6 +45,7 @@ function dispose() {
   clearTimeout(timer);
   trainer?.dispose();
   trainer = null;
+  pendingCheckpoints = [];
 }
 function policy() {
   return trainer instanceof GeneticTrainer
@@ -48,6 +55,10 @@ function policy() {
 function next() {
   if (!running || !trainer) return;
   try {
+    if (trainer instanceof GeneticTrainer) {
+      nextGA(trainer);
+      return;
+    }
     const before = performance.now();
     const result = trainer.run();
     const duration = performance.now() - before;
@@ -64,19 +75,11 @@ function next() {
       ? result.completion / result.successes
       : null;
     stats.stepsPerSecond = stats.steps / (activeElapsed / 1000 || 1);
-    if (trainer instanceof GeneticTrainer) {
-      const r = result as ReturnType<GeneticTrainer["run"]>;
-      stats.mean = r.scores.reduce((a, b) => a + b, 0) / r.scores.length;
-      stats.fitness = r.scores;
-      stats.best = trainer.bestScore;
-    } else {
-      const r = result as ReturnType<PPOTrainer["run"]>;
-      stats.mean = r.mean;
-      stats.policyLoss = r.policyLoss;
-      stats.valueLoss = r.valueLoss;
-      stats.entropy = r.entropy;
-      stats.kl = r.kl;
-    }
+    stats.mean = result.mean;
+    stats.policyLoss = result.policyLoss;
+    stats.valueLoss = result.valueLoss;
+    stats.entropy = result.entropy;
+    stats.kl = result.kl;
     const p = policy(),
       env = new Simulator(map, config.horizon);
     env.reset(config.seed);
@@ -94,10 +97,7 @@ function next() {
     snapshot = {
       stats: { ...stats },
       state: env.getState(),
-      population:
-        trainer instanceof GeneticTrainer
-          ? (result as ReturnType<GeneticTrainer["run"]>).states
-          : [],
+      population: [],
       policy: p,
     };
     if (performance.now() - lastSent >= 150) {
@@ -110,6 +110,85 @@ function next() {
     reply({ type: "ERROR", requestId: 0, error: String(e) });
   }
 }
+function nextGA(ga: GeneticTrainer) {
+  const now = performance.now(),
+    elapsed = Math.min(100, Math.max(0, now - lastTick));
+  lastTick = now;
+  gaWall += elapsed;
+  accumulator = Math.min(
+    120,
+    accumulator + (elapsed * 60 * config.speed) / 1000,
+  );
+  const workStarted = performance.now();
+  while (accumulator >= 1 && performance.now() - workStarted < 12) {
+    if (ga.boundary) ga.beginGeneration();
+    const before = ga.environments.filter((e) => !e.done).length;
+    const result = ga.advance();
+    accumulator--;
+    totalTicks++;
+    stats.steps += before;
+    gaSteps += before;
+    if (result) {
+      stats.iteration = ga.generation;
+      stats.episodes += result.episodes;
+      stats.mean =
+        result.scores.reduce((a, b) => a + b, 0) / result.scores.length;
+      stats.fitness = result.scores;
+      stats.best = ga.bestScore;
+      stats.successRate = result.successes / result.episodes;
+      stats.collisions += result.collisions;
+      stats.completionTime = result.successes
+        ? result.completion / result.successes
+        : null;
+      publishGA(ga, true);
+      for (const id of pendingCheckpoints.splice(0)) void checkpoint(id);
+      // Keep the finished generation visible until the next scheduled turn.
+      break;
+    }
+  }
+  if (performance.now() - lastSent >= 50) publishGA(ga, false);
+  timer = setTimeout(next, Math.max(1, 16 - (performance.now() - workStarted)));
+}
+function publishGA(ga: GeneticTrainer, boundary: boolean) {
+  const states = ga.states(false);
+  if (!states.length) return;
+  const scores = states.map((s) => s.reward),
+    leader = scores.indexOf(Math.max(...scores));
+  // Only the followed/leading trace is transferred; avoid N growing trail arrays.
+  states.forEach((s, i) => {
+    s.trail = ga.environments[i].recentTrail();
+  });
+  stats.elapsed = (performance.now() - started) / 1000;
+  stats.stepsPerSecond = gaSteps / (gaWall / 1000 || 1);
+  stats.progress = states[leader].progress;
+  if (!boundary) {
+    stats.mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+    stats.best = Number.isFinite(ga.bestScore)
+      ? ga.bestScore
+      : Math.max(...scores);
+    stats.fitness = scores;
+  }
+  snapshot = {
+    stats: { ...stats },
+    state: states[leader],
+    population: states,
+    policy: policy(),
+    live: {
+      generation: ga.generation + (boundary ? 0 : 1),
+      tick: ga.tick,
+      total: states.length,
+      alive: states.filter((s) => !s.done).length,
+      crashed: states.filter((s) => s.collision).length,
+      finished: states.filter((s) => s.success).length,
+      leader,
+      effectiveSpeed: totalTicks / (gaWall / 1000 || 1) / 60,
+      environmentStepsPerSecond: stats.stepsPerSecond,
+      boundary,
+    },
+  };
+  reply({ type: "SNAPSHOT", requestId: 0, snapshot });
+  lastSent = performance.now();
+}
 async function checkpoint(requestId: number) {
   if (!trainer || !snapshot) throw Error("저장할 학습 결과가 없습니다.");
   const cp = await trainer.checkpoint();
@@ -119,7 +198,7 @@ async function checkpoint(requestId: number) {
     kind: "checkpoint",
     algorithm: stats.algorithm,
     mode: map.mode,
-    schemas: SCHEMAS,
+    schemas: schemasFor(map),
     policy: policy(),
     config: { ...config },
     stats: { ...stats },
@@ -144,7 +223,7 @@ self.onmessage = (event: MessageEvent<Command>) => {
           validateModel(cmd.model);
           assertCompatible(cmd.model, map);
         }
-        await initTensorflow();
+        if (cmd.algorithm === "PPO") await initTensorflow();
         trainer =
           cmd.algorithm === "GA"
             ? new GeneticTrainer(map, config)
@@ -173,6 +252,11 @@ self.onmessage = (event: MessageEvent<Command>) => {
         snapshot = undefined;
         activeElapsed = 0;
         lastSent = 0;
+        accumulator = 0;
+        totalTicks = 0;
+        gaWall = 0;
+        gaSteps = 0;
+        lastTick = performance.now();
         if (cmd.model) {
           const m = cmd.model;
           if (m.kind === "checkpoint") {
@@ -210,11 +294,14 @@ self.onmessage = (event: MessageEvent<Command>) => {
       if (cmd.type === "PAUSE") {
         running = false;
         clearTimeout(timer);
+        if (trainer instanceof GeneticTrainer)
+          publishGA(trainer, trainer.boundary);
         reply({ type: "ACK", requestId: cmd.requestId, status: "paused" });
       } else if (cmd.type === "RESUME") {
         if (!trainer) throw Error("학습 세션이 없습니다.");
         if (!running) {
           running = true;
+          lastTick = performance.now();
           timer = setTimeout(next, 0);
         }
         reply({ type: "ACK", requestId: cmd.requestId, status: "running" });
@@ -242,8 +329,12 @@ self.onmessage = (event: MessageEvent<Command>) => {
       } else if (cmd.type === "REQUEST_SNAPSHOT") {
         if (!snapshot) throw Error("아직 학습 스냅샷이 없습니다.");
         reply({ type: "SNAPSHOT", requestId: cmd.requestId, snapshot });
-      } else if (cmd.type === "SAVE_CHECKPOINT")
-        await checkpoint(cmd.requestId);
+      } else if (cmd.type === "SAVE_CHECKPOINT") {
+        if (trainer instanceof GeneticTrainer && !trainer.boundary) {
+          if (!running) throw Error("GA ?? ????? ?????. ?? ?? ? ?? ?????.");
+          pendingCheckpoints.push(cmd.requestId);
+        } else await checkpoint(cmd.requestId);
+      }
     })
     .catch((e) => {
       if (cmd.type === "START" || cmd.type === "LOAD_CHECKPOINT") dispose();

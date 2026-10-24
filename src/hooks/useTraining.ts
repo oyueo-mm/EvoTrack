@@ -22,6 +22,9 @@ export function useTraining(
 ) {
   const handles = useRef<Partial<Record<Algorithm, Handle>>>({}),
     request = useRef(0);
+  const [checkpointPending, setCheckpointPending] = useState<
+    Partial<Record<Algorithm, boolean>>
+  >({});
   const [snapshots, setSnapshots] = useState<
       Partial<Record<Algorithm, Snapshot>>
     >({}),
@@ -50,6 +53,7 @@ export function useTraining(
     handles.current = {};
     bestSnapshots.current = {};
     setGhosts({});
+    setCheckpointPending({});
     setSnapshots({});
     setHistories({});
     setStatuses(Object.fromEntries(algorithms.map((a) => [a, "starting"])));
@@ -65,6 +69,7 @@ export function useTraining(
         const r = e.data;
         if (r.session !== handles.current[algorithm]?.session) return;
         if (r.type === "ERROR") {
+          setCheckpointPending((p) => ({ ...p, [algorithm]: false }));
           errorRef.current(r.error ?? "Worker 오류");
           setStatuses((s) => ({ ...s, [algorithm]: "error" }));
           return;
@@ -81,14 +86,21 @@ export function useTraining(
             bestSnapshots.current[algorithm] = r.snapshot;
           }
           setSnapshots((s) => ({ ...s, [algorithm]: r.snapshot! }));
-          setHistories((h) => ({
-            ...h,
-            [algorithm]: [...(h[algorithm] ?? []), r.snapshot!.stats].slice(
-              -300,
-            ),
-          }));
+          if (!r.snapshot.live || r.snapshot.live.boundary)
+            setHistories((h) => ({
+              ...h,
+              [algorithm]: [
+                ...(h[algorithm] ?? []).filter(
+                  (s) => s.iteration !== r.snapshot!.stats.iteration,
+                ),
+                r.snapshot!.stats,
+              ].slice(-300),
+            }));
         }
-        if (r.type === "CHECKPOINT" && r.model) saveRef.current(r.model);
+        if (r.type === "CHECKPOINT" && r.model) {
+          setCheckpointPending((p) => ({ ...p, [algorithm]: false }));
+          saveRef.current(r.model);
+        }
       };
       worker.onerror = (e) => {
         errorRef.current(e.message);
@@ -109,6 +121,10 @@ export function useTraining(
   function send(type: CommandName, config?: Config, only?: Algorithm) {
     for (const [algorithm, h] of Object.entries(handles.current)) {
       if (only && algorithm !== only) continue;
+      if (type === "SAVE_CHECKPOINT")
+        setCheckpointPending((p) => ({ ...p, [algorithm]: true }));
+      if (type === "STOP" || type === "RESET")
+        setCheckpointPending((p) => ({ ...p, [algorithm]: false }));
       if (h)
         h.worker.postMessage({
           type,
@@ -126,6 +142,7 @@ export function useTraining(
     setSnapshots({});
     setHistories({});
     setStatuses({});
+    setCheckpointPending({});
     setGhosts({});
   }
   return {
@@ -135,6 +152,7 @@ export function useTraining(
     ghosts,
     snapshots,
     histories,
+    checkpointPending,
     statuses,
     active: Object.values(statuses).some(
       (s) => s === "running" || s === "starting",

@@ -1,3 +1,5 @@
+import { CHALLENGE_MAPS } from "./challenge-maps";
+import { circleObject } from "./geometry";
 import type { Mode, Point, TrackMap } from "./types";
 const stamp = "2026-10-23T00:00:00.000Z";
 function racing(
@@ -14,6 +16,9 @@ function racing(
     description: "순서대로 체크포인트를 통과하고 결승선에 도달하세요.",
     mode: "racing",
     version: 1,
+    environmentVersion: 2,
+    difficulty: "Easy",
+    features: [],
     createdAt: stamp,
     updatedAt: stamp,
     width: 1000,
@@ -22,7 +27,7 @@ function racing(
     roadWidth: width,
     start: { ...a, angle: Math.atan2(b.y - a.y, b.x - a.x) },
     goal: road.at(-1)!,
-    checkpoints: road.slice(1),
+    checkpoints: [],
     objects: [],
     physics: { maxSpeed: 210, gravity: 760 },
   };
@@ -38,6 +43,9 @@ function bounce(
     description: "발판을 건너 초록색 도착 지점까지 이동하세요.",
     mode: "bounce",
     version: 1,
+    environmentVersion: 2,
+    difficulty: "Easy",
+    features: [],
     createdAt: stamp,
     updatedAt: stamp,
     width: 1000,
@@ -146,6 +154,42 @@ export const EXAMPLE_MAPS: TrackMap[] = [
     { id: "sp2", kind: "spike", x: 680, y: 526, w: 70, h: 24 },
   ]),
 ];
+const gateSpecs: Record<string, [number, number, number][]> = {
+  "r-straight": [
+    [350, 320, 0],
+    [600, 320, 0],
+    [800, 320, 0],
+  ],
+  "r-orbit": [
+    [370, 130, -0.6],
+    [800, 240, 1.1],
+    [580, 515, 2.8],
+    [200, 400, -2.1],
+  ],
+  "r-serpent": [
+    [320, 370, -1.35],
+    [580, 250, 1.2],
+    [810, 412, -0.16],
+  ],
+  "r-apex": [
+    [320, 430, -0.9],
+    [350, 123, 0.06],
+    [640, 310, 0.25],
+    [895, 350, 1.6],
+  ],
+};
+for (const m of EXAMPLE_MAPS) {
+  m.checkpoints = (gateSpecs[m.id] ?? []).map(([x, y, angle], order) => ({
+    id: `${m.id}-gate-${order}`,
+    x,
+    y,
+    angle,
+    width: m.roadWidth * 0.9,
+    order,
+    directional: true,
+  }));
+}
+EXAMPLE_MAPS.push(...CHALLENGE_MAPS);
 export function newMap(mode: Mode): TrackMap {
   const map = structuredClone(EXAMPLE_MAPS[mode === "racing" ? 0 : 4]);
   map.id = crypto.randomUUID();
@@ -186,7 +230,21 @@ export function validateMap(value: unknown): TrackMap {
     throw Error(
       "도로가 끊어져 있습니다. 도로 속성에서 구간을 연결하거나 실행 취소하세요.",
     );
-  if (m.version !== 1 || !["racing", "bounce"].includes(m.mode))
+  if (
+    (m.environmentVersion !== undefined &&
+      ![1, 2].includes(m.environmentVersion)) ||
+    (m.recommendedHorizon !== undefined &&
+      (!Number.isInteger(m.recommendedHorizon) ||
+        m.recommendedHorizon < 30 ||
+        m.recommendedHorizon > 10000)) ||
+    (m.difficulty !== undefined &&
+      !["Easy", "Medium", "Hard"].includes(m.difficulty)) ||
+    (m.features !== undefined &&
+      (!Array.isArray(m.features) ||
+        !m.features.every((f) => typeof f === "string"))) ||
+    m.version !== 1 ||
+    !["racing", "bounce"].includes(m.mode)
+  )
     throw Error("지원하지 않는 맵 버전 또는 모드입니다.");
   const finite = (v: unknown): v is number =>
     typeof v === "number" && Number.isFinite(v);
@@ -278,8 +336,31 @@ export function validateMap(value: unknown): TrackMap {
     m.goal.y > m.height
   )
     throw Error("시작점 또는 목표가 맵 밖에 있습니다.");
+  if (
+    m.checkpoints.some(
+      (p, index) =>
+        (p.id !== undefined && (typeof p.id !== "string" || !p.id)) ||
+        (p.width !== undefined &&
+          (!finite(p.width) || p.width < 10 || p.width > 5000)) ||
+        (p.angle !== undefined && !finite(p.angle)) ||
+        (p.order !== undefined &&
+          (!Number.isInteger(p.order) || p.order !== index)) ||
+        (p.directional !== undefined && typeof p.directional !== "boolean"),
+    ) ||
+    new Set(m.checkpoints.filter((p) => p.id).map((p) => p.id)).size !==
+      m.checkpoints.filter((p) => p.id).length ||
+    m.objects.some(
+      (o) =>
+        o.angle !== undefined &&
+        (!finite(o.angle) || (m.environmentVersion !== 2 && o.angle !== 0)),
+    )
+  )
+    throw Error("게이트 또는 회전 데이터가 유효하지 않습니다.");
   if (m.mode === "racing") {
-    if (m.road.length < 2 || m.checkpoints.length < 1)
+    if (
+      m.road.length < 2 ||
+      (m.environmentVersion !== 2 && m.checkpoints.length < 1)
+    )
       throw Error("도로에 최소 두 점과 체크포인트가 필요합니다.");
     if (
       Math.min(
@@ -306,12 +387,13 @@ export function validateMap(value: unknown): TrackMap {
       throw Error("결승선과 체크포인트는 도로 안에 있어야 합니다.");
   }
   if (
-    m.objects.some(
-      (o) =>
-        m.start.x + 11 > o.x &&
-        m.start.x - 11 < o.x + o.w &&
-        m.start.y + 11 > o.y &&
-        m.start.y - 11 < o.y + o.h,
+    m.objects.some((o) =>
+      m.environmentVersion === 2
+        ? circleObject(o, m.start, 11)
+        : m.start.x + 11 > o.x &&
+          m.start.x - 11 < o.x + o.w &&
+          m.start.y + 11 > o.y &&
+          m.start.y - 11 < o.y + o.h,
     )
   )
     throw Error("출발 위치가 장애물과 겹칩니다.");

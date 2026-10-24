@@ -5,6 +5,9 @@ import {
   eraseAt,
   FIT_VIEW,
   hitSelections,
+  transformHandles,
+  transformSelection,
+  type TransformHandle,
   selectionKey,
   moveSelection,
   removeSelection,
@@ -22,6 +25,7 @@ import type {
   TrackMap,
 } from "../core/types";
 import { objectPosition, Simulator } from "../core/environment";
+import { gateAt, gateEnds } from "../core/geometry";
 import { actionOf } from "../learning/network";
 export type Tool =
   | "select"
@@ -43,6 +47,8 @@ export interface ViewOptions {
   collision: boolean;
   all: boolean;
   ghost: boolean;
+  populationMode?: "all" | "alive" | "best";
+  selectedAgent?: number;
 }
 export function drawWorld(
   ctx: CanvasRenderingContext2D,
@@ -56,10 +62,16 @@ export function drawWorld(
   editing = false,
   hidden: ReadonlySet<string> = new Set(),
   light = false,
+  unit = 1,
+  seed = 42,
 ) {
   const w = map.width,
     h = map.height;
-  const state = stateOverride ?? snapshot?.state;
+  const state =
+    stateOverride ??
+    (snapshot?.live && options.selectedAgent !== undefined
+      ? snapshot.population[options.selectedAgent]
+      : snapshot?.state);
   ctx.fillStyle = light ? "#f7f8f6" : "#171c21";
   ctx.fillRect(0, 0, w, h);
   ctx.strokeStyle = light ? "#e6e9e4" : "#242c32";
@@ -103,8 +115,27 @@ export function drawWorld(
   if (map.mode === "racing") {
     map.checkpoints.forEach((p, i) => {
       if (hidden.has("checkpoint:" + i)) return;
-      const prev = map.checkpoints[i - 1] ?? map.start;
-      const a = Math.atan2(p.y - prev.y, p.x - prev.x) + Math.PI / 2;
+      if (map.environmentVersion !== 2) {
+        ctx.strokeStyle = light ? "#849b8d" : "#b6c6c066";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.arc(
+          p.x,
+          p.y,
+          Math.max(24, Math.min(45, map.roadWidth * 0.35)),
+          0,
+          Math.PI * 2,
+        );
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = light ? "#50685a" : "#96a8a5";
+        ctx.font = "10px monospace";
+        ctx.fillText(String(i + 1), p.x + 8, p.y - 10);
+        return;
+      }
+      const g = gateAt(map, i),
+        [a, b] = gateEnds(g);
       ctx.strokeStyle =
         i < (state?.checkpoint ?? 0)
           ? "#83a78c"
@@ -113,15 +144,18 @@ export function drawWorld(
             : "#b6c6c066";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(
-        p.x + Math.cos(a) * map.roadWidth * 0.4,
-        p.y + Math.sin(a) * map.roadWidth * 0.4,
-      );
-      ctx.lineTo(
-        p.x - Math.cos(a) * map.roadWidth * 0.4,
-        p.y - Math.sin(a) * map.roadWidth * 0.4,
-      );
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
       ctx.stroke();
+      ctx.save();
+      ctx.translate(g.x, g.y);
+      ctx.rotate(g.angle);
+      ctx.beginPath();
+      ctx.moveTo(7, -4);
+      ctx.lineTo(13, 0);
+      ctx.lineTo(7, 4);
+      ctx.stroke();
+      ctx.restore();
       ctx.font = "10px monospace";
       ctx.fillStyle = light ? "#50685a" : "#96a8a5";
       ctx.fillText(String(i + 1).padStart(2, "0"), p.x + 8, p.y - 10);
@@ -131,7 +165,15 @@ export function drawWorld(
     if (hidden.has("object:" + original.id)) return;
     const o = editing
       ? original
-      : objectPosition(original, (state?.steps ?? 0) / 60, 42);
+      : objectPosition(
+          original,
+          (snapshot?.live?.tick ?? state?.steps ?? 0) / 60,
+          seed,
+        );
+    ctx.save();
+    ctx.translate(o.x + o.w / 2, o.y + o.h / 2);
+    ctx.rotate(o.angle ?? 0);
+    ctx.translate(-o.x - o.w / 2, -o.y - o.h / 2);
     ctx.fillStyle =
       o.kind === "spike"
         ? "#ed877c"
@@ -171,6 +213,7 @@ export function drawWorld(
         ctx.setLineDash([]);
       }
     }
+    ctx.restore();
   });
   if (!map.draft?.missingStart && !hidden.has("start")) {
     ctx.strokeStyle = light ? "#557d62" : "#91b59a";
@@ -212,7 +255,7 @@ export function drawWorld(
     if (selected && !hidden.has(selectionKey(selected))) {
       const p =
         selected.kind === "checkpoint"
-          ? map.checkpoints[selected.index]
+          ? undefined
           : selected.kind === "start"
             ? map.start
             : selected.kind === "goal"
@@ -225,9 +268,32 @@ export function drawWorld(
       }
     }
   }
-  const agent = (s: AgentState, c: string, alpha = 1) => {
+  if (editing && selected && !hidden.has(selectionKey(selected))) {
+    const handles = transformHandles(map, selected, unit);
+    ctx.strokeStyle = light ? "#275e46" : "#c2dfce";
+    ctx.lineWidth = 1.5 * unit;
+    ctx.setLineDash([4 * unit, 3 * unit]);
+    const corners = handles.filter((h) => h.kind !== "rotate");
+    if (corners.length) {
+      ctx.beginPath();
+      corners.forEach((h, i) =>
+        i ? ctx.lineTo(h.point.x, h.point.y) : ctx.moveTo(h.point.x, h.point.y),
+      );
+      if (corners.length === 4) ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    for (const h of handles) {
+      ctx.beginPath();
+      ctx.arc(h.point.x, h.point.y, 5 * unit, 0, Math.PI * 2);
+      ctx.fillStyle = h.kind === "rotate" ? "#376a50" : "#fff";
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+  const agent = (s: AgentState, c: string, alpha = 1, details = true) => {
     ctx.globalAlpha = alpha;
-    if (options.trail && s.trail.length) {
+    if (details && options.trail && s.trail.length) {
       ctx.beginPath();
       s.trail.forEach((p, i) =>
         i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y),
@@ -236,15 +302,18 @@ export function drawWorld(
       ctx.lineWidth = 2;
       ctx.stroke();
     }
-    if (options.sensors && map.mode === "racing") {
+    if (details && options.sensors && map.mode === "racing") {
       ctx.strokeStyle = c + "38";
       ctx.lineWidth = 1;
-      for (const a of [-1.35, -0.9, -0.45, 0, 0.45, 0.9, 1.35]) {
+      for (const [index, a] of [
+        -1.35, -0.9, -0.45, 0, 0.45, 0.9, 1.35,
+      ].entries()) {
+        const length = (s.sensors?.[index] ?? 145 / 180) * 180;
         ctx.beginPath();
         ctx.moveTo(s.x, s.y);
         ctx.lineTo(
-          s.x + Math.cos(s.angle + a) * 145,
-          s.y + Math.sin(s.angle + a) * 145,
+          s.x + Math.cos(s.angle + a) * length,
+          s.y + Math.sin(s.angle + a) * length,
         );
         ctx.stroke();
       }
@@ -280,9 +349,53 @@ export function drawWorld(
     ctx.globalAlpha = 1;
   };
   if (options.ghost && ghost) agent(ghost, "#bac6c9", 0.25);
-  if (options.all) snapshot?.population.forEach((s) => agent(s, color, 0.16));
-  if (state) agent(state, color);
-  else if (!editing && !map.draft?.missingStart)
+  if (snapshot?.live) {
+    const leader = snapshot.live.leader,
+      selected = options.selectedAgent ?? leader;
+    const order = snapshot.population
+      .map((_, i) => i)
+      .sort(
+        (a, b) =>
+          (a === selected ? 2 : a === leader ? 1 : 0) -
+          (b === selected ? 2 : b === leader ? 1 : 0),
+      );
+    order.forEach((i) => {
+      const s = snapshot.population[i];
+      if (options.populationMode === "alive" && s.done) return;
+      if (options.populationMode === "best" && i !== leader) return;
+      agent(
+        s,
+        s.success
+          ? "#479c70"
+          : s.collision
+            ? "#bd7a72"
+            : i === leader
+              ? "#c39547"
+              : color,
+        s.collision ? 0.28 : i === leader || i === selected ? 1 : 0.8,
+        i === selected,
+      );
+      if (i === leader) {
+        ctx.strokeStyle = "#ba8a32";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 24, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (i === selected) {
+        ctx.strokeStyle = light ? "#254f3a" : "#fff";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 20, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    });
+  } else {
+    if (options.all)
+      snapshot?.population.forEach((s) => agent(s, color, 0.55, false));
+    if (state) agent(state, color);
+  }
+  if (!state && !snapshot?.live && !editing && !map.draft?.missingStart)
     agent(
       {
         ...map.start,
@@ -331,6 +444,7 @@ export function World({
   onCursor,
   roadAppend = true,
   keyboardDelete = true,
+  onAgentSelect,
 }: {
   map: TrackMap;
   snapshot?: Snapshot;
@@ -361,6 +475,7 @@ export function World({
   onCursor?: (p: Point) => void;
   roadAppend?: boolean;
   keyboardDelete?: boolean;
+  onAgentSelect?: (index: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null),
     miniRef = useRef<HTMLCanvasElement>(null);
@@ -410,7 +525,7 @@ export function World({
       null,
     );
   const drag = useRef<{
-    kind: "pan" | "road" | "erase" | "move" | "place";
+    kind: "pan" | "road" | "erase" | "move" | "place" | "transform";
     point: Point;
     screen: Point;
     map: TrackMap;
@@ -420,6 +535,7 @@ export function World({
     protectedLayers?: Set<string>;
     before?: TrackMap;
     changed?: boolean;
+    handle?: TransformHandle;
   } | null>(null);
   const replay = useRef<{
     mapId: string;
@@ -464,7 +580,11 @@ export function World({
       lastReport = 0;
     const ensureReplay = () => {
       const p = latest.current,
-        algorithm = p.testing ? "manual" : p.snapshot?.stats.algorithm;
+        algorithm = p.testing
+          ? "manual"
+          : p.snapshot?.live
+            ? undefined
+            : p.snapshot?.stats.algorithm;
       if (!algorithm) {
         replay.current = null;
         return;
@@ -498,7 +618,11 @@ export function World({
         canvas.height = r.height * dpr;
       }
       const ctx = canvas.getContext("2d")!;
-      const state = replay.current?.env.getState();
+      const state = p.snapshot?.live
+        ? p.snapshot.population[
+            p.options.selectedAgent ?? p.snapshot.live.leader
+          ]
+        : replay.current?.env.getState(true, p.options.sensors);
       const effective =
         p.follow && state
           ? {
@@ -529,10 +653,12 @@ export function World({
         p.color,
         p.selected,
         p.ghost,
-        state,
+        p.snapshot?.live ? undefined : state,
         p.editing && !p.testing,
         p.testing ? undefined : p.hidden,
         !!canvas.closest(".light"),
+        1 / (baseScale(p.map, r) * effective.zoom),
+        p.seed,
       );
       if (p.editing && tool === "erase" && brush.current) {
         ctx.beginPath();
@@ -804,18 +930,49 @@ export function World({
       };
       return;
     }
-    if (tool === "select") {
-      const hits = hitSelections(
-        map,
-        p,
-        14 / baseScale(map, frame()) / view.zoom,
-      ).filter(
+    const unit = 1 / baseScale(map, frame()) / view.zoom;
+    if (
+      selected &&
+      !hidden.has(selectionKey(selected)) &&
+      !lockedLayers.has(selectionKey(selected))
+    ) {
+      const handle = transformHandles(map, selected, unit).find(
+        (h) => Math.hypot(h.point.x - p.x, h.point.y - p.y) < 9 * unit,
+      );
+      if (handle) {
+        drag.current = {
+          kind: "transform",
+          point: p,
+          screen: s,
+          map: initial,
+          view: camera.current,
+          transaction,
+          selection: selected,
+          handle: handle.kind,
+        };
+        return;
+      }
+    }
+    const hits = hitSelections(map, p, 14 * unit)
+      .filter(
         (h) =>
           !hidden.has(selectionKey(h)) && !lockedLayers.has(selectionKey(h)),
+      )
+      .filter(
+        (h) =>
+          h.kind !== "road" ||
+          tool === "select" ||
+          (tool === "road" &&
+            Math.hypot(map.road[h.index].x - p.x, map.road[h.index].y - p.y) <
+              14 * unit),
       );
-      const previous = hits.findIndex(
-        (h) => JSON.stringify(h) === JSON.stringify(selected),
-      );
+    if (tool === "select" || (tool !== "erase" && hits.length)) {
+      const previous =
+        tool === "select"
+          ? hits.findIndex(
+              (h) => JSON.stringify(h) === JSON.stringify(selected),
+            )
+          : -1;
       const hit = hits.length ? hits[(previous + 1) % hits.length] : null;
       onSelect?.(hit);
       drag.current = {
@@ -856,7 +1013,7 @@ export function World({
       const m = {
         ...initial,
         road: roadAppend ? [...initial.road, p] : [p],
-        checkpoints: roadAppend ? initial.checkpoints : [],
+        checkpoints: initial.checkpoints,
         draft: roadAppend
           ? { ...initial.draft }
           : { missingStart: true, missingGoal: true, roadBreaks: [] },
@@ -885,7 +1042,15 @@ export function World({
       m.draft = { ...m.draft, missingGoal: false };
       onSelect?.({ kind: "goal" });
     } else if (tool === "checkpoint") {
-      m.checkpoints.push(snapped(p));
+      const prev = m.checkpoints.at(-1) ?? m.start;
+      m.checkpoints.push({
+        ...snapped(p),
+        id: crypto.randomUUID(),
+        width: m.roadWidth * 0.8,
+        angle: Math.atan2(p.y - prev.y, p.x - prev.x),
+        order: m.checkpoints.length,
+        directional: true,
+      });
       onSelect?.({ kind: "checkpoint", index: m.checkpoints.length - 1 });
     } else {
       const o: MapObject = {
@@ -943,7 +1108,34 @@ export function World({
     onCursor?.(p);
     if (tool === "erase") renderRef.current();
     const d = drag.current;
-    if (!d) return;
+    if (!d) {
+      const unit = 1 / baseScale(map, frame()) / view.zoom;
+      const handle = transformHandles(map, selected ?? null, unit).find(
+        (h) => Math.hypot(h.point.x - p.x, h.point.y - p.y) < 9 * unit,
+      );
+      const movable =
+        tool !== "erase" &&
+        hitSelections(map, p, 10 * unit).some(
+          (h) =>
+            h.kind !== "road" &&
+            !hidden.has(selectionKey(h)) &&
+            !lockedLayers.has(selectionKey(h)),
+        );
+      e.currentTarget.style.cursor = handle
+        ? handle.kind === "rotate"
+          ? "crosshair"
+          : handle.kind === "nw" || handle.kind === "se"
+            ? "nwse-resize"
+            : "nesw-resize"
+        : movable
+          ? "move"
+          : tool === "pan"
+            ? "grab"
+            : tool === "select"
+              ? "default"
+              : "crosshair";
+      return;
+    }
     if (d.kind === "pan") {
       const scale = baseScale(map, frame()) * d.view.zoom;
       updateView({
@@ -962,6 +1154,12 @@ export function World({
     } else if (d.kind === "erase") {
       d.map = eraseAt(d.map, p, eraserSize, d.protectedLayers);
       onChange?.(d.map, d.transaction);
+    } else if (d.kind === "transform" && d.selection && d.handle) {
+      d.changed = true;
+      onChange?.(
+        transformSelection(d.map, d.selection, d.handle, p, e.shiftKey),
+        d.transaction,
+      );
     } else if (d.selection) {
       d.changed = true;
       onChange?.(
@@ -988,10 +1186,6 @@ export function World({
             ),
           };
         if (!roadAppend || m.draft?.missingGoal) m.goal = m.road.at(-1)!;
-        if (!roadAppend || !m.checkpoints.length)
-          m.checkpoints = m.road.filter(
-            (_, i) => i > 0 && (i % 3 === 0 || i === m.road.length - 1),
-          );
         m.draft = { roadBreaks: m.draft?.roadBreaks ?? [] };
         onChange?.(m, d.transaction);
       } else onChange?.(m, d.transaction);
@@ -1007,6 +1201,26 @@ export function World({
     canvasRef.current?.classList.remove("panning");
   }
   function up(e: React.PointerEvent<HTMLCanvasElement>) {
+    const d = drag.current,
+      live = latest.current.snapshot?.live;
+    if (
+      !editing &&
+      live &&
+      d?.kind === "pan" &&
+      Math.hypot(screen(e).x - d.screen.x, screen(e).y - d.screen.y) < 5
+    ) {
+      const p = point(e);
+      let nearest = -1,
+        best = 22 / baseScale(map, frame()) / view.zoom;
+      latest.current.snapshot!.population.forEach((s, i) => {
+        const distance = Math.hypot(s.x - p.x, s.y - p.y);
+        if (distance < best) {
+          best = distance;
+          nearest = i;
+        }
+      });
+      if (nearest >= 0) onAgentSelect?.(nearest);
+    }
     e.currentTarget.classList.remove("panning");
     if (e.currentTarget.hasPointerCapture(e.pointerId))
       e.currentTarget.releasePointerCapture(e.pointerId);
@@ -1023,6 +1237,19 @@ export function World({
         className={"world " + (editing ? "editing tool-" + tool : "")}
         aria-label={editing ? "맵 편집 캔버스" : "AI 시뮬레이션 캔버스"}
         tabIndex={interactive ? 0 : undefined}
+        data-generation={snapshot?.live?.generation}
+        data-live-tick={snapshot?.live?.tick}
+        data-live-count={snapshot?.population.length}
+        data-live-positions={
+          snapshot?.live
+            ? snapshot.population
+                .map(
+                  (s) =>
+                    `${s.x.toFixed(2)},${s.y.toFixed(2)},${s.steps},${+s.done}`,
+                )
+                .join(";")
+            : undefined
+        }
         data-zoom={view.zoom.toFixed(3)}
         data-pan-x={view.pan.x.toFixed(2)}
         data-pan-y={view.pan.y.toFixed(2)}

@@ -3,6 +3,7 @@ import { Random } from "../core/random";
 import type { AgentState, Config, PolicyData, TrackMap } from "../core/types";
 import { actionOf, createPolicy } from "./network";
 export interface GACheckpoint {
+  boundary?: "generation";
   population: PolicyData[];
   generation: number;
   rng: number;
@@ -15,6 +16,70 @@ export class GeneticTrainer {
   generation = 0;
   best: PolicyData | null = null;
   bestScore = -Infinity;
+  environments: Simulator[] = [];
+  tick = 0;
+  boundary = true;
+  private generationSteps = 0;
+  private observations: Float32Array[] = [];
+  beginGeneration() {
+    this.observations = [];
+    this.environments = this.population.map(() => {
+      const env = new Simulator(this.map, this.config.horizon);
+      this.observations.push(env.reset(this.config.seed));
+      return env;
+    });
+    this.tick = 0;
+    this.generationSteps = 0;
+    this.boundary = false;
+  }
+  states(includeTrail = true): AgentState[] {
+    return this.environments.map((env, index) => ({
+      ...env.getState(includeTrail),
+      ...(this.map.mode === "racing"
+        ? { sensors: Array.from(this.observations[index].slice(0, 7)) }
+        : {}),
+    }));
+  }
+  advance(ticks = 1) {
+    if (this.boundary) this.beginGeneration();
+    for (let t = 0; t < ticks; t++) {
+      for (let i = 0; i < this.environments.length; i++) {
+        const env = this.environments[i];
+        if (env.getMetrics().success || env.done) continue;
+        this.observations[i] = env.step(
+          actionOf(this.population[i], this.observations[i]),
+        ).observation;
+        this.generationSteps++;
+      }
+      this.tick++;
+      if (this.environments.every((env) => env.done))
+        return this.finishGeneration();
+    }
+    return null;
+  }
+  private finishGeneration() {
+    const states = this.states(),
+      scores = states.map((s) => s.reward);
+    const max = Math.max(...scores),
+      index = scores.indexOf(max);
+    if (max > this.bestScore) {
+      this.bestScore = max;
+      this.best = structuredClone(this.population[index]);
+    }
+    this.reproduce(scores);
+    this.boundary = true;
+    const successes = states.filter((s) => s.success);
+    return {
+      scores,
+      states,
+      steps: this.generationSteps,
+      successes: successes.length,
+      collisions: states.filter((s) => s.collision).length,
+      completion: successes.reduce((a, s) => a + s.steps / 60, 0),
+      state: states[index],
+      episodes: states.length,
+    };
+  }
   constructor(
     public map: TrackMap,
     public config: Config,
@@ -60,47 +125,15 @@ export class GeneticTrainer {
     this.generation++;
   }
   run() {
-    const scores: number[] = [],
-      states: AgentState[] = [];
-    let steps = 0,
-      successes = 0,
-      collisions = 0,
-      completion = 0;
-    for (const policy of this.population) {
-      const env = new Simulator(this.map, this.config.horizon);
-      env.reset(this.config.seed);
-      while (!env.getMetrics().success) {
-        const r = env.step(actionOf(policy, env.observe()));
-        steps++;
-        if (r.terminated || r.truncated) break;
-      }
-      const state = env.getState();
-      scores.push(state.reward);
-      states.push(state);
-      successes += +state.success;
-      collisions += +state.collision;
-      if (state.success) completion += state.steps / 60;
-    }
-    const max = Math.max(...scores),
-      index = scores.indexOf(max);
-    if (max > this.bestScore) {
-      this.bestScore = max;
-      this.best = structuredClone(this.population[index]);
-    }
-    this.reproduce(scores);
-    return {
-      scores,
-      steps,
-      successes,
-      collisions,
-      completion,
-      state: states[index],
-      states,
-      episodes: scores.length,
-    };
+    let result: ReturnType<GeneticTrainer["advance"]> = null;
+    while (!result) result = this.advance();
+    return result;
   }
   checkpoint(): GACheckpoint {
+    if (!this.boundary)
+      throw Error("GA checkpoints require a generation boundary.");
     return structuredClone({
+      boundary: "generation" as const,
       population: this.population,
       generation: this.generation,
       rng: this.rng.state,
@@ -114,6 +147,9 @@ export class GeneticTrainer {
     this.rng.state = c.rng;
     this.best = structuredClone(c.best);
     this.bestScore = c.bestScore;
+    this.environments = [];
+    this.tick = 0;
+    this.boundary = true;
   }
   dispose() {}
 }

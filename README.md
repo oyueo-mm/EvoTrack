@@ -7,6 +7,8 @@
 
 브라우저 내부에서 Racing/Bounce 환경의 신경망을 학습하는 로컬 우선 실험실. React, TypeScript, Vite, Tailwind CSS, Canvas 2D, TensorFlow.js, Web Workers, IndexedDB를 사용합니다. 백엔드나 학습 API가 없습니다.
 
+GA는 한 세대의 모든 개체가 독립적인 환경에서 같은 물리 스텝으로 동시에 주행합니다. 학습 실험실 상단에서 맵·알고리즘·배속과 실행을 제어하고, 생존/충돌/완주 수와 실제 처리량을 관찰하세요. 수동 방향 게이트, 장애물 리사이즈·회전 핸들, Ctrl/Cmd+C/V/X/D, 난이도별 새 맵 8개를 제공합니다. 구현·성능·기존 데이터 호환성과 제한은 [실시간 진화 및 편집 고도화 보고서](docs/live-evolution.md)를 확인하세요.
+
 ```sh
 npm install
 npm run dev

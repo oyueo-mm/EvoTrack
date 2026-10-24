@@ -87,7 +87,7 @@ describe("editor geometry and camera", () => {
       selection = hitSelection(map, p)!;
     expect(selection).toEqual({ kind: "checkpoint", index: 0 });
     const next = moveSelection(map, selection, { x: 10, y: 20 });
-    expect(next.checkpoints[0]).toEqual({ x: p.x + 10, y: p.y + 20 });
+    expect(next.checkpoints[0]).toEqual({ ...p, x: p.x + 10, y: p.y + 20 });
     expect(map.checkpoints[0]).toEqual(p);
   });
   it("removes only a selected checkpoint and leaves the road intact", () => {

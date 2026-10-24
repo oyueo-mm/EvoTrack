@@ -10,6 +10,7 @@ import {
   put,
   remove,
   restoreWorkspace,
+  validateModel,
   validateWorkspace,
   workspaceSummary,
   type Workspace,
@@ -83,6 +84,22 @@ describe("workspace migration safety", () => {
       restoreWorkspace(broken, "overwrite", result),
     ).rejects.toThrow();
     expect(await exportWorkspace()).toEqual(result);
+    const legacyModel = structuredClone(model);
+    legacyModel.schemas.environment = 1;
+    delete legacyModel.trainingMap.environmentVersion;
+    legacyModel.trainingMap.checkpoints =
+      legacyModel.trainingMap.checkpoints.map(({ x, y }) => ({ x, y }));
+    expect(validateModel(legacyModel)).toEqual(legacyModel);
+    const backup = {
+      format: "evotrack-workspace",
+      version: 1,
+      schemas: { environment: 1, observation: 1, action: 1 },
+      maps: [legacyModel.trainingMap],
+      models: [legacyModel],
+      experiments: [experiment],
+    };
+    await restoreWorkspace(backup, "overwrite", result);
+    expect((await exportWorkspace()).models[0].schemas.environment).toBe(1);
   });
   it("imports legacy v0.1 backups and exports a versioned snapshot", async () => {
     await restoreWorkspace(legacy(), "skip", await exportWorkspace());

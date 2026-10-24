@@ -1,6 +1,7 @@
 import { Simulator } from "../core/environment";
 import {
   SCHEMAS,
+  schemasFor,
   type PolicyData,
   type SavedModel,
   type TrackMap,
@@ -22,11 +23,13 @@ export function assertCompatible(model: SavedModel, map: TrackMap) {
   if (
     model.mode !== map.mode ||
     !model.schemas ||
-    Object.entries(SCHEMAS).some(
+    Object.entries(schemasFor(map)).some(
       ([k, v]) => model.schemas[k as keyof typeof SCHEMAS] !== v,
     )
   )
-    throw Error("환경 또는 관측·행동 스키마가 호환되지 않습니다.");
+    throw Error(
+      "환경 버전 또는 관측·행동 스키마가 호환되지 않습니다. 기존 모델은 원래 환경에서 실행하세요.",
+    );
   validatePolicy(model.policy, map.mode === "racing" ? 5 : 6);
 }
 export function evaluate(

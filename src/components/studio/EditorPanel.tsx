@@ -6,6 +6,8 @@ import {
   selectionPoint,
   type Selection,
 } from "../../core/editor";
+import { gateAt, clampObject } from "../../core/geometry";
+import { copySelection, pasteSelection } from "../../core/editor";
 import { NumberField, Section } from "../ui";
 export function EditorPanel({
   map,
@@ -166,8 +168,81 @@ export function EditorPanel({
                   }}
                 />
               )}
+              {selection.kind === "checkpoint" &&
+                map.environmentVersion === 2 && (
+                  <>
+                    <NumberField
+                      label="게이트 너비"
+                      value={gateAt(map, selection.index).width}
+                      min={10}
+                      max={Math.max(map.width, map.height)}
+                      unit="px"
+                      disabled={disabled}
+                      onChange={(width) =>
+                        onChange({
+                          ...map,
+                          checkpoints: map.checkpoints.map((p, i) =>
+                            i === selection.index
+                              ? { ...gateAt(map, i), width }
+                              : p,
+                          ),
+                        })
+                      }
+                    />
+                    <NumberField
+                      label="게이트 각도"
+                      value={Math.round(
+                        (gateAt(map, selection.index).angle * 180) / Math.PI,
+                      )}
+                      min={-360}
+                      max={360}
+                      unit="°"
+                      disabled={disabled}
+                      onChange={(angle) =>
+                        onChange({
+                          ...map,
+                          checkpoints: map.checkpoints.map((p, i) =>
+                            i === selection.index
+                              ? {
+                                  ...gateAt(map, i),
+                                  angle: (angle * Math.PI) / 180,
+                                }
+                              : p,
+                          ),
+                        })
+                      }
+                    />
+                    <p className="helper">
+                      화살표 방향으로 선을 완전히 통과해야 합니다. 역방향 통과는
+                      인정하지 않습니다.
+                    </p>
+                  </>
+                )}
               {object && (
                 <>
+                  {map.environmentVersion === 2 && (
+                    <NumberField
+                      label="객체 회전"
+                      value={Math.round(((object.angle ?? 0) * 180) / Math.PI)}
+                      min={-360}
+                      max={360}
+                      unit="°"
+                      disabled={disabled}
+                      onChange={(angle) =>
+                        onChange({
+                          ...map,
+                          objects: map.objects.map((o) =>
+                            o.id === object.id
+                              ? clampObject(
+                                  { ...o, angle: (angle * Math.PI) / 180 },
+                                  map,
+                                )
+                              : o,
+                          ),
+                        })
+                      }
+                    />
+                  )}
                   {(
                     [
                       ["w", "가로", 10, map.width, 10, "px"],
@@ -210,19 +285,17 @@ export function EditorPanel({
                 </p>
               )}
               <div className="property-actions">
-                {object && (
+                {(object || selection.kind === "checkpoint") && (
                   <button
                     className="button"
                     disabled={disabled}
                     onClick={() => {
-                      const copy = {
-                        ...object,
-                        id: crypto.randomUUID(),
-                        x: object.x + 20,
-                        y: object.y + 20,
-                      };
-                      onChange({ ...map, objects: [...map.objects, copy] });
-                      onSelect({ kind: "object", id: copy.id });
+                      const item = copySelection(map, selection);
+                      if (item) {
+                        const pasted = pasteSelection(map, item);
+                        onChange(pasted.map);
+                        onSelect(pasted.selection);
+                      }
                     }}
                   >
                     <Copy size={15} />

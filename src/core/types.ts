@@ -4,6 +4,19 @@ export interface Point {
   x: number;
   y: number;
 }
+export interface Checkpoint extends Point {
+  /** Missing gate fields denote a legacy point checkpoint. Angle is the forward normal. */
+  id?: string;
+  width?: number;
+  angle?: number;
+  order?: number;
+  directional?: boolean;
+}
+export interface Schemas {
+  environment: 1 | 2;
+  observation: 1;
+  action: 1;
+}
 export interface MapObject extends Point {
   id: string;
   kind: "wall" | "platform" | "moving" | "spike" | "spring" | "elastic";
@@ -11,6 +24,7 @@ export interface MapObject extends Point {
   h: number;
   amplitude?: number;
   period?: number;
+  angle?: number;
 }
 export interface TrackMap {
   id: string;
@@ -18,6 +32,10 @@ export interface TrackMap {
   description: string;
   mode: Mode;
   version: 1;
+  environmentVersion?: 1 | 2;
+  difficulty?: "Easy" | "Medium" | "Hard";
+  features?: string[];
+  recommendedHorizon?: number;
   createdAt: string;
   updatedAt: string;
   width: number;
@@ -26,7 +44,7 @@ export interface TrackMap {
   roadWidth: number;
   start: Point & { angle: number };
   goal: Point;
-  checkpoints: Point[];
+  checkpoints: Checkpoint[];
   objects: MapObject[];
   physics: { maxSpeed: number; gravity: number };
   /** Transient editor state. Incomplete drafts cannot run or be saved as maps. */
@@ -50,6 +68,7 @@ export interface AgentState extends Point {
   collision: boolean;
   progress: number;
   trail: Point[];
+  sensors?: number[];
 }
 export interface Metrics {
   steps: number;
@@ -76,7 +95,11 @@ export interface Environment {
   getMetrics(): Metrics;
   serialize(): TrackMap;
 }
-export const SCHEMAS = { environment: 1, observation: 1, action: 1 } as const;
+export const SCHEMAS: Schemas = { environment: 2, observation: 1, action: 1 };
+export const schemasFor = (map: TrackMap): Schemas => ({
+  ...SCHEMAS,
+  environment: map.environmentVersion ?? 1,
+});
 export const ACTIONS = {
   racing: [
     "accelerate",
@@ -156,7 +179,7 @@ export interface SavedModel {
   kind: "inference" | "checkpoint";
   algorithm: Algorithm;
   mode: Mode;
-  schemas: typeof SCHEMAS;
+  schemas: Schemas;
   policy: PolicyData;
   config: Config;
   stats: TrainingStats;
@@ -170,6 +193,18 @@ export interface Snapshot {
   state: AgentState;
   population: AgentState[];
   policy: PolicyData;
+  live?: {
+    generation: number;
+    tick: number;
+    total: number;
+    alive: number;
+    crashed: number;
+    finished: number;
+    leader: number;
+    effectiveSpeed: number;
+    environmentStepsPerSecond: number;
+    boundary: boolean;
+  };
 }
 export type CommandName =
   | "START"

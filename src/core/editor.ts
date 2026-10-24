@@ -1,5 +1,13 @@
 import type { Point, TrackMap } from "./types";
 import { segmentDistance } from "./maps";
+import {
+  circleObject,
+  clampObject,
+  gateAt,
+  gateEnds,
+  objectLocal,
+  objectWorld,
+} from "./geometry";
 export type Selection =
   | { kind: "object"; id: string }
   | { kind: "road" | "checkpoint"; index: number }
@@ -126,6 +134,13 @@ export function moveSelection(map: TrackMap, s: Selection, delta: Point) {
   if (p) {
     p.x += delta.x;
     p.y += delta.y;
+    if (s.kind === "object") {
+      const o = m.objects.find((o) => o.id === s.id)!;
+      Object.assign(o, clampObject(o, m));
+    } else {
+      p.x = Math.max(0, Math.min(m.width, p.x));
+      p.y = Math.max(0, Math.min(m.height, p.y));
+    }
   }
   return m;
 }
@@ -149,6 +164,9 @@ export function removeSelection(map: TrackMap, s: Selection): TrackMap {
       break;
     case "checkpoint":
       m.checkpoints.splice(s.index, 1);
+      m.checkpoints.forEach((p, i) => {
+        if (p.order !== undefined) p.order = i;
+      });
       break;
     case "road":
       removeRoadIndices(m, new Set([s.index]));
@@ -171,12 +189,7 @@ export function eraseAt(
   const m = structuredClone(map),
     near = (a: Point) => Math.hypot(a.x - p.x, a.y - p.y) <= radius;
   m.objects = m.objects.filter(
-    (o) =>
-      protectedLayers.has("object:" + o.id) ||
-      Math.hypot(
-        p.x - Math.max(o.x, Math.min(p.x, o.x + o.w)),
-        p.y - Math.max(o.y, Math.min(p.y, o.y + o.h)),
-      ) > radius,
+    (o) => protectedLayers.has("object:" + o.id) || !circleObject(o, p, radius),
   );
   m.checkpoints = m.checkpoints.filter(
     (a, i) =>
@@ -184,6 +197,9 @@ export function eraseAt(
       protectedLayers.has(`checkpoint-at:${a.x}:${a.y}`) ||
       !near(a),
   );
+  m.checkpoints.forEach((p, i) => {
+    if (p.order !== undefined) p.order = i;
+  });
   if (!protectedLayers.has("start") && near(m.start))
     m.draft = { ...m.draft, missingStart: true };
   if (!protectedLayers.has("goal") && near(m.goal))
@@ -220,7 +236,9 @@ export function remapCheckpointLayers(
       if (!key.startsWith("checkpoint:")) return [key];
       const p = previous.checkpoints[Number(key.slice(11))];
       const index = p
-        ? next.checkpoints.findIndex((q) => q.x === p.x && q.y === p.y)
+        ? next.checkpoints.findIndex((q) =>
+            p.id ? q.id === p.id : q.x === p.x && q.y === p.y,
+          )
         : -1;
       return index < 0 ? [] : ["checkpoint:" + index];
     }),
@@ -236,15 +254,14 @@ export function hitSelections(
   if (!map.draft?.missingStart && near(map.start)) hits.push({ kind: "start" });
   if (!map.draft?.missingGoal && near(map.goal)) hits.push({ kind: "goal" });
   map.checkpoints.forEach((q, index) => {
-    if (near(q)) hits.push({ kind: "checkpoint", index });
+    if (
+      near(q) ||
+      segmentDistance(p, ...gateEnds(gateAt(map, index))) <= tolerance
+    )
+      hits.push({ kind: "checkpoint", index });
   });
   for (const o of [...map.objects].reverse())
-    if (
-      p.x >= o.x - tolerance / 3 &&
-      p.x <= o.x + o.w + tolerance / 3 &&
-      p.y >= o.y - tolerance / 3 &&
-      p.y <= o.y + o.h + tolerance / 3
-    )
+    if (circleObject(o, p, tolerance / 3))
       hits.push({ kind: "object", id: o.id });
   const road = hitSelection(
     {
@@ -277,29 +294,169 @@ export function smoothRoad(map: TrackMap): TrackMap {
     );
   }
   road.push(map.road.at(-1)!);
-  const checkpoints = map.checkpoints.map((p) => {
-    let closest = p,
-      distance = Infinity;
-    for (let i = 1; i < road.length; i++) {
-      const a = road[i - 1],
-        b = road[i],
-        dx = b.x - a.x,
-        dy = b.y - a.y;
-      const t = Math.max(
-        0,
+  return { ...map, road };
+}
+
+export type TransformHandle =
+  "nw" | "ne" | "se" | "sw" | "rotate" | "gate-a" | "gate-b";
+export function transformHandles(
+  map: TrackMap,
+  s: Selection | null,
+  unit = 1,
+): { kind: TransformHandle; point: Point }[] {
+  if (s?.kind === "object") {
+    const o = map.objects.find((o) => o.id === s.id);
+    if (!o) return [];
+    const handles: { kind: TransformHandle; point: Point }[] = (
+      [
+        [-1, -1, "nw"],
+        [1, -1, "ne"],
+        [1, 1, "se"],
+        [-1, 1, "sw"],
+      ] as const
+    ).map(([x, y, kind]) => ({
+      kind,
+      point: objectWorld(o, { x: (x * o.w) / 2, y: (y * o.h) / 2 }),
+    }));
+    if (map.environmentVersion === 2)
+      handles.push({
+        kind: "rotate",
+        point: objectWorld(o, { x: 0, y: -o.h / 2 - 28 * unit }),
+      });
+    return handles;
+  }
+  if (s?.kind === "checkpoint" && map.checkpoints[s.index]) {
+    const g = gateAt(map, s.index),
+      [a, b] = gateEnds(g);
+    return map.environmentVersion === 2
+      ? [
+          { kind: "gate-a", point: a },
+          { kind: "gate-b", point: b },
+          {
+            kind: "rotate",
+            point: {
+              x: g.x + Math.cos(g.angle) * 35 * unit,
+              y: g.y + Math.sin(g.angle) * 35 * unit,
+            },
+          },
+        ]
+      : [];
+  }
+  return [];
+}
+export function transformSelection(
+  map: TrackMap,
+  s: Selection,
+  h: TransformHandle,
+  p: Point,
+  shift = false,
+): TrackMap {
+  const m = structuredClone(map),
+    snap = (a: number) =>
+      shift ? (Math.round(a / (Math.PI / 12)) * Math.PI) / 12 : a;
+  if (s.kind === "object") {
+    const o = m.objects.find((o) => o.id === s.id);
+    if (!o) return map;
+    if (h === "rotate") {
+      if (map.environmentVersion !== 2) return map;
+      o.angle = snap(
+        Math.atan2(p.y - o.y - o.h / 2, p.x - o.x - o.w / 2) + Math.PI / 2,
+      );
+    } else {
+      const q = objectLocal(o, p),
+        sx = h.includes("e") ? 1 : -1,
+        sy = h.includes("s") ? 1 : -1;
+      const anchor = { x: (-sx * o.w) / 2, y: (-sy * o.h) / 2 };
+      let w = Math.max(10, (q.x - anchor.x) * sx),
+        height = Math.max(10, (q.y - anchor.y) * sy);
+      if (shift) {
+        const ratio = o.w / o.h;
+        if (w / height > ratio) height = w / ratio;
+        else w = height * ratio;
+      }
+      const center = objectWorld(o, {
+        x: anchor.x + (sx * w) / 2,
+        y: anchor.y + (sy * height) / 2,
+      });
+      o.w = w;
+      o.h = height;
+      o.x = center.x - w / 2;
+      o.y = center.y - height / 2;
+    }
+    Object.assign(o, clampObject(o, m));
+  } else if (s.kind === "checkpoint" && map.environmentVersion === 2) {
+    const g = gateAt(m, s.index);
+    if (h === "rotate") g.angle = snap(Math.atan2(p.y - g.y, p.x - g.x));
+    else
+      g.width = Math.max(
+        10,
         Math.min(
-          1,
-          ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1),
+          Math.max(m.width, m.height),
+          Math.abs(
+            -(p.x - g.x) * Math.sin(g.angle) + (p.y - g.y) * Math.cos(g.angle),
+          ) * 2,
         ),
       );
-      const q = { x: a.x + t * dx, y: a.y + t * dy },
-        d = Math.hypot(q.x - p.x, q.y - p.y);
-      if (d < distance) {
-        distance = d;
-        closest = q;
-      }
-    }
-    return closest;
-  });
-  return { ...map, road, checkpoints };
+    m.checkpoints[s.index] = g;
+  }
+  return m;
+}
+export type EditorClipboard =
+  | { kind: "object"; value: TrackMap["objects"][number] }
+  | { kind: "checkpoint"; value: TrackMap["checkpoints"][number] };
+export function copySelection(
+  map: TrackMap,
+  s: Selection | null,
+): EditorClipboard | null {
+  if (s?.kind === "object") {
+    const o = map.objects.find((o) => o.id === s.id);
+    return o ? { kind: "object", value: structuredClone(o) } : null;
+  }
+  if (s?.kind === "checkpoint")
+    return { kind: "checkpoint", value: gateAt(map, s.index) };
+  return null;
+}
+export function pasteSelection(
+  map: TrackMap,
+  item: EditorClipboard,
+  offset = 20,
+): { map: TrackMap; selection: Selection } {
+  const m = structuredClone(map);
+  if (item.kind === "object") {
+    const o = clampObject(
+      {
+        ...item.value,
+        id: crypto.randomUUID(),
+        x: item.value.x + offset,
+        y: item.value.y + offset,
+      },
+      m,
+    );
+    m.objects.push(o);
+    return { map: m, selection: { kind: "object", id: o.id } };
+  }
+  const p = {
+    ...item.value,
+    id: crypto.randomUUID(),
+    x: Math.max(0, Math.min(m.width, item.value.x + offset)),
+    y: Math.max(0, Math.min(m.height, item.value.y + offset)),
+    order: m.checkpoints.length,
+  };
+  const angle = p.angle ?? 0;
+  const width = p.width ?? m.roadWidth * 0.8;
+  const scale = Math.min(
+    1,
+    m.width / (Math.abs(Math.sin(angle)) * width || 1),
+    m.height / (Math.abs(Math.cos(angle)) * width || 1),
+  );
+  p.width = width * scale;
+  const rx = (Math.abs(Math.sin(angle)) * p.width) / 2,
+    ry = (Math.abs(Math.cos(angle)) * p.width) / 2;
+  p.x = Math.max(rx, Math.min(m.width - rx, p.x));
+  p.y = Math.max(ry, Math.min(m.height - ry, p.y));
+  m.checkpoints.push(p);
+  return {
+    map: m,
+    selection: { kind: "checkpoint", index: m.checkpoints.length - 1 },
+  };
 }

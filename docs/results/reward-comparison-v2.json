@@ -1,0 +1,1562 @@
+[
+  {
+    "map": "r-s-curves",
+    "algorithm": "GA",
+    "environmentVersion": 1,
+    "seed": 42,
+    "initial": {
+      "reward": -7.20000000000005,
+      "progress": 0,
+      "successRate": 0
+    },
+    "final": {
+      "iteration": 20,
+      "steps": 271668,
+      "reward": 91.27028757153636,
+      "progress": 1,
+      "successRate": 1
+    },
+    "history": [
+      {
+        "iteration": 1,
+        "steps": 14453,
+        "reward": 19.74565228151915,
+        "progress": 0.5595262897082204,
+        "successRate": 0
+      },
+      {
+        "iteration": 2,
+        "steps": 28062,
+        "reward": 23.785851919214522,
+        "progress": 0.6037042023509644,
+        "successRate": 0
+      },
+      {
+        "iteration": 3,
+        "steps": 43990,
+        "reward": 27.814089645651862,
+        "progress": 0.6666666666666666,
+        "successRate": 0
+      },
+      {
+        "iteration": 4,
+        "steps": 58099,
+        "reward": 27.814089645651862,
+        "progress": 0.6666666666666666,
+        "successRate": 0
+      },
+      {
+        "iteration": 5,
+        "steps": 75575,
+        "reward": 27.814089645651862,
+        "progress": 0.6666666666666666,
+        "successRate": 0
+      },
+      {
+        "iteration": 6,
+        "steps": 87924,
+        "reward": 28.735461084108916,
+        "progress": 0.6666666666666666,
+        "successRate": 0
+      },
+      {
+        "iteration": 7,
+        "steps": 98213,
+        "reward": 28.735461084108916,
+        "progress": 0.6666666666666666,
+        "successRate": 0
+      },
+      {
+        "iteration": 8,
+        "steps": 112738,
+        "reward": 28.735461084108916,
+        "progress": 0.6666666666666666,
+        "successRate": 0
+      },
+      {
+        "iteration": 9,
+        "steps": 126673,
+        "reward": 28.735461084108916,
+        "progress": 0.6666666666666666,
+        "successRate": 0
+      },
+      {
+        "iteration": 10,
+        "steps": 135628,
+        "reward": 28.735461084108916,
+        "progress": 0.6666666666666666,
+        "successRate": 0
+      },
+      {
+        "iteration": 11,
+        "steps": 150630,
+        "reward": 28.735461084108916,
+        "progress": 0.6666666666666666,
+        "successRate": 0
+      },
+      {
+        "iteration": 12,
+        "steps": 167265,
+        "reward": 29.19893745876469,
+        "progress": 0.6666666666666666,
+        "successRate": 0
+      },
+      {
+        "iteration": 13,
+        "steps": 182441,
+        "reward": 53.518154388554535,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 14,
+        "steps": 196431,
+        "reward": 53.518154388554535,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 15,
+        "steps": 209660,
+        "reward": 53.518154388554535,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 16,
+        "steps": 216601,
+        "reward": 53.518154388554535,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 17,
+        "steps": 227109,
+        "reward": 88.19309446380764,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 18,
+        "steps": 242254,
+        "reward": 88.33145694470448,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 19,
+        "steps": 257713,
+        "reward": 88.33145694470448,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 20,
+        "steps": 271668,
+        "reward": 91.27028757153636,
+        "progress": 1,
+        "successRate": 1
+      }
+    ]
+  },
+  {
+    "map": "r-s-curves",
+    "algorithm": "GA",
+    "environmentVersion": 2,
+    "seed": 42,
+    "initial": {
+      "reward": -7.20000000000005,
+      "progress": 0,
+      "successRate": 0
+    },
+    "final": {
+      "iteration": 20,
+      "steps": 232554,
+      "reward": 96.35938042044843,
+      "progress": 1,
+      "successRate": 1
+    },
+    "history": [
+      {
+        "iteration": 1,
+        "steps": 13897,
+        "reward": 23.131521850638624,
+        "progress": 0.4782401233449565,
+        "successRate": 0
+      },
+      {
+        "iteration": 2,
+        "steps": 28087,
+        "reward": 25.619443780380706,
+        "progress": 0.48669542983751984,
+        "successRate": 0
+      },
+      {
+        "iteration": 3,
+        "steps": 43502,
+        "reward": 33.827617128651156,
+        "progress": 0.5508326703052377,
+        "successRate": 0
+      },
+      {
+        "iteration": 4,
+        "steps": 57581,
+        "reward": 33.827617128651156,
+        "progress": 0.5508326703052377,
+        "successRate": 0
+      },
+      {
+        "iteration": 5,
+        "steps": 75452,
+        "reward": 40.10580347770873,
+        "progress": 0.6966682068270894,
+        "successRate": 0
+      },
+      {
+        "iteration": 6,
+        "steps": 88750,
+        "reward": 40.10580347770873,
+        "progress": 0.6966682068270894,
+        "successRate": 0
+      },
+      {
+        "iteration": 7,
+        "steps": 100060,
+        "reward": 40.10580347770873,
+        "progress": 0.6966682068270894,
+        "successRate": 0
+      },
+      {
+        "iteration": 8,
+        "steps": 114055,
+        "reward": 60.18577578915333,
+        "progress": 0.993114877298956,
+        "successRate": 0
+      },
+      {
+        "iteration": 9,
+        "steps": 120768,
+        "reward": 60.18577578915333,
+        "progress": 0.993114877298956,
+        "successRate": 0
+      },
+      {
+        "iteration": 10,
+        "steps": 130627,
+        "reward": 60.18577578915333,
+        "progress": 0.993114877298956,
+        "successRate": 0
+      },
+      {
+        "iteration": 11,
+        "steps": 141762,
+        "reward": 60.18577578915333,
+        "progress": 0.993114877298956,
+        "successRate": 0
+      },
+      {
+        "iteration": 12,
+        "steps": 151595,
+        "reward": 60.18577578915333,
+        "progress": 0.993114877298956,
+        "successRate": 0
+      },
+      {
+        "iteration": 13,
+        "steps": 163058,
+        "reward": 60.4405832324197,
+        "progress": 0.9897246464130219,
+        "successRate": 0
+      },
+      {
+        "iteration": 14,
+        "steps": 175227,
+        "reward": 96.20899554198638,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 15,
+        "steps": 183697,
+        "reward": 96.20899554198638,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 16,
+        "steps": 190423,
+        "reward": 96.20899554198638,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 17,
+        "steps": 198456,
+        "reward": 96.20899554198638,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 18,
+        "steps": 209349,
+        "reward": 96.26573857197432,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 19,
+        "steps": 221857,
+        "reward": 96.35938042044843,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 20,
+        "steps": 232554,
+        "reward": 96.35938042044843,
+        "progress": 1,
+        "successRate": 1
+      }
+    ]
+  },
+  {
+    "map": "r-s-curves",
+    "algorithm": "PPO",
+    "environmentVersion": 1,
+    "seed": 42,
+    "initial": {
+      "reward": -7.20000000000005,
+      "progress": 0,
+      "successRate": 0
+    },
+    "final": {
+      "iteration": 30,
+      "steps": 7680,
+      "reward": -30.061707386648113,
+      "progress": 0,
+      "successRate": 0
+    },
+    "history": [
+      {
+        "iteration": 1,
+        "steps": 256,
+        "reward": 3.338627484998385,
+        "progress": 0.28213488496615985,
+        "successRate": 0
+      },
+      {
+        "iteration": 2,
+        "steps": 512,
+        "reward": 2.334759072205857,
+        "progress": 0.27645184439760284,
+        "successRate": 0
+      },
+      {
+        "iteration": 3,
+        "steps": 768,
+        "reward": 3.0130156752070802,
+        "progress": 0.263129915642102,
+        "successRate": 0
+      },
+      {
+        "iteration": 4,
+        "steps": 1024,
+        "reward": 3.6118061292255814,
+        "progress": 0.28200949137625747,
+        "successRate": 0
+      },
+      {
+        "iteration": 5,
+        "steps": 1280,
+        "reward": 10.252377911559362,
+        "progress": 0.3333333333333333,
+        "successRate": 0
+      },
+      {
+        "iteration": 6,
+        "steps": 1536,
+        "reward": 14.116878236512727,
+        "progress": 0.3333333333333333,
+        "successRate": 0
+      },
+      {
+        "iteration": 7,
+        "steps": 1792,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 8,
+        "steps": 2048,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 9,
+        "steps": 2304,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 10,
+        "steps": 2560,
+        "reward": 22.417791667732498,
+        "progress": 0.5512450344889542,
+        "successRate": 0
+      },
+      {
+        "iteration": 11,
+        "steps": 2816,
+        "reward": 14.168888663070854,
+        "progress": 0.3333333333333333,
+        "successRate": 0
+      },
+      {
+        "iteration": 12,
+        "steps": 3072,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 13,
+        "steps": 3328,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 14,
+        "steps": 3584,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 15,
+        "steps": 3840,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 16,
+        "steps": 4096,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 17,
+        "steps": 4352,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 18,
+        "steps": 4608,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 19,
+        "steps": 4864,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 20,
+        "steps": 5120,
+        "reward": 89.68650286671259,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 21,
+        "steps": 5376,
+        "reward": 90.35876702354498,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 22,
+        "steps": 5632,
+        "reward": 91.90563696755608,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 23,
+        "steps": 5888,
+        "reward": -30.02274030278062,
+        "progress": 0,
+        "successRate": 0
+      },
+      {
+        "iteration": 24,
+        "steps": 6144,
+        "reward": -30.05536110508884,
+        "progress": 0,
+        "successRate": 0
+      },
+      {
+        "iteration": 25,
+        "steps": 6400,
+        "reward": -1.616465582211796,
+        "progress": 0.010441859756818403,
+        "successRate": 0
+      },
+      {
+        "iteration": 26,
+        "steps": 6656,
+        "reward": -30.04802339596378,
+        "progress": 0,
+        "successRate": 0
+      },
+      {
+        "iteration": 27,
+        "steps": 6912,
+        "reward": -30.080920550275312,
+        "progress": 0,
+        "successRate": 0
+      },
+      {
+        "iteration": 28,
+        "steps": 7168,
+        "reward": -30.08745025140838,
+        "progress": 0,
+        "successRate": 0
+      },
+      {
+        "iteration": 29,
+        "steps": 7424,
+        "reward": -30.102246794771066,
+        "progress": 0,
+        "successRate": 0
+      },
+      {
+        "iteration": 30,
+        "steps": 7680,
+        "reward": -30.061707386648113,
+        "progress": 0,
+        "successRate": 0
+      }
+    ]
+  },
+  {
+    "map": "r-s-curves",
+    "algorithm": "PPO",
+    "environmentVersion": 2,
+    "seed": 42,
+    "initial": {
+      "reward": -7.20000000000005,
+      "progress": 0,
+      "successRate": 0
+    },
+    "final": {
+      "iteration": 30,
+      "steps": 7680,
+      "reward": -1.8267515570390465,
+      "progress": 0.02910609537769585,
+      "successRate": 0
+    },
+    "history": [
+      {
+        "iteration": 1,
+        "steps": 256,
+        "reward": 12.627878010771688,
+        "progress": 0.23939016432239865,
+        "successRate": 0
+      },
+      {
+        "iteration": 2,
+        "steps": 512,
+        "reward": 8.860876761093355,
+        "progress": 0.1821249751668784,
+        "successRate": 0
+      },
+      {
+        "iteration": 3,
+        "steps": 768,
+        "reward": 4.035452678957233,
+        "progress": 0.1633090905795691,
+        "successRate": 0
+      },
+      {
+        "iteration": 4,
+        "steps": 1024,
+        "reward": 11.80160185361246,
+        "progress": 0.21290476409354162,
+        "successRate": 0
+      },
+      {
+        "iteration": 5,
+        "steps": 1280,
+        "reward": 0.5519333610516424,
+        "progress": 0.0828830202982353,
+        "successRate": 0
+      },
+      {
+        "iteration": 6,
+        "steps": 1536,
+        "reward": -5.164174155133615,
+        "progress": 0.03895152135552877,
+        "successRate": 0
+      },
+      {
+        "iteration": 7,
+        "steps": 1792,
+        "reward": -4.776658503533662,
+        "progress": 0.04636587077886442,
+        "successRate": 0
+      },
+      {
+        "iteration": 8,
+        "steps": 2048,
+        "reward": -0.5373162822058752,
+        "progress": 0.14722263100917188,
+        "successRate": 0
+      },
+      {
+        "iteration": 9,
+        "steps": 2304,
+        "reward": 2.598426432851849,
+        "progress": 0.15900365617670473,
+        "successRate": 0
+      },
+      {
+        "iteration": 10,
+        "steps": 2560,
+        "reward": 0.41037000650689404,
+        "progress": 0.07718973106703714,
+        "successRate": 0
+      },
+      {
+        "iteration": 11,
+        "steps": 2816,
+        "reward": 2.322159591269435,
+        "progress": 0.11571963194938345,
+        "successRate": 0
+      },
+      {
+        "iteration": 12,
+        "steps": 3072,
+        "reward": 3.9310771580879043,
+        "progress": 0.1540797842271097,
+        "successRate": 0
+      },
+      {
+        "iteration": 13,
+        "steps": 3328,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 14,
+        "steps": 3584,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 15,
+        "steps": 3840,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 16,
+        "steps": 4096,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 17,
+        "steps": 4352,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 18,
+        "steps": 4608,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 19,
+        "steps": 4864,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 20,
+        "steps": 5120,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 21,
+        "steps": 5376,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 22,
+        "steps": 5632,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 23,
+        "steps": 5888,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 24,
+        "steps": 6144,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 25,
+        "steps": 6400,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 26,
+        "steps": 6656,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 27,
+        "steps": 6912,
+        "reward": 12.271334590903693,
+        "progress": 0.21511908227773238,
+        "successRate": 0
+      },
+      {
+        "iteration": 28,
+        "steps": 7168,
+        "reward": 4.580845269968591,
+        "progress": 0.1603127159873919,
+        "successRate": 0
+      },
+      {
+        "iteration": 29,
+        "steps": 7424,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      },
+      {
+        "iteration": 30,
+        "steps": 7680,
+        "reward": -1.8267515570390465,
+        "progress": 0.02910609537769585,
+        "successRate": 0
+      }
+    ]
+  },
+  {
+    "map": "r-straight",
+    "algorithm": "GA",
+    "environmentVersion": 1,
+    "seed": 42,
+    "initial": {
+      "reward": -7.20000000000005,
+      "progress": 0.06666666666666665,
+      "successRate": 0
+    },
+    "final": {
+      "iteration": 20,
+      "steps": 198874,
+      "reward": 65.78114689953259,
+      "progress": 1,
+      "successRate": 1
+    },
+    "history": [
+      {
+        "iteration": 1,
+        "steps": 16282,
+        "reward": 65.74478177752454,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 2,
+        "steps": 31772,
+        "reward": 65.74478177752454,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 3,
+        "steps": 45354,
+        "reward": 65.74478177752454,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 4,
+        "steps": 54768,
+        "reward": 65.74478177752454,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 5,
+        "steps": 63605,
+        "reward": 65.74478177752454,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 6,
+        "steps": 73497,
+        "reward": 65.74478177752454,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 7,
+        "steps": 83980,
+        "reward": 65.74523329497224,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 8,
+        "steps": 93041,
+        "reward": 65.74523329497224,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 9,
+        "steps": 100684,
+        "reward": 65.74523329497224,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 10,
+        "steps": 109690,
+        "reward": 65.74523329497224,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 11,
+        "steps": 118022,
+        "reward": 65.74527332934139,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 12,
+        "steps": 123863,
+        "reward": 65.78114689953259,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 13,
+        "steps": 134116,
+        "reward": 65.78114689953259,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 14,
+        "steps": 143711,
+        "reward": 65.78114689953259,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 15,
+        "steps": 152272,
+        "reward": 65.78114689953259,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 16,
+        "steps": 163749,
+        "reward": 65.78114689953259,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 17,
+        "steps": 170624,
+        "reward": 65.78114689953259,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 18,
+        "steps": 182200,
+        "reward": 65.78114689953259,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 19,
+        "steps": 191943,
+        "reward": 65.78114689953259,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 20,
+        "steps": 198874,
+        "reward": 65.78114689953259,
+        "progress": 1,
+        "successRate": 1
+      }
+    ]
+  },
+  {
+    "map": "r-straight",
+    "algorithm": "GA",
+    "environmentVersion": 2,
+    "seed": 42,
+    "initial": {
+      "reward": -7.20000000000005,
+      "progress": 0,
+      "successRate": 0
+    },
+    "final": {
+      "iteration": 20,
+      "steps": 208656,
+      "reward": 66.05341511085786,
+      "progress": 1,
+      "successRate": 1
+    },
+    "history": [
+      {
+        "iteration": 1,
+        "steps": 16291,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 2,
+        "steps": 31803,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 3,
+        "steps": 45105,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 4,
+        "steps": 57382,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 5,
+        "steps": 65983,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 6,
+        "steps": 73982,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 7,
+        "steps": 83507,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 8,
+        "steps": 95578,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 9,
+        "steps": 106131,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 10,
+        "steps": 117624,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 11,
+        "steps": 126996,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 12,
+        "steps": 138218,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 13,
+        "steps": 148949,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 14,
+        "steps": 157509,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 15,
+        "steps": 165198,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 16,
+        "steps": 173878,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 17,
+        "steps": 182723,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 18,
+        "steps": 192165,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 19,
+        "steps": 200626,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 20,
+        "steps": 208656,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      }
+    ]
+  },
+  {
+    "map": "r-straight",
+    "algorithm": "PPO",
+    "environmentVersion": 1,
+    "seed": 42,
+    "initial": {
+      "reward": -7.20000000000005,
+      "progress": 0.06666666666666665,
+      "successRate": 0
+    },
+    "final": {
+      "iteration": 30,
+      "steps": 7680,
+      "reward": 65.68909285494655,
+      "progress": 1,
+      "successRate": 1
+    },
+    "history": [
+      {
+        "iteration": 1,
+        "steps": 256,
+        "reward": 65.26668065595909,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 2,
+        "steps": 512,
+        "reward": 11.17522540017942,
+        "progress": 0.5859697123847397,
+        "successRate": 0
+      },
+      {
+        "iteration": 3,
+        "steps": 768,
+        "reward": 7.359135179124887,
+        "progress": 0.4270179639626619,
+        "successRate": 0
+      },
+      {
+        "iteration": 4,
+        "steps": 1024,
+        "reward": 64.44199562707107,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 5,
+        "steps": 1280,
+        "reward": 65.68759348976204,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 6,
+        "steps": 1536,
+        "reward": 65.71173386546468,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 7,
+        "steps": 1792,
+        "reward": 65.6875076741284,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 8,
+        "steps": 2048,
+        "reward": 65.68581367012072,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 9,
+        "steps": 2304,
+        "reward": 65.70655611704262,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 10,
+        "steps": 2560,
+        "reward": 65.59368918161904,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 11,
+        "steps": 2816,
+        "reward": -0.2044589984565559,
+        "progress": 0.2258462667352643,
+        "successRate": 0
+      },
+      {
+        "iteration": 12,
+        "steps": 3072,
+        "reward": 64.74418502366834,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 13,
+        "steps": 3328,
+        "reward": 65.67993629945936,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 14,
+        "steps": 3584,
+        "reward": 65.74456001055475,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 15,
+        "steps": 3840,
+        "reward": 28.20696102386385,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 16,
+        "steps": 4096,
+        "reward": 28.115116211282338,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 17,
+        "steps": 4352,
+        "reward": 28.269858363089906,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 18,
+        "steps": 4608,
+        "reward": 28.3041088795233,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 19,
+        "steps": 4864,
+        "reward": 28.208117490188357,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 20,
+        "steps": 5120,
+        "reward": 28.05158037520512,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 21,
+        "steps": 5376,
+        "reward": 27.972428461783277,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 22,
+        "steps": 5632,
+        "reward": 28.331579576843847,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 23,
+        "steps": 5888,
+        "reward": 65.72660512808045,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 24,
+        "steps": 6144,
+        "reward": 65.72183601465463,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 25,
+        "steps": 6400,
+        "reward": 65.7261503954381,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 26,
+        "steps": 6656,
+        "reward": 65.65600438887579,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 27,
+        "steps": 6912,
+        "reward": 65.71649401623088,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 28,
+        "steps": 7168,
+        "reward": 65.71401944620278,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 29,
+        "steps": 7424,
+        "reward": 65.74139069441648,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 30,
+        "steps": 7680,
+        "reward": 65.68909285494655,
+        "progress": 1,
+        "successRate": 1
+      }
+    ]
+  },
+  {
+    "map": "r-straight",
+    "algorithm": "PPO",
+    "environmentVersion": 2,
+    "seed": 42,
+    "initial": {
+      "reward": -7.20000000000005,
+      "progress": 0,
+      "successRate": 0
+    },
+    "final": {
+      "iteration": 30,
+      "steps": 7680,
+      "reward": 66.05341511085786,
+      "progress": 1,
+      "successRate": 1
+    },
+    "history": [
+      {
+        "iteration": 1,
+        "steps": 256,
+        "reward": 65.80316986201011,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 2,
+        "steps": 512,
+        "reward": 65.66500404169128,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 3,
+        "steps": 768,
+        "reward": 9.58048556928433,
+        "progress": 0.4364927568459392,
+        "successRate": 0
+      },
+      {
+        "iteration": 4,
+        "steps": 1024,
+        "reward": 29.63599999999991,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 5,
+        "steps": 1280,
+        "reward": 29.65999999999987,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 6,
+        "steps": 1536,
+        "reward": 66.05219036311073,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 7,
+        "steps": 1792,
+        "reward": 66.12631503920073,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 8,
+        "steps": 2048,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 9,
+        "steps": 2304,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 10,
+        "steps": 2560,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 11,
+        "steps": 2816,
+        "reward": 29.642000000000007,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 12,
+        "steps": 3072,
+        "reward": 29.642000000000007,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 13,
+        "steps": 3328,
+        "reward": 19.7937919492099,
+        "progress": 0.7263268545044101,
+        "successRate": 0
+      },
+      {
+        "iteration": 14,
+        "steps": 3584,
+        "reward": 29.671999999999958,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 15,
+        "steps": 3840,
+        "reward": 66.05340963556245,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 16,
+        "steps": 4096,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 17,
+        "steps": 4352,
+        "reward": 66.05340963556245,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 18,
+        "steps": 4608,
+        "reward": 66.05340963556245,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 19,
+        "steps": 4864,
+        "reward": 29.671999999999958,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 20,
+        "steps": 5120,
+        "reward": 19.793834186476523,
+        "progress": 0.7263290486481324,
+        "successRate": 0
+      },
+      {
+        "iteration": 21,
+        "steps": 5376,
+        "reward": 18.28456987268845,
+        "progress": 0.64200362975005,
+        "successRate": 0
+      },
+      {
+        "iteration": 22,
+        "steps": 5632,
+        "reward": 29.642000000000007,
+        "progress": 1,
+        "successRate": 0
+      },
+      {
+        "iteration": 23,
+        "steps": 5888,
+        "reward": 66.05101840238551,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 24,
+        "steps": 6144,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 25,
+        "steps": 6400,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 26,
+        "steps": 6656,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 27,
+        "steps": 6912,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 28,
+        "steps": 7168,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 29,
+        "steps": 7424,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      },
+      {
+        "iteration": 30,
+        "steps": 7680,
+        "reward": 66.05341511085786,
+        "progress": 1,
+        "successRate": 1
+      }
+    ]
+  }
+]

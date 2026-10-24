@@ -3292,3 +3292,131 @@ input[type="range"] {
 .app.light .world-frame {
   background: #f7f8f6;
 }
+
+.floating-history {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-left: 1px solid var(--border);
+  padding-left: 6px;
+  margin-left: 6px;
+  background: var(--surface);
+  position: sticky;
+  right: -6px;
+}
+.floating-history .tool-button {
+  min-width: 36px;
+}
+.training-controls {
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 16px;
+  align-items: center;
+  position: relative;
+}
+.training-controls .current-map {
+  flex: 1;
+  min-width: 180px;
+  max-width: 330px;
+}
+.training-controls .current-map select {
+  width: 100%;
+}
+.training-controls .panel-trigger {
+  margin-left: 0;
+}
+.training-main-action {
+  min-width: 110px;
+}
+.top-speed {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.top-speed input {
+  width: 60px;
+  padding: 5px;
+}
+.population-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 11px;
+}
+.population-toolbar > label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.population-toolbar select {
+  min-height: 30px;
+  padding: 4px 6px;
+  font-size: 11px;
+}
+.population-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  padding: 12px 18px;
+  background: var(--accent-bg);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.population-stats b {
+  color: var(--text);
+  font-weight: 600;
+  margin-left: 4px;
+}
+.map-difficulty {
+  font-size: 11px;
+  color: var(--accent-text);
+  display: inline-block;
+  margin-bottom: 8px;
+}
+@media (max-width: 600px) {
+  .training-controls {
+    padding: 10px;
+    gap: 8px;
+  }
+  .training-controls .current-map {
+    max-width: none;
+    flex-basis: 100%;
+  }
+  .training-controls .mode-tabs {
+    width: 100%;
+  }
+  .training-controls .training-main-action {
+    flex: 1;
+  }
+  .population-toolbar {
+    padding: 10px;
+    gap: 8px;
+  }
+  .population-stats {
+    font-size: 11px;
+    padding: 10px;
+    gap: 8px 14px;
+  }
+  .floating-history {
+    right: -5px;
+  }
+}
+
+.environment-label {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 10px;
+}
+.model-compatibility {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 6px;
+}

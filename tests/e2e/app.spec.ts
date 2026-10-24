@@ -338,6 +338,17 @@ test("saved map, GA checkpoint and exported model survive reload and restore", a
   await expect
     .poll(() => page.locator(".metric-card").first().innerText())
     .not.toContain("—");
+  await expect
+    .poll(async () =>
+      Number(
+        await page
+          .locator(".metric-card")
+          .first()
+          .locator("strong")
+          .innerText(),
+      ),
+    )
+    .toBeGreaterThan(0);
   await page.getByRole("button", { name: "일시정지", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "학습 재개", exact: true }),
@@ -351,6 +362,7 @@ test("saved map, GA checkpoint and exported model survive reload and restore", a
   await expect(page.locator('.toast[role="status"]')).toContainText(
     "추론 모델",
   );
+  await page.getByRole("button", { name: "학습 재개", exact: true }).click();
   await page.getByRole("button", { name: "체크포인트", exact: true }).click();
   await expect(page.locator('.toast[role="status"]')).toContainText(
     "체크포인트",

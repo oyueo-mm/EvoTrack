@@ -127,7 +127,9 @@ test("right-button pan preserves tool and geometry; cancellation, middle pan, la
   await page.mouse.up({ button: "right" });
   await page.getByRole("button", { name: "화면 맞춤", exact: true }).click();
   // Left click after right pan is still a road edit, and one undo restores it.
-  await canvas.click({ position: { x: box.width * 0.8, y: box.height * 0.6 } });
+  await canvas.click({
+    position: { x: box.width * 0.8, y: box.height * 0.25 },
+  });
   await expect(page.locator(".element-count")).not.toHaveText(count);
   await page.getByRole("button", { name: "실행 취소", exact: true }).click();
   await expect(page.locator(".element-count")).toHaveText(count);

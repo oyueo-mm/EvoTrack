@@ -1,0 +1,106 @@
+[
+  {
+    "id": "r-s-curves",
+    "difficulty": "Medium",
+    "success": true,
+    "steps": 550,
+    "reward": 98.04684723163645,
+    "checkpoint": 3,
+    "final": {
+      "x": 1638.982864752601,
+      "y": 501.74211812142835,
+      "collision": false
+    }
+  },
+  {
+    "id": "r-angled-walls",
+    "difficulty": "Medium",
+    "success": true,
+    "steps": 420,
+    "reward": 80.05171107232584,
+    "checkpoint": 2,
+    "final": {
+      "x": 1629.8517762263796,
+      "y": 480,
+      "collision": false
+    }
+  },
+  {
+    "id": "r-hairpin-chain",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 1379,
+    "reward": 177.05173278067846,
+    "checkpoint": 3,
+    "final": {
+      "x": 379.4142459483747,
+      "y": 780.6044066851067,
+      "collision": false
+    }
+  },
+  {
+    "id": "r-endurance",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 692,
+    "reward": 117.53457974177726,
+    "checkpoint": 4,
+    "final": {
+      "x": 1671.5179502201172,
+      "y": 454.1179212779725,
+      "collision": false
+    }
+  },
+  {
+    "id": "b-precision",
+    "difficulty": "Medium",
+    "success": true,
+    "steps": 411,
+    "reward": 62.775666666666595,
+    "checkpoint": 0,
+    "final": {
+      "x": 1286.5,
+      "y": 539,
+      "collision": false
+    }
+  },
+  {
+    "id": "b-moving-gap",
+    "difficulty": "Medium",
+    "success": true,
+    "steps": 411,
+    "reward": 62.775666666666595,
+    "checkpoint": 0,
+    "final": {
+      "x": 1286.5,
+      "y": 539,
+      "collision": false
+    }
+  },
+  {
+    "id": "b-spring-relay",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 411,
+    "reward": 62.775666666666595,
+    "checkpoint": 0,
+    "final": {
+      "x": 1286.5,
+      "y": 539,
+      "collision": false
+    }
+  },
+  {
+    "id": "b-moving-gauntlet",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 413,
+    "reward": 62.91283333333327,
+    "checkpoint": 0,
+    "final": {
+      "x": 1292.5,
+      "y": 522.4611111111113,
+      "collision": false
+    }
+  }
+]

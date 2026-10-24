@@ -29,6 +29,7 @@ import { EXAMPLE_MAPS, newMap, validateMap } from "./core/maps";
 import {
   DEFAULT_CONFIG,
   SCHEMAS,
+  schemasFor,
   type Algorithm,
   type Config,
   type SavedModel,
@@ -109,6 +110,7 @@ export default function App() {
       collision: false,
       all: false,
       ghost: false,
+      populationMode: "all",
     }),
     [notice, setNotice] = useState<{ message: string; error: boolean } | null>(
       null,
@@ -119,6 +121,7 @@ export default function App() {
       () => localStorage.getItem("evotrack-theme") !== "dark",
     ),
     [transfer, setTransfer] = useState(false),
+    [difficulty, setDifficulty] = useState("all"),
     [evaluation, setEvaluation] = useState<ReturnType<typeof evaluate> | null>(
       null,
     ),
@@ -253,6 +256,8 @@ export default function App() {
     }
     training.clear();
     setMap(structuredClone(m));
+    if (m.recommendedHorizon)
+      setConfig((c) => ({ ...c, horizon: m.recommendedHorizon! }));
     undo.current = [];
     redo.current = [];
   }
@@ -298,7 +303,7 @@ export default function App() {
       kind: "inference",
       algorithm: tab,
       mode: map.mode,
-      schemas: SCHEMAS,
+      schemas: schemasFor(map),
       policy: snapshot.policy,
       config: { ...config },
       stats: snapshot.stats,
@@ -355,7 +360,9 @@ export default function App() {
     try {
       if (locked) throw Error("현재 학습을 먼저 중지하세요.");
       const target =
-        model.kind === "checkpoint" || model.mode !== map.mode
+        model.kind === "checkpoint" ||
+        model.mode !== map.mode ||
+        model.schemas.environment !== schemasFor(map).environment
           ? validateMap(model.trainingMap)
           : map;
       assertCompatible(model, target);
@@ -377,7 +384,10 @@ export default function App() {
   async function runEvaluation() {
     if (!evaluateModel) return;
     try {
-      const target = allMaps.find((m) => m.id === evaluationMap);
+      const target =
+        evaluationMap === "training-map"
+          ? evaluateModel.trainingMap
+          : allMaps.find((m) => m.id === evaluationMap);
       if (!target) throw Error("평가 맵을 선택하세요.");
       assertCompatible(evaluateModel, target);
       setEvaluating(true);
@@ -713,8 +723,18 @@ export default function App() {
               <div className="library-toolbar">
                 <div className="row">
                   <span className="pill">{allMaps.length} MAPS</span>
+                  <select
+                    aria-label="맵 난이도"
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                  >
+                    <option value="all">모든 난이도</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                  </select>
                   <span className="muted small">
-                    9가지 예제와 직접 만든 환경
+                    {EXAMPLE_MAPS.length}가지 예제와 직접 만든 환경
                   </span>
                 </div>
                 <button
@@ -725,30 +745,36 @@ export default function App() {
                 </button>
               </div>
               <div className="library-grid">
-                {allMaps.map((m) => (
-                  <MapCard
-                    key={m.id}
-                    map={m}
-                    onOpen={() => {
-                      chooseMap(m);
-                      navigate("lab");
-                    }}
-                    onEdit={() => {
-                      chooseMap(m);
-                      navigate("editor");
-                    }}
-                    onExport={() => download(m, m.name)}
-                    onDelete={
-                      maps.some((x) => x.id === m.id)
-                        ? () => {
-                            void remove("maps", m.id)
-                              .then(refresh)
-                              .catch((e) => notify(String(e), true));
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
+                {allMaps
+                  .filter(
+                    (m) =>
+                      difficulty === "all" ||
+                      (m.difficulty ?? "Easy") === difficulty,
+                  )
+                  .map((m) => (
+                    <MapCard
+                      key={m.id}
+                      map={m}
+                      onOpen={() => {
+                        chooseMap(m);
+                        navigate("lab");
+                      }}
+                      onEdit={() => {
+                        chooseMap(m);
+                        navigate("editor");
+                      }}
+                      onExport={() => download(m, m.name)}
+                      onDelete={
+                        maps.some((x) => x.id === m.id)
+                          ? () => {
+                              void remove("maps", m.id)
+                                .then(refresh)
+                                .catch((e) => notify(String(e), true));
+                            }
+                          : undefined
+                      }
+                    />
+                  ))}
               </div>
             </>
           )}
@@ -799,6 +825,15 @@ export default function App() {
                           {new Date(m.createdAt).toLocaleString("ko-KR")} ·{" "}
                           {m.policy.weights.length} parameters
                         </p>
+                        <small className="model-compatibility">
+                          환경 v{m.schemas.environment} ·{" "}
+                          {m.schemas.environment === 1
+                            ? "이전 판정 규칙"
+                            : "방향 게이트·회전 충돌"}
+                          {m.kind === "checkpoint" && m.algorithm === "GA"
+                            ? " · 세대 경계 재개"
+                            : ""}
+                        </small>
                         {m.algorithm === "PPO" && m.kind === "checkpoint" && (
                           <small className="muted">
                             에피소드 경계 재개 · Adam 상태 포함
@@ -822,8 +857,12 @@ export default function App() {
                             setEvaluation(null);
                             setEvaluationMap(
                               allMaps.find(
-                                (x) => x.mode === m.mode && x.id !== m.mapId,
-                              )?.id ?? m.mapId,
+                                (x) =>
+                                  x.mode === m.mode &&
+                                  x.id !== m.mapId &&
+                                  schemasFor(x).environment ===
+                                    m.schemas.environment,
+                              )?.id ?? "training-map",
                             );
                           }}
                         >
@@ -1068,8 +1107,17 @@ export default function App() {
                   setEvaluation(null);
                 }}
               >
+                <option value="training-map">
+                  {evaluateModel.trainingMap.name} (모델에 보존된 학습 맵 · 환경
+                  v{evaluateModel.schemas.environment})
+                </option>
                 {allMaps
-                  .filter((m) => m.mode === evaluateModel.mode)
+                  .filter(
+                    (m) =>
+                      m.mode === evaluateModel.mode &&
+                      schemasFor(m).environment ===
+                        evaluateModel.schemas.environment,
+                  )
                   .map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}{" "}
@@ -1089,7 +1137,8 @@ export default function App() {
             {evaluation && (
               <div className="evaluation-result">
                 <span className="eyebrow">
-                  {evaluationMap === evaluateModel.mapId
+                  {evaluationMap === "training-map" ||
+                  evaluationMap === evaluateModel.mapId
                     ? "TRAINING MAP EVALUATION"
                     : "HELD-OUT MAP EVALUATION"}
                 </span>
@@ -1158,12 +1207,14 @@ function MapCard({
             collision: false,
             all: false,
             ghost: false,
+            populationMode: "all",
           }}
         />
         <span>{map.mode.toUpperCase()}</span>
       </button>
       <div className="map-card-body">
         <h3>{map.name}</h3>
+        <span className="map-difficulty">{map.difficulty ?? "Easy"}</span>
         <p>{map.description}</p>
         <div className="map-card-footer">
           <button className="text-btn" onClick={onOpen}>

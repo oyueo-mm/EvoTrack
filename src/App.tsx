@@ -117,6 +117,7 @@ export default function App() {
       null,
     ),
     [sidebar, setSidebar] = useState(false),
+    [fullView, setFullView] = useState(false),
     [navCollapsed, setNavCollapsed] = useState(
       () => localStorage.getItem("evotrack-nav-collapsed") === "true",
     ),
@@ -178,10 +179,16 @@ export default function App() {
     importRef = useRef<HTMLInputElement>(null),
     noticeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
-    const resize = () =>
-        setCompactNav(window.innerWidth <= 1100 || location.hash === "#editor"),
+    const resize = () => setCompactNav(window.innerWidth <= 1100),
       escape = (e: KeyboardEvent) => {
-        if (e.key === "Escape") setSidebar(false);
+        if (e.key === "Escape") {
+          setSidebar(false);
+          setFullView(false);
+        }
+        if (e.altKey && e.key === "Enter") {
+          e.preventDefault();
+          setFullView((v) => !v);
+        }
       };
     window.addEventListener("resize", resize);
     window.addEventListener("keydown", escape);
@@ -201,8 +208,9 @@ export default function App() {
       });
   }, [sidebar, compactNav]);
   useEffect(() => {
-    setCompactNav(window.innerWidth <= 1100 || page === "editor");
+    setCompactNav(window.innerWidth <= 1100);
     setSidebar(false);
+    setFullView(false);
   }, [page]);
   useEffect(() => {
     localStorage.setItem("evotrack-theme", light ? "light" : "dark");
@@ -336,21 +344,42 @@ export default function App() {
     setMap({ ...m, updatedAt: new Date().toISOString() });
   }
   function chooseMap(m: TrackMap) {
-    if (locked && page !== "editor") {
-      notify("학습 중에는 편집 화면에서 편집본을 선택하세요.", true);
-      return;
-    }
-    if (!locked) {
+    const restart = locked && page !== "editor";
+    if (!locked || restart) {
       training.clear();
       setSessionMap(null);
       setDraftSession(false);
     }
     baseline.current = structuredClone(m);
     setMap(structuredClone(m));
-    if (!locked && m.recommendedHorizon)
-      setConfig((c) => ({ ...c, horizon: m.recommendedHorizon! }));
+    const nextConfig = {
+      ...config,
+      ...(m.recommendedHorizon ? { horizon: m.recommendedHorizon } : {}),
+    };
+    if (!locked || restart) setConfig(nextConfig);
     undo.current = [];
     redo.current = [];
+    if (restart) {
+      setSessionMap(structuredClone(m));
+      training.start(
+        m,
+        nextConfig,
+        method === "both" ? ["GA", "PPO"] : [method],
+      );
+      setTab(method === "PPO" ? "PPO" : "GA");
+      notify("맵이 변경되어 이전 학습을 종료하고 새 세션으로 전환했습니다.");
+    }
+  }
+  function chooseMethod(next: typeof method) {
+    if (next === method) return;
+    setMethod(next);
+    setTab(next === "PPO" ? "PPO" : "GA");
+    if (locked) {
+      const source = sessionMap ?? map;
+      setSessionMap(structuredClone(source));
+      training.start(source, config, next === "both" ? ["GA", "PPO"] : [next]);
+      notify("알고리즘을 변경하여 새 학습 세션을 시작했습니다.");
+    }
   }
   function history(forward = false) {
     if (locked && page !== "editor") return;
@@ -555,14 +584,16 @@ export default function App() {
         "app " +
         (light ? "light " : "") +
         (page === "editor" ? "editor-mode " : "") +
-        (navCollapsed ? "nav-collapsed" : "")
+        (navCollapsed ? "nav-collapsed " : "") +
+        (fullView ? "full-view " : "") +
+        (page === "home" ? "home-mode" : "")
       }
       style={{ "--nav-width": `${navWidth}px` } as React.CSSProperties}
     >
       <aside
         className={"sidebar " + (sidebar ? "open" : "")}
-        inert={(compactNav || page === "editor") && !sidebar}
-        aria-hidden={(compactNav || page === "editor") && !sidebar}
+        inert={compactNav && !sidebar}
+        aria-hidden={compactNav && !sidebar}
         aria-label="주요 메뉴"
       >
         <a
@@ -690,6 +721,16 @@ export default function App() {
         />
       )}
       <div className="main-shell">
+        {["lab", "editor", "maps", "compare"].includes(page) && (
+          <button
+            className="button full-view-toggle"
+            aria-label={fullView ? "전체 보기 종료" : "전체 보기"}
+            title="전체 보기 · Alt+Enter / Esc"
+            onClick={() => setFullView((v) => !v)}
+          >
+            {fullView ? "전체 보기 종료" : "전체 보기"}
+          </button>
+        )}
         <header className="topbar">
           <IconButton
             icon={Menu}
@@ -718,7 +759,11 @@ export default function App() {
               <IconButton
                 icon={Menu}
                 label="메뉴"
-                onClick={() => setSidebar(!sidebar)}
+                onClick={() =>
+                  compactNav
+                    ? setSidebar(!sidebar)
+                    : setNavCollapsed(!navCollapsed)
+                }
               />
               <button className="text-btn" onClick={() => navigate("home")}>
                 EvoTrack <span>/ 작업 공간</span>
@@ -806,7 +851,7 @@ export default function App() {
               )}
             </div>
           </div>
-          {draftSession && (
+          {draftSession && (page === "lab" || page === "editor") && (
             <div className="draft-session-banner">
               학습 원본: {sessionMap?.name} · 편집본의 변경은 실행 중인 학습에
               영향을 주지 않습니다.{" "}
@@ -825,7 +870,7 @@ export default function App() {
               config={config}
               onConfig={setConfig}
               method={method}
-              onMethod={setMethod}
+              onMethod={chooseMethod}
               training={training}
               tab={tab}
               onTab={setTab}
@@ -849,15 +894,7 @@ export default function App() {
             <>
               <section className="welcome-card">
                 <div>
-                  <span className="eyebrow">
-                    YOUR BROWSER. YOUR EXPERIMENT.
-                  </span>
-                  <h2>지능이 길을 찾는 순간.</h2>
-                  <p>
-                    트랙을 설계하고, 신경망을 학습시키고,
-                    <br />
-                    진화와 강화학습의 차이를 직접 관찰하세요.
-                  </p>
+                  <h2>직접 만들고, 움직여 보세요.</h2>
                   <button
                     className="button primary"
                     onClick={() => navigate("lab")}
@@ -884,6 +921,7 @@ export default function App() {
                   <MapCard
                     key={m.id}
                     map={m}
+                    animated
                     onOpen={() => {
                       chooseMap(m);
                       navigate("lab");
@@ -1020,11 +1058,13 @@ export default function App() {
                         </p>
                         <small className="model-compatibility">
                           환경 v{m.schemas.environment} ·{" "}
-                          {m.schemas.environment === 1
-                            ? "이전 판정 규칙"
-                            : m.schemas.environment === 3
-                              ? "방향 게이트·회전 충돌·발사/탄성 계수"
-                              : "방향 게이트·회전 충돌"}
+                          {m.schemas.environment === 4
+                            ? "속도 벨트·중간 보상·점프 보조"
+                            : m.schemas.environment === 1
+                              ? "이전 판정 규칙"
+                              : m.schemas.environment === 3
+                                ? "방향 게이트·회전 충돌·발사/탄성 계수"
+                                : "방향 게이트·회전 충돌"}
                           {m.kind === "checkpoint" && m.algorithm === "GA"
                             ? " · 세대 경계 재개"
                             : ""}
@@ -1417,12 +1457,14 @@ function MapCard({
   onEdit,
   onExport,
   onDelete,
+  animated = false,
 }: {
   map: TrackMap;
   onOpen: () => void;
   onEdit: () => void;
   onExport?: () => void;
   onDelete?: () => void;
+  animated?: boolean;
 }) {
   return (
     <article className="map-card">
@@ -1431,23 +1473,31 @@ function MapCard({
         onClick={onOpen}
         aria-label={map.name + " 열기"}
       >
-        <World
-          map={map}
-          options={{
-            sensors: false,
-            trail: false,
-            collision: false,
-            all: false,
-            ghost: false,
-            populationMode: "all",
-          }}
-        />
+        {animated ? (
+          <HeroDemo map={map} compact />
+        ) : (
+          <World
+            map={map}
+            options={{
+              sensors: false,
+              trail: false,
+              collision: false,
+              all: false,
+              ghost: false,
+              populationMode: "all",
+            }}
+          />
+        )}
         <span>{map.mode.toUpperCase()}</span>
       </button>
       <div className="map-card-body">
         <h3>{map.name}</h3>
         <span className="map-difficulty">{map.difficulty ?? "Easy"}</span>
-        <p>{map.description}</p>
+        <p>
+          {animated
+            ? (map.features?.slice(0, 2).join(" · ") ?? map.description)
+            : map.description}
+        </p>
         <div className="map-card-footer">
           <button className="text-btn" onClick={onOpen}>
             실험 시작 <ArrowUpRight size={14} />

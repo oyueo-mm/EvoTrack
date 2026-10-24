@@ -53,7 +53,6 @@ export function TrainingPanel({
             <button
               type="button"
               key={value}
-              disabled={locked}
               aria-pressed={method === value}
               aria-label={
                 value === "GA"

@@ -196,7 +196,7 @@ for (const m of EXAMPLE_MAPS)
     m.category = "tutorial";
 export function newMap(mode: Mode): TrackMap {
   const map = structuredClone(EXAMPLE_MAPS[mode === "racing" ? 0 : 4]);
-  map.environmentVersion = 3;
+  map.environmentVersion = 4;
   map.id = crypto.randomUUID();
   map.name = "Untitled " + (mode === "racing" ? "circuit" : "puzzle");
   map.createdAt = map.updatedAt = new Date().toISOString();
@@ -237,7 +237,7 @@ export function validateMap(value: unknown): TrackMap {
     );
   if (
     (m.environmentVersion !== undefined &&
-      ![1, 2, 3].includes(m.environmentVersion)) ||
+      ![1, 2, 3, 4].includes(m.environmentVersion)) ||
     (m.recommendedHorizon !== undefined &&
       (!Number.isInteger(m.recommendedHorizon) ||
         m.recommendedHorizon < 30 ||
@@ -322,6 +322,8 @@ export function validateMap(value: unknown): TrackMap {
           "elastic",
           "bomb",
           "respawn",
+          "belt",
+          "reward",
         ].includes(o.kind) &&
         finite(o.w) &&
         finite(o.h) &&
@@ -368,7 +370,7 @@ export function validateMap(value: unknown): TrackMap {
           o.launchStrength !== undefined ||
           o.launchAngle !== undefined ||
           o.restitution !== undefined) &&
-          m.environmentVersion !== 3) ||
+          (m.environmentVersion ?? 1) < 3) ||
         (o.launchStrength !== undefined &&
           (!finite(o.launchStrength) ||
             o.launchStrength < 50 ||
@@ -377,6 +379,56 @@ export function validateMap(value: unknown): TrackMap {
         (o.restitution !== undefined &&
           (!finite(o.restitution) || o.restitution < 0 || o.restitution > 2)),
     ) ||
+    m.objects.some((o) => {
+      const extended =
+        o.kind === "belt" ||
+        o.kind === "reward" ||
+        [
+          o.bounceCoefficient,
+          o.liftBoost,
+          o.tangentBoost,
+          o.minLaunchSpeed,
+          o.maxLaunchSpeed,
+        ].some((v) => v !== undefined);
+      if (extended && m.environmentVersion !== 4) return true;
+      const numeric: [unknown, number, number][] = [
+        [o.bounceCoefficient, 0, 2],
+        [o.liftBoost, 0, 1000],
+        [o.tangentBoost, -1000, 1000],
+        [o.minLaunchSpeed, 0, 1400],
+        [o.maxLaunchSpeed, 0, 1400],
+        [o.beltStrength, 0, 2000],
+        [o.maxInfluenceSpeed, 10, 1400],
+        [o.rewardValue, -100, 100],
+        [o.cooldown, 0.05, 120],
+      ];
+      if (
+        numeric.some(
+          ([v, a, b]) => v !== undefined && (!finite(v) || v < a || v > b),
+        )
+      )
+        return true;
+      if ((o.minLaunchSpeed ?? 0) > (o.maxLaunchSpeed ?? 1400)) return true;
+      const enums: [unknown, string[]][] = [
+        [o.beltType, ["boost", "brake"]],
+        [o.beltDirection, ["velocity", "beltOrientation"]],
+        [o.rewardShape, ["zone", "gate"]],
+        [o.activation, ["once", "repeat", "cooldown"]],
+        [o.trigger, ["enter", "cross", "stay"]],
+        [o.rewardMode, ["both", "racing", "bounce"]],
+      ];
+      return (
+        enums.some(
+          ([v, allowed]) => v !== undefined && !allowed.includes(v as string),
+        ) ||
+        [o.visible, o.trainingOnly].some(
+          (v) => v !== undefined && typeof v !== "boolean",
+        ) ||
+        [o.name, o.description].some(
+          (v) => v !== undefined && (typeof v !== "string" || v.length > 1000),
+        )
+      );
+    }) ||
     m.objects.some(
       (o) =>
         o.angle !== undefined &&
@@ -414,7 +466,7 @@ export function validateMap(value: unknown): TrackMap {
   }
   if (
     m.objects
-      .filter((o) => o.kind !== "respawn")
+      .filter((o) => !["respawn", "belt", "reward"].includes(o.kind))
       .some((o) =>
         (m.environmentVersion ?? 1) >= 2
           ? circleObject(o, m.start, 11)

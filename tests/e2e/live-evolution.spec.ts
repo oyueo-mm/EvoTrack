@@ -1,3 +1,4 @@
+import { openSettings } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { objectWorld } from "../../src/core/geometry";
@@ -248,9 +249,11 @@ test("32 and 64 live cars expose successive real Worker positions and responsive
   await page.getByLabel("학습 알고리즘").selectOption("GA");
   const reports = [];
   for (const population of [32, 64]) {
+    await openSettings(page);
     await page
       .getByLabel("개체군 크기", { exact: true })
       .fill(String(population));
+    await openSettings(page);
     await page.getByLabel("에피소드 최대 스텝", { exact: true }).fill("180");
     await page.getByLabel("상단 학습 배속").fill("2");
     await page.evaluate(() => window.scrollTo(0, 0));

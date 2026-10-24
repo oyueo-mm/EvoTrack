@@ -1,3 +1,4 @@
+import { TestControls, TEST_HELP_KEY } from "./TestControls";
 import { useEffect, useRef, useState } from "react";
 import {
   Activity,
@@ -91,6 +92,8 @@ const labels = {
   elastic: "탄성 발판",
   bomb: "폭탄",
   respawn: "부활 지점",
+  belt: "속도 벨트",
+  reward: "중간 보상",
 };
 export function EditorWorkspace({
   map,
@@ -121,6 +124,7 @@ export function EditorWorkspace({
   const [snapRightAngles, setSnapRightAngles] = useState(true);
   const [respawnToken, setRespawnToken] = useState(0);
   const [testing, setTesting] = useState(false);
+  const [helpReset, setHelpReset] = useState(0);
   const [testRun, setTestRun] = useState(0);
   const [testState, setTestState] = useState<AgentState | null>(null);
   const [pressed, setPressed] = useState<string[]>([]);
@@ -302,10 +306,16 @@ export function EditorWorkspace({
           ["moving", MoveRight, "이동 장애물"],
         ] as [Tool, LucideIcon, string][])
       : []),
-    ...(map.environmentVersion === 3
+    ...((map.environmentVersion ?? 1) >= 3
       ? ([
           ["bomb", Zap, "폭탄"],
           ...(map.mode === "bounce" ? [["respawn", Flag, "부활 지점"]] : []),
+        ] as [Tool, LucideIcon, string][])
+      : []),
+    ...(map.environmentVersion === 4
+      ? ([
+          ["belt", MoveRight, "속도 벨트"],
+          ["reward", Target, "중간 보상"],
         ] as [Tool, LucideIcon, string][])
       : []),
     ["erase", Eraser, "지우개", "E"],
@@ -332,7 +342,7 @@ export function EditorWorkspace({
     })),
     ...map.objects.map((o, index) => ({
       s: { kind: "object", id: o.id } as Selection,
-      label: `${labels[o.kind]} ${index + 1}`,
+      label: `${labels[o.kind]} ${o.name || index + 1}`,
     })),
   ];
   const toggle = (set: typeof setHidden, key: string) =>
@@ -533,70 +543,14 @@ export function EditorWorkspace({
             />
           </div>
           {testing && (
-            <div className="editor-test">
-              <output aria-label="테스트 에이전트 위치">
-                x {Math.round(testState?.x ?? map.start.x)} · y{" "}
-                {Math.round(testState?.y ?? map.start.y)}
-              </output>
-              <span>
-                {testState?.success
-                  ? "결승점 도착"
-                  : testState?.done
-                    ? "테스트 완료"
-                    : map.mode === "racing"
-                      ? "W/↑ 전진 · S/↓ 후진 · A/D 조향 · Space 부스트 · R 부활"
-                      : "A/D 이동 · W/↑ 점프 · S/↓ 빠른 낙하 · Space 감속 · R 부활"}
-              </span>
-              <button
-                className="button"
-                onClick={() => setRespawnToken((n) => n + 1)}
-              >
-                즉시 부활 (R)
-              </button>
-              <output aria-label="테스트 부활 횟수">
-                부활 {testState?.respawns ?? 0}회
-              </output>
-              <p className="helper">
-                {map.mode === "bounce"
-                  ? "마지막 부활 표식으로 복귀합니다. 표식이 없으면 시작점에서 재시도합니다."
-                  : "실패하면 시작점으로 복귀합니다. 게이트는 진행도·보상을 위한 요소입니다."}
-              </p>
-              <div className="row">
-                {(map.mode === "racing"
-                  ? [
-                      ["left", "←"],
-                      ["forward", "전진"],
-                      ["reverse", "후진"],
-                      ["right", "→"],
-                      ["boost", "부스트"],
-                    ]
-                  : [
-                      ["left", "←"],
-                      ["jump", "점프"],
-                      ["right", "→"],
-                      ["brake", "감속"],
-                    ]
-                ).map(([k, label]) => (
-                  <button
-                    className="button"
-                    key={k}
-                    onPointerDown={(e) => {
-                      e.currentTarget.setPointerCapture(e.pointerId);
-                      setPressed((p) => [...p, k]);
-                    }}
-                    onPointerUp={() =>
-                      setPressed((p) => p.filter((x) => x !== k))
-                    }
-                    onPointerCancel={() => setPressed([])}
-                    onLostPointerCapture={() =>
-                      setPressed((p) => p.filter((x) => x !== k))
-                    }
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <TestControls
+              key={helpReset}
+              mode={map.mode}
+              state={testState}
+              onRespawn={() => setRespawnToken((n) => n + 1)}
+              onPress={(k) => setPressed((p) => [...new Set([...p, k])])}
+              onRelease={(k) => setPressed((p) => p.filter((x) => x !== k))}
+            />
           )}
         </div>
         {panel && (
@@ -674,7 +628,7 @@ export function EditorWorkspace({
                     </button>
                   </Section>
                 )}
-                {map.environmentVersion !== 3 && (
+                {(map.environmentVersion ?? 1) < 3 && (
                   <Section title="확장 환경">
                     <p className="helper">
                       폭탄·부활 지점과 발사/탄성 계수는 환경 v3에서 지원합니다.
@@ -696,6 +650,40 @@ export function EditorWorkspace({
                     </button>
                   </Section>
                 )}
+                {map.environmentVersion !== 4 && (
+                  <Section title="새 맵 요소">
+                    <p className="helper">
+                      점프 보조·벨트·중간 보상은 환경 v4 편집본에서 사용합니다.
+                      원본과 기존 모델은 보존합니다.
+                    </p>
+                    <button
+                      className="button"
+                      disabled={disabled}
+                      onClick={() =>
+                        onChoose({
+                          ...structuredClone(map),
+                          id: crypto.randomUUID(),
+                          name: map.name + " · 요소 확장본",
+                          environmentVersion: 4,
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
+                        })
+                      }
+                    >
+                      환경 v4 편집본 만들기
+                    </button>
+                  </Section>
+                )}
+                <button
+                  className="button restore-test-help"
+                  onClick={() => {
+                    localStorage.removeItem(TEST_HELP_KEY);
+                    localStorage.removeItem("evotrack-test-help-seen");
+                    setHelpReset((n) => n + 1);
+                  }}
+                >
+                  테스트 조작 안내 다시 켜기
+                </button>
                 <div className="snap-option">
                   <Toggle
                     label="자석형 직각 스냅 (Alt: 임시 해제)"

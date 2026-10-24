@@ -1,3 +1,4 @@
+import { openSettings } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 import { EXAMPLE_MAPS } from "../../src/core/maps";
 async function drag(page: Page, ctrl = false) {
@@ -21,15 +22,17 @@ test("blank drag pans, Ctrl vertical drag zooms; sidebar size and collapsed stat
   await resize.focus();
   await resize.press("ArrowRight");
   await expect(resize).toHaveAttribute("aria-valuenow", "232");
+  await expect
+    .poll(async () => (await page.locator(".sidebar").boundingBox())!.width)
+    .toBeCloseTo(232, 0);
   const box = (await resize.boundingBox())!;
   await page.mouse.move(box.x + 2, 100);
   await page.mouse.down();
   await page.mouse.move(310, 100, { steps: 8 });
   await page.mouse.up();
-  expect((await page.locator(".sidebar").boundingBox())!.width).toBeCloseTo(
-    310,
-    0,
-  );
+  await expect
+    .poll(async () => (await page.locator(".sidebar").boundingBox())!.width)
+    .toBeCloseTo(310, 0);
   await page.getByRole("button", { name: "메뉴", exact: true }).click();
   await expect(page.locator(".app")).toHaveClass(/nav-collapsed/);
   await page.reload();
@@ -113,6 +116,7 @@ test("training keeps its original map while an editable draft is saved for next 
   await page.goto("./");
   await page.getByLabel("현재 맵").selectOption("r-straight");
   await page.getByLabel("학습 알고리즘").selectOption("GA");
+  await openSettings(page);
   await page.getByLabel("개체군 크기", { exact: true }).fill("4");
   await page.getByRole("button", { name: "학습 시작", exact: true }).click();
   await expect(page.getByLabel("AI 시뮬레이션 캔버스")).toHaveAttribute(

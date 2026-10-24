@@ -1,3 +1,4 @@
+import { openSettings } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { EXAMPLE_MAPS } from "../../src/core/maps";
 import { DEFAULT_CONFIG } from "../../src/core/types";
@@ -71,7 +72,9 @@ test("editor, GA/PPO workers, pause/resume, storage, checkpoint and evaluation",
   if ((page.viewportSize()?.width ?? 1280) <= 900)
     await page.getByRole("button", { name: "학습 설정", exact: true }).click();
   await page.getByLabel("현재 맵").selectOption("r-straight");
+  await openSettings(page);
   await page.getByLabel("개체군 크기", { exact: true }).fill("8");
+  await openSettings(page);
   await page.getByLabel("에피소드 최대 스텝", { exact: true }).fill("300");
   await page.getByRole("button", { name: "학습 시작", exact: true }).click();
   await expect
@@ -149,7 +152,9 @@ test("GA only and PPO only execute and reject broken imports", async ({
 }) => {
   await page.goto("./");
   await page.getByLabel("현재 맵").selectOption("r-straight");
+  await openSettings(page);
   await page.getByLabel("개체군 크기", { exact: true }).fill("4");
+  await openSettings(page);
   await page.getByLabel("에피소드 최대 스텝", { exact: true }).fill("60");
   for (const name of ["Genetic Algorithm", "Proximal Policy Opt."]) {
     await page.getByRole("button", { name: new RegExp(name) }).click();
@@ -189,8 +194,11 @@ test("mobile layout, Bounce editing and training remain usable", async ({
   );
   await page.getByRole("button", { name: "학습하기", exact: true }).click();
   await page.getByRole("button", { name: "학습 설정", exact: true }).click();
+  await openSettings(page);
   await page.getByLabel("개체군 크기", { exact: true }).fill("4");
+  await openSettings(page);
   await page.getByLabel("에피소드 최대 스텝", { exact: true }).fill("60");
+  await openSettings(page);
   await page
     .getByRole("button", { name: "Genetic Algorithm", exact: false })
     .click();
@@ -329,10 +337,13 @@ test("saved map, GA checkpoint and exported model survive reload and restore", a
   await expect(page.getByLabel("현재 맵").locator("option:checked")).toHaveText(
     "Release verification circuit",
   );
+  await openSettings(page);
   await page
     .getByRole("button", { name: "Genetic Algorithm", exact: false })
     .click();
+  await openSettings(page);
   await page.getByLabel("개체군 크기", { exact: true }).fill("4");
+  await openSettings(page);
   await page.getByLabel("에피소드 최대 스텝", { exact: true }).fill("60");
   await page.getByRole("button", { name: "학습 시작", exact: true }).click();
   await expect

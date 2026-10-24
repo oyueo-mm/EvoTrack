@@ -3421,28 +3421,28 @@ input[type="range"] {
 }
 
 @media (min-width: 1101px) {
-  .app:not(.editor-mode) .sidebar {
+  .app .sidebar {
     width: var(--nav-width);
   }
-  .app:not(.editor-mode) .main-shell {
+  .app .main-shell {
     margin-left: var(--nav-width);
   }
-  .app.nav-collapsed:not(.editor-mode) .sidebar {
+  .app.nav-collapsed .sidebar {
     width: 64px;
     padding: 20px 8px;
   }
-  .app.nav-collapsed:not(.editor-mode) .main-shell {
+  .app.nav-collapsed .main-shell {
     margin-left: 64px;
   }
-  .nav-collapsed:not(.editor-mode) .sidebar .nav-text,
-  .nav-collapsed:not(.editor-mode) .sidebar .count,
-  .nav-collapsed:not(.editor-mode) .sidebar .workspace,
-  .nav-collapsed:not(.editor-mode) .sidebar .nav-label,
-  .nav-collapsed:not(.editor-mode) .sidebar .brand > span:last-child,
-  .nav-collapsed:not(.editor-mode) .sidebar-bottom {
+  .nav-collapsed .sidebar .nav-text,
+  .nav-collapsed .sidebar .count,
+  .nav-collapsed .sidebar .workspace,
+  .nav-collapsed .sidebar .nav-label,
+  .nav-collapsed .sidebar .brand > span:last-child,
+  .nav-collapsed .sidebar-bottom {
     display: none;
   }
-  .nav-collapsed:not(.editor-mode) .nav-resizer {
+  .nav-collapsed .nav-resizer {
     display: none;
   }
 }
@@ -3611,4 +3611,225 @@ input[type="range"] {
   .split-comparison {
     grid-template-columns: 1fr;
   }
+}
+
+/* Desktop navigation stays in the layout, including the editor. */
+@media (min-width: 1101px) {
+  .app.editor-mode .sidebar {
+    transform: none;
+    width: var(--nav-width);
+  }
+  .app.editor-mode .main-shell {
+    margin-left: var(--nav-width);
+    width: calc(100% - var(--nav-width));
+  }
+  .app.nav-collapsed.editor-mode .sidebar {
+    width: 64px;
+    padding: 20px 8px;
+  }
+  .app.nav-collapsed.editor-mode .main-shell {
+    margin-left: 64px;
+    width: calc(100% - 64px);
+  }
+  .app.editor-mode .sidebar-dismiss {
+    display: none;
+  }
+}
+.sidebar {
+  transition:
+    width 0.18s ease,
+    transform 0.18s ease;
+}
+.main-shell {
+  transition:
+    margin-left 0.18s ease,
+    width 0.18s ease;
+}
+.studio,
+.studio.panel-hidden {
+  display: block;
+  position: relative;
+}
+.studio .settings-card {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  width: min(340px, calc(100% - 28px));
+  max-height: min(720px, calc(100dvh - 140px));
+  overflow-y: auto;
+  z-index: 45;
+  box-shadow: 0 16px 60px #16241b33;
+  border: 1px solid var(--border-soft);
+}
+@media (min-width: 901px) {
+  .studio .panel-scrim {
+    display: none;
+  }
+}
+.training-controls {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--surface);
+}
+.demo-play-toggle {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: var(--surface);
+}
+.map-preview .hero-demo,
+.map-preview .hero-demo canvas {
+  height: 100%;
+  min-height: 0;
+}
+.home-mode .welcome-card {
+  grid-template-columns: 0.7fr 1.3fr;
+}
+.home-mode .welcome-card p,
+.home-mode .page-heading p {
+  display: none;
+}
+.home-mode .map-card-body p {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.full-view-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 120;
+  box-shadow: 0 4px 18px #16241b22;
+}
+.app.full-view .sidebar,
+.app.full-view .topbar,
+.app.full-view .page-heading,
+.app.full-view .main-footer {
+  display: none;
+}
+.app.full-view .main-shell {
+  margin-left: 0;
+  width: 100%;
+}
+.app.full-view main {
+  padding: 12px;
+}
+.app.full-view .viewport {
+  height: calc(100dvh - 230px);
+  min-height: 350px;
+}
+.app.full-view .editor-workspace {
+  height: 100%;
+  min-height: 0;
+}
+.app.full-view.editor-mode main {
+  padding: 0;
+}
+.compact-test {
+  max-width: 420px;
+  padding: 8px;
+  gap: 5px;
+  font-size: 11px;
+  align-items: flex-start;
+}
+.test-controls-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.compact-test .button {
+  min-height: 30px;
+  padding: 4px 7px;
+  font-size: 11px;
+}
+.test-help-card {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 300px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  box-shadow: 0 6px 22px #16241b22;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.test-help-card .icon-btn {
+  float: right;
+}
+.test-help-card label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.restore-test-help {
+  margin: 10px 18px;
+  font-size: 11px;
+}
+.test-touch-controls {
+  display: none !important;
+}
+@media (max-width: 900px) {
+  .test-touch-controls {
+    display: flex !important;
+  }
+  .home-mode .welcome-card {
+    grid-template-columns: 1fr;
+  }
+  .compact-test {
+    max-width: 95%;
+  }
+  .test-controls-bar {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .main-shell {
+    transition: none;
+  }
+}
+
+.editor-mode .sidebar-bottom .icon-btn {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .studio .settings-card {
+    position: fixed;
+    inset: auto 14px 0;
+    top: auto;
+    width: calc(100% - 28px);
+    max-height: 80dvh;
+    z-index: 70;
+  }
+}
+
+/* Immersive learning keeps controls and real phase state, without result cards. */
+.full-view .results-heading,
+.full-view .metric-grid,
+.full-view .bottom-grid,
+.full-view .canvas-heading,
+.full-view .canvas-help,
+.full-view .split-comparison {
+  display: none;
+}
+.full-view .observation-controls,
+.full-view .population-toolbar,
+.full-view .population-stats {
+  padding: 6px 12px;
+  font-size: 11px;
+}
+.full-view .ppo-runtime {
+  padding: 6px 12px;
+}
+.full-view .ppo-runtime > span:last-child {
+  display: none;
+}
+.full-view .viewport {
+  height: calc(100dvh - 330px);
+  min-height: 260px;
 }

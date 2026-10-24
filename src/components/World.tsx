@@ -40,7 +40,9 @@ export type Tool =
   | "erase"
   | "pan"
   | "bomb"
-  | "respawn";
+  | "respawn"
+  | "belt"
+  | "reward";
 export interface ViewOptions {
   sensors: boolean;
   trail: boolean;
@@ -162,7 +164,11 @@ export function drawWorld(
     });
   }
   map.objects.forEach((original) => {
-    if (hidden.has("object:" + original.id)) return;
+    if (
+      hidden.has("object:" + original.id) ||
+      (original.kind === "reward" && original.visible === false && !editing)
+    )
+      return;
     const o = editing
       ? original
       : objectPosition(
@@ -191,7 +197,41 @@ export function drawWorld(
           : "#e9ecef"
         : "#a3b0b6";
     ctx.lineWidth = selected?.kind === "object" && selected.id === o.id ? 3 : 1;
-    if (o.kind === "bomb" || o.kind === "respawn") {
+    if (o.kind === "belt") {
+      ctx.fillStyle = o.beltType === "brake" ? "#d78f5577" : "#55b7a177";
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+      ctx.strokeRect(o.x, o.y, o.w, o.h);
+      ctx.strokeStyle = o.beltType === "brake" ? "#a55b30" : "#287c68";
+      ctx.lineWidth = 2;
+      for (let x = o.x + 15; x < o.x + o.w - 8; x += 25) {
+        ctx.beginPath();
+        ctx.moveTo(x, o.y + o.h * 0.25);
+        ctx.lineTo(x + 10, o.y + o.h * 0.5);
+        ctx.lineTo(x, o.y + o.h * 0.75);
+        ctx.stroke();
+      }
+    } else if (o.kind === "reward") {
+      ctx.fillStyle = (o.rewardValue ?? 1) < 0 ? "#d36c6633" : "#e3be4e33";
+      ctx.strokeStyle = (o.rewardValue ?? 1) < 0 ? "#b44545" : "#aa8724";
+      ctx.setLineDash([6, 4]);
+      if (o.rewardShape === "gate") {
+        ctx.beginPath();
+        ctx.moveTo(o.x + o.w / 2, o.y);
+        ctx.lineTo(o.x + o.w / 2, o.y + o.h);
+        ctx.stroke();
+      } else {
+        ctx.fillRect(o.x, o.y, o.w, o.h);
+        ctx.strokeRect(o.x, o.y, o.w, o.h);
+      }
+      ctx.setLineDash([]);
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.font = "12px sans-serif";
+      ctx.fillText(
+        `${(o.rewardValue ?? 1) >= 0 ? "+" : ""}${o.rewardValue ?? 1}`,
+        o.x + 6,
+        o.y + 16,
+      );
+    } else if (o.kind === "bomb" || o.kind === "respawn") {
       ctx.fillStyle = o.kind === "bomb" ? "#c66b50" : "#4087a2";
       ctx.beginPath();
       ctx.arc(
@@ -1175,8 +1215,24 @@ export function World({
         ...snapped(p),
         id: crypto.randomUUID(),
         kind: tool as MapObject["kind"],
-        w: tool === "wall" ? 35 : 100,
-        h: tool === "wall" ? 100 : tool === "spike" ? 24 : 20,
+        w:
+          tool === "wall"
+            ? 35
+            : tool === "belt"
+              ? 180
+              : tool === "reward"
+                ? 120
+                : 100,
+        h:
+          tool === "wall"
+            ? 100
+            : tool === "spike"
+              ? 24
+              : tool === "belt"
+                ? 50
+                : tool === "reward"
+                  ? 90
+                  : 20,
         ...(tool === "moving" ? { amplitude: 60, period: 3 } : {}),
       };
       m.objects.push(o);

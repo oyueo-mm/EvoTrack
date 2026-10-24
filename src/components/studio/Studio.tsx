@@ -103,7 +103,7 @@ function TrainingStudio({
   onCompare,
   onModels,
 }: Props) {
-  const [panel, setPanel] = useState(() => innerWidth > 900);
+  const [panel, setPanel] = useState(false);
   const [viewport, setViewport] = useState<Viewport>(FIT_VIEW);
   const [follow, setFollow] = useState(false);
   const [chartMetric, setChartMetric] = useState<"best" | "mean">("best");
@@ -138,7 +138,6 @@ function TrainingStudio({
         <div className="mode-tabs">
           <button
             aria-pressed={map.mode === "racing"}
-            disabled={locked}
             onClick={() =>
               map.mode !== "racing" && onChooseMap(EXAMPLE_MAPS[2])
             }
@@ -148,7 +147,6 @@ function TrainingStudio({
           </button>
           <button
             aria-pressed={map.mode === "bounce"}
-            disabled={locked}
             onClick={() =>
               map.mode !== "bounce" && onChooseMap(EXAMPLE_MAPS[4])
             }
@@ -162,7 +160,6 @@ function TrainingStudio({
           <select
             aria-label="현재 맵"
             value={map.id}
-            disabled={locked}
             onChange={(e) =>
               onChooseMap(maps.find((m) => m.id === e.target.value)!)
             }
@@ -182,7 +179,6 @@ function TrainingStudio({
         <select
           aria-label="학습 알고리즘"
           value={method}
-          disabled={locked}
           onChange={(e) => onMethod(e.target.value as typeof method)}
         >
           <option value="GA">GA</option>
@@ -589,7 +585,7 @@ function TrainingStudio({
               aria-label="설정 배경 닫기"
               onClick={() => setPanel(false)}
             />
-            <aside className="settings-card">
+            <aside className="settings-card" aria-label="학습 설정 패널">
               <div className="panel-heading">
                 <h2>학습 설정</h2>
                 <button

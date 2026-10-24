@@ -1,3 +1,4 @@
+import { ExtendedProperties } from "./ExtendedProperties";
 import { ELEMENT_INFO } from "../../core/elements";
 import { Copy, Trash2 } from "lucide-react";
 import type { TrackMap } from "../../core/types";
@@ -119,6 +120,8 @@ export function EditorPanel({
                           elastic: "탄성 발판",
                           bomb: "폭탄",
                           respawn: "부활 지점",
+                          belt: "속도 벨트",
+                          reward: "중간 보상",
                         }[object!.kind]
                       : title}
               </div>
@@ -232,7 +235,7 @@ export function EditorPanel({
                 <>
                   {(object.kind === "spring" || object.kind === "elastic") && (
                     <>
-                      {map.environmentVersion !== 3 && (
+                      {(map.environmentVersion ?? 1) < 3 && (
                         <p className="helper">
                           이전 환경의 고정 반발 규칙입니다. 확장 환경 v3
                           편집본을 만들면 계수를 바꿀 수 있습니다.
@@ -246,7 +249,9 @@ export function EditorPanel({
                             min={50}
                             max={1200}
                             unit="px/s"
-                            disabled={disabled || map.environmentVersion !== 3}
+                            disabled={
+                              disabled || (map.environmentVersion ?? 1) < 3
+                            }
                             onChange={(launchStrength) =>
                               onChange({
                                 ...map,
@@ -267,7 +272,9 @@ export function EditorPanel({
                             min={-360}
                             max={360}
                             unit="°"
-                            disabled={disabled || map.environmentVersion !== 3}
+                            disabled={
+                              disabled || (map.environmentVersion ?? 1) < 3
+                            }
                             onChange={(n) =>
                               onChange({
                                 ...map,
@@ -283,22 +290,49 @@ export function EditorPanel({
                       ) : (
                         <NumberField
                           label="탄성 계수"
-                          value={object.restitution ?? 0.8}
+                          value={
+                            object.bounceCoefficient ??
+                            object.restitution ??
+                            0.8
+                          }
                           min={0}
                           max={2}
                           step={0.05}
-                          disabled={disabled || map.environmentVersion !== 3}
+                          disabled={
+                            disabled || (map.environmentVersion ?? 1) < 3
+                          }
                           onChange={(restitution) =>
                             onChange({
                               ...map,
                               objects: map.objects.map((o) =>
-                                o.id === object.id ? { ...o, restitution } : o,
+                                o.id === object.id
+                                  ? {
+                                      ...o,
+                                      ...(map.environmentVersion === 4
+                                        ? { bounceCoefficient: restitution }
+                                        : { restitution }),
+                                    }
+                                  : o,
                               ),
                             })
                           }
                         />
                       )}
                     </>
+                  )}
+                  {map.environmentVersion === 4 && (
+                    <ExtendedProperties
+                      object={object}
+                      disabled={disabled}
+                      onChange={(patch) =>
+                        onChange({
+                          ...map,
+                          objects: map.objects.map((o) =>
+                            o.id === object.id ? { ...o, ...patch } : o,
+                          ),
+                        })
+                      }
+                    />
                   )}
                   {(map.environmentVersion ?? 1) >= 2 && (
                     <NumberField

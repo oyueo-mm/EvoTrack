@@ -1,3 +1,4 @@
+import { openSettings } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { EXAMPLE_MAPS } from "../../src/core/maps";
@@ -135,9 +136,13 @@ test("PPO shows the exact recorded transition, freezes during optimization and p
   await page.goto("./?debug=1");
   await page.getByLabel("현재 맵").selectOption("r-straight");
   await page.getByLabel("학습 알고리즘").selectOption("PPO");
+  await openSettings(page);
   await page.getByText("고급 설정", { exact: true }).click();
+  await openSettings(page);
   await page.getByLabel("Rollout 길이", { exact: true }).fill("64");
+  await openSettings(page);
   await page.getByLabel("Epochs", { exact: true }).fill("4");
+  await openSettings(page);
   await page.getByLabel("Minibatch", { exact: true }).fill("16");
   await page.getByLabel("상단 학습 배속").fill("2");
   await page.getByRole("button", { name: "학습 시작", exact: true }).click();
@@ -248,6 +253,7 @@ test("both algorithms use separate real canvases; navigation and hidden tabs pau
 }) => {
   await page.goto("./?debug=1");
   await page.getByLabel("현재 맵").selectOption("r-straight");
+  await openSettings(page);
   await page.getByLabel("개체군 크기", { exact: true }).fill("4");
   await page.getByRole("button", { name: "학습 시작", exact: true }).click();
   const ga = page.getByLabel("AI 시뮬레이션 캔버스"),

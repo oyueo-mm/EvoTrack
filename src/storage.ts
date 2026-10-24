@@ -64,7 +64,7 @@ export function validateModel(value: unknown): SavedModel {
     typeof m.mapId !== "string" ||
     typeof m.createdAt !== "string" ||
     !m.schemas ||
-    ![1, 2, 3].includes(m.schemas.environment) ||
+    ![1, 2, 3, 4].includes(m.schemas.environment) ||
     m.schemas.observation !== 1 ||
     m.schemas.action !== 1
   )
@@ -263,7 +263,7 @@ export function validateWorkspace(value: unknown): Workspace {
     (w.format !== "evotrack-workspace" ||
       w.version !== 1 ||
       !w.schemas ||
-      ![1, 2, 3].includes(w.schemas.environment) ||
+      ![1, 2, 3, 4].includes(w.schemas.environment) ||
       w.schemas.observation !== 1 ||
       w.schemas.action !== 1)
   )

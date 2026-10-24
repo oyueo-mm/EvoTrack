@@ -1,3 +1,4 @@
+import { openSettings } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 import { EXAMPLE_MAPS } from "../../src/core/maps";
 import { DEFAULT_CONFIG } from "../../src/core/types";
@@ -21,6 +22,7 @@ test("fractional speed, defaults and session reset have distinct effects", async
 }) => {
   await page.goto(url);
   await page.getByLabel("현재 맵").selectOption("r-straight");
+  await openSettings(page);
   const slider = page.getByRole("slider", { name: "학습 배속", exact: true });
   await expect(slider).toHaveAttribute("min", "0.5");
   await expect(slider).toHaveAttribute("max", "10");
@@ -28,10 +30,13 @@ test("fractional speed, defaults and session reset have distinct effects", async
   await slider.press("Home");
   for (let i = 0; i < 18; i++) await slider.press("ArrowRight");
   await expect(page.getByLabel("학습 배속 현재 값")).toHaveText("2.3×");
+  await openSettings(page);
   await page
     .getByRole("button", { name: "Genetic Algorithm", exact: false })
     .click();
+  await openSettings(page);
   await page.getByLabel("개체군 크기", { exact: true }).fill("4");
+  await openSettings(page);
   await page.getByLabel("에피소드 최대 스텝", { exact: true }).fill("30");
   await page.getByRole("button", { name: "학습 시작", exact: true }).click();
   await expect

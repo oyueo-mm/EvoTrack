@@ -13,7 +13,7 @@ export interface Checkpoint extends Point {
   directional?: boolean;
 }
 export interface Schemas {
-  environment: 1 | 2 | 3;
+  environment: 1 | 2 | 3 | 4;
   observation: 1;
   action: 1;
 }
@@ -27,7 +27,9 @@ export interface MapObject extends Point {
     | "spring"
     | "elastic"
     | "bomb"
-    | "respawn";
+    | "respawn"
+    | "belt"
+    | "reward";
   w: number;
   h: number;
   amplitude?: number;
@@ -37,6 +39,25 @@ export interface MapObject extends Point {
   /** Launch direction relative to the object's rotation, radians. */
   launchAngle?: number;
   restitution?: number;
+  bounceCoefficient?: number;
+  liftBoost?: number;
+  tangentBoost?: number;
+  minLaunchSpeed?: number;
+  maxLaunchSpeed?: number;
+  beltType?: "boost" | "brake";
+  beltStrength?: number;
+  beltDirection?: "velocity" | "beltOrientation";
+  maxInfluenceSpeed?: number;
+  rewardShape?: "zone" | "gate";
+  rewardValue?: number;
+  activation?: "once" | "repeat" | "cooldown";
+  trigger?: "enter" | "cross" | "stay";
+  cooldown?: number;
+  name?: string;
+  description?: string;
+  visible?: boolean;
+  trainingOnly?: boolean;
+  rewardMode?: "both" | Mode;
 }
 export interface TrackMap {
   id: string;
@@ -44,7 +65,7 @@ export interface TrackMap {
   description: string;
   mode: Mode;
   version: 1;
-  environmentVersion?: 1 | 2 | 3;
+  environmentVersion?: 1 | 2 | 3 | 4;
   category?: "standard" | "tutorial";
   difficulty?: "Easy" | "Medium" | "Hard";
   features?: string[];
@@ -83,6 +104,9 @@ export interface AgentState extends Point {
   trail: Point[];
   sensors?: number[];
   respawns?: number;
+  shapingTotal?: number;
+  shapingReward?: number;
+  rewardEvents?: string[];
   failureReason?: "bomb" | "spike" | "collision";
 }
 export interface Metrics {

@@ -253,6 +253,21 @@ test("both algorithms use separate real canvases; navigation and hidden tabs pau
   const ga = page.getByLabel("AI 시뮬레이션 캔버스"),
     ppo = page.getByLabel("PPO 실제 학습 캔버스");
   await expect(ga).toHaveAttribute("data-live-count", "4");
+  await page.getByLabel("선택 개체", { exact: true }).selectOption("1");
+  await expect
+    .poll(
+      async () =>
+        JSON.parse((await ga.getAttribute("data-live-traces")) ?? "[]")[1] ?? 0,
+    )
+    .toBeGreaterThan(0);
+  await expect
+    .poll(
+      async () =>
+        JSON.parse((await ga.getAttribute("data-live-traces")) ?? "[]").filter(
+          (n: number, i: number) => i !== 1 && n > 0,
+        ).length,
+    )
+    .toBe(0);
   await expect
     .poll(async () => Number(await ppo.getAttribute("data-training-samples")))
     .toBeGreaterThan(3);

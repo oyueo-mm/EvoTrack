@@ -574,6 +574,7 @@ export function World({
     seed,
     horizon,
     onTestState,
+    onFrame,
     manualAction,
     manualButtons,
     hidden,
@@ -592,6 +593,7 @@ export function World({
     seed,
     horizon,
     onTestState,
+    onFrame,
     manualAction,
     manualButtons,
     hidden,
@@ -767,7 +769,9 @@ export function World({
       if (p.snapshot?.sequence) {
         const sequence = p.snapshot.sequence,
           session = p.snapshot.session;
-        requestAnimationFrame(() => onFrame?.(sequence, session));
+        requestAnimationFrame(() =>
+          latest.current.onFrame?.(sequence, session),
+        );
       }
       const mini = miniRef.current;
       if (mini) {
@@ -1424,6 +1428,11 @@ export function World({
         data-transition={
           snapshot?.debug
             ? JSON.stringify(snapshot.debug.transition)
+            : undefined
+        }
+        data-live-traces={
+          snapshot?.debug
+            ? JSON.stringify(snapshot.population.map((s) => s.trail.length))
             : undefined
         }
         data-live-tick={snapshot?.live?.tick}

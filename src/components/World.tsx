@@ -40,7 +40,9 @@ export type Tool =
   | "goal"
   | "checkpoint"
   | "erase"
-  | "pan";
+  | "pan"
+  | "bomb"
+  | "respawn";
 export interface ViewOptions {
   sensors: boolean;
   trail: boolean;
@@ -115,7 +117,7 @@ export function drawWorld(
   if (map.mode === "racing") {
     map.checkpoints.forEach((p, i) => {
       if (hidden.has("checkpoint:" + i)) return;
-      if (map.environmentVersion !== 2) {
+      if ((map.environmentVersion ?? 1) < 2) {
         ctx.strokeStyle = light ? "#849b8d" : "#b6c6c066";
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
@@ -191,7 +193,27 @@ export function drawWorld(
           : "#e9ecef"
         : "#a3b0b6";
     ctx.lineWidth = selected?.kind === "object" && selected.id === o.id ? 3 : 1;
-    if (o.kind === "spike") {
+    if (o.kind === "bomb" || o.kind === "respawn") {
+      ctx.fillStyle = o.kind === "bomb" ? "#c66b50" : "#4087a2";
+      ctx.beginPath();
+      ctx.arc(
+        o.x + o.w / 2,
+        o.y + o.h / 2,
+        Math.min(o.w, o.h) / 2,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        o.kind === "bomb" ? "!" : "R",
+        o.x + o.w / 2,
+        o.y + o.h / 2 + 5,
+      );
+      ctx.textAlign = "start";
+    } else if (o.kind === "spike") {
       ctx.beginPath();
       for (let x = o.x; x < o.x + o.w; x += 16) {
         ctx.moveTo(x, o.y + o.h);
@@ -270,6 +292,40 @@ export function drawWorld(
   }
   if (editing && selected && !hidden.has(selectionKey(selected))) {
     const handles = transformHandles(map, selected, unit);
+    const pivot =
+      selected.kind === "object"
+        ? map.objects.find((o) => o.id === selected.id)
+        : selected.kind === "checkpoint"
+          ? map.checkpoints[selected.index]
+          : null;
+    if (pivot) {
+      const cx = pivot.x + ("w" in pivot ? pivot.w / 2 : 0),
+        cy = pivot.y + ("h" in pivot ? pivot.h / 2 : 0);
+      ctx.save();
+      ctx.strokeStyle = "#8c9c9266";
+      ctx.lineWidth = unit;
+      ctx.setLineDash([3 * unit, 4 * unit]);
+      ctx.beginPath();
+      ctx.moveTo(cx - 65 * unit, cy);
+      ctx.lineTo(cx + 65 * unit, cy);
+      ctx.moveTo(cx, cy - 65 * unit);
+      ctx.lineTo(cx, cy + 65 * unit);
+      ctx.stroke();
+      ctx.fillStyle = light ? "#627165" : "#a4aeb9";
+      ctx.font = `${9 * unit}px sans-serif`;
+      for (const [a, t] of [
+        [0, "0°"],
+        [Math.PI / 2, "90°"],
+        [Math.PI, "180°"],
+        [-Math.PI / 2, "270°"],
+      ] as const)
+        ctx.fillText(
+          t,
+          cx + Math.cos(a) * 70 * unit,
+          cy + Math.sin(a) * 70 * unit,
+        );
+      ctx.restore();
+    }
     ctx.strokeStyle = light ? "#275e46" : "#c2dfce";
     ctx.lineWidth = 1.5 * unit;
     ctx.setLineDash([4 * unit, 3 * unit]);
@@ -439,6 +495,9 @@ export function World({
   horizon = 600,
   onTestState,
   manualAction = -1,
+  manualButtons = [],
+  respawnToken = 0,
+  snapRightAngles = false,
   hidden = new Set<string>(),
   lockedLayers = new Set<string>(),
   onCursor,
@@ -469,6 +528,9 @@ export function World({
   horizon?: number;
   onTestState?: (state: AgentState) => void;
   manualAction?: number;
+  manualButtons?: string[];
+  respawnToken?: number;
+  snapRightAngles?: boolean;
   zoom?: number;
   hidden?: ReadonlySet<string>;
   lockedLayers?: ReadonlySet<string>;
@@ -496,6 +558,7 @@ export function World({
     horizon,
     onTestState,
     manualAction,
+    manualButtons,
     hidden,
   });
   latest.current = {
@@ -513,6 +576,7 @@ export function World({
     horizon,
     onTestState,
     manualAction,
+    manualButtons,
     hidden,
   };
   const renderRef = useRef<() => void>(() => {}),
@@ -525,7 +589,7 @@ export function World({
       null,
     );
   const drag = useRef<{
-    kind: "pan" | "road" | "erase" | "move" | "place" | "transform";
+    kind: "pan" | "road" | "erase" | "move" | "place" | "transform" | "zoom";
     point: Point;
     screen: Point;
     map: TrackMap;
@@ -623,6 +687,13 @@ export function World({
             p.options.selectedAgent ?? p.snapshot.live.leader
           ]
         : replay.current?.env.getState(true, p.options.sensors);
+      if (p.testing && state) {
+        canvas.dataset.testSpeed = String(state.speed);
+        canvas.dataset.testAngle = String(state.angle);
+        canvas.dataset.testRespawns = String(state.respawns ?? 0);
+        canvas.dataset.testX = String(state.x);
+        canvas.dataset.testY = String(state.y);
+      }
       const effective =
         p.follow && state
           ? {
@@ -714,6 +785,11 @@ export function World({
       if (r) {
         if (r.env.getState().done) {
           if (!r.endedAt) r.endedAt = now;
+          if (p.testing && !r.env.getState().success && now - r.endedAt > 180) {
+            r.env.respawn();
+            r.endedAt = 0;
+            accumulator = 0;
+          }
           if (!p.testing && now - r.endedAt > 650) {
             r.env.reset(p.seed);
             r.policy = p.snapshot?.policy;
@@ -724,39 +800,26 @@ export function World({
           while (accumulator >= 1 / 60) {
             let action = 4;
             if (p.testing) {
-              const left =
-                  keys.current.has("ArrowLeft") || keys.current.has("KeyA"),
-                right =
-                  keys.current.has("ArrowRight") || keys.current.has("KeyD"),
-                jump =
-                  keys.current.has("Space") ||
-                  keys.current.has("ArrowUp") ||
-                  keys.current.has("KeyW");
-              action =
-                p.map.mode === "racing"
-                  ? left
-                    ? 1
-                    : right
-                      ? 2
-                      : keys.current.has("ArrowDown")
-                        ? 3
-                        : jump
-                          ? 0
-                          : 4
-                  : jump
-                    ? left
-                      ? 4
-                      : right
-                        ? 5
-                        : 3
-                    : left
-                      ? 1
-                      : right
-                        ? 2
-                        : 0;
-              if (p.manualAction >= 0) action = p.manualAction;
-            } else if (r.policy) action = actionOf(r.policy, r.env.observe());
-            r.env.step(action);
+              const held = (...codes: string[]) =>
+                codes.some(
+                  (c) => keys.current.has(c) || p.manualButtons.includes(c),
+                );
+              r.env.stepManual({
+                steer:
+                  (held("ArrowRight", "KeyD", "right") ? 1 : 0) -
+                  (held("ArrowLeft", "KeyA", "left") ? 1 : 0),
+                throttle:
+                  (held("ArrowUp", "KeyW", "forward") ? 1 : 0) -
+                  (held("ArrowDown", "KeyS", "reverse") ? 1 : 0),
+                boost: p.map.mode === "racing" && held("Space", "boost"),
+                jump: held("ArrowUp", "KeyW", "jump"),
+                drop: held("ArrowDown", "KeyS"),
+                brake: p.map.mode === "bounce" && held("Space", "brake"),
+              });
+            } else {
+              if (r.policy) action = actionOf(r.policy, r.env.observe());
+              r.env.step(action);
+            }
             accumulator -= 1 / 60;
           }
         }
@@ -823,6 +886,10 @@ export function World({
     return () => canvas.removeEventListener("wheel", wheel);
   }, [interactive, map.id, onViewportChange]);
   useEffect(() => {
+    keys.current.clear();
+    if (testing) canvasRef.current?.focus();
+  }, [testing]);
+  useEffect(() => {
     if (!interactive) return;
     const down = (e: KeyboardEvent) => {
       const focused = document.activeElement === canvasRef.current;
@@ -834,12 +901,21 @@ export function World({
       )
         return;
       if (
-        ["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
-          e.code,
-        )
+        [
+          "Space",
+          "ArrowLeft",
+          "ArrowRight",
+          "ArrowUp",
+          "ArrowDown",
+          ...(testing ? ["KeyA", "KeyD", "KeyW", "KeyS", "KeyR"] : []),
+        ].includes(e.code)
       ) {
         e.preventDefault();
         keys.current.add(e.code);
+        if (testing && e.code === "KeyR") {
+          replay.current?.env.respawn();
+          if (replay.current) replay.current.endedAt = 0;
+        }
         if (e.code === "Space") space.current = true;
       }
       if (
@@ -882,6 +958,12 @@ export function World({
     observer.observe(app, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
   }, []);
+  useEffect(() => {
+    if (testing) {
+      replay.current?.env.respawn();
+      if (replay.current) replay.current.endedAt = 0;
+    }
+  }, [respawnToken]);
   function beginPinch() {
     const a = [...pointers.current.values()];
     const center = { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 };
@@ -912,6 +994,17 @@ export function World({
       transaction = crypto.randomUUID(),
       initial = structuredClone(map);
     if (e.button !== 0 && drag.current?.kind !== "pan") drag.current = null;
+    if (editing && e.ctrlKey && e.button === 0) {
+      drag.current = {
+        kind: "zoom",
+        point: p,
+        screen: s,
+        map: initial,
+        view: camera.current,
+        transaction,
+      };
+      return;
+    }
     if (
       !editing ||
       tool === "pan" ||
@@ -1136,7 +1229,25 @@ export function World({
               : "crosshair";
       return;
     }
-    if (d.kind === "pan") {
+    if (
+      (d.kind === "road" || d.kind === "place") &&
+      Math.hypot(s.x - d.screen.x, s.y - d.screen.y) > 4
+    ) {
+      if (d.changed) onChange?.(d.before ?? d.map, d.transaction);
+      d.changed = false;
+      d.kind = "pan";
+    }
+    if (d.kind === "zoom") {
+      updateView(
+        zoomAt(
+          d.view,
+          d.screen,
+          map,
+          frame(),
+          d.view.zoom * Math.exp((d.screen.y - s.y) * 0.01),
+        ),
+      );
+    } else if (d.kind === "pan") {
       const scale = baseScale(map, frame()) * d.view.zoom;
       updateView({
         ...d.view,
@@ -1157,7 +1268,13 @@ export function World({
     } else if (d.kind === "transform" && d.selection && d.handle) {
       d.changed = true;
       onChange?.(
-        transformSelection(d.map, d.selection, d.handle, p, e.shiftKey),
+        transformSelection(
+          d.map,
+          d.selection,
+          d.handle,
+          p,
+          e.shiftKey || snapRightAngles,
+        ),
         d.transaction,
       );
     } else if (d.selection) {
@@ -1237,6 +1354,9 @@ export function World({
         className={"world " + (editing ? "editing tool-" + tool : "")}
         aria-label={editing ? "맵 편집 캔버스" : "AI 시뮬레이션 캔버스"}
         tabIndex={interactive ? 0 : undefined}
+        data-test-x={
+          testing ? replay.current?.env.getState(false).x : undefined
+        }
         data-generation={snapshot?.live?.generation}
         data-live-tick={snapshot?.live?.tick}
         data-live-count={snapshot?.population.length}

@@ -1,3 +1,4 @@
+import { UX_MAPS } from "./ux-maps";
 import { CHALLENGE_MAPS } from "./challenge-maps";
 import { circleObject } from "./geometry";
 import type { Mode, Point, TrackMap } from "./types";
@@ -189,9 +190,13 @@ for (const m of EXAMPLE_MAPS) {
     directional: true,
   }));
 }
-EXAMPLE_MAPS.push(...CHALLENGE_MAPS);
+EXAMPLE_MAPS.push(...CHALLENGE_MAPS, ...UX_MAPS);
+for (const m of EXAMPLE_MAPS)
+  if (["b-jump", "b-stairs", "b-moving"].includes(m.id))
+    m.category = "tutorial";
 export function newMap(mode: Mode): TrackMap {
   const map = structuredClone(EXAMPLE_MAPS[mode === "racing" ? 0 : 4]);
+  map.environmentVersion = 3;
   map.id = crypto.randomUUID();
   map.name = "Untitled " + (mode === "racing" ? "circuit" : "puzzle");
   map.createdAt = map.updatedAt = new Date().toISOString();
@@ -232,7 +237,7 @@ export function validateMap(value: unknown): TrackMap {
     );
   if (
     (m.environmentVersion !== undefined &&
-      ![1, 2].includes(m.environmentVersion)) ||
+      ![1, 2, 3].includes(m.environmentVersion)) ||
     (m.recommendedHorizon !== undefined &&
       (!Number.isInteger(m.recommendedHorizon) ||
         m.recommendedHorizon < 30 ||
@@ -308,9 +313,16 @@ export function validateMap(value: unknown): TrackMap {
       (o) =>
         point(o) &&
         typeof o.id === "string" &&
-        ["wall", "platform", "moving", "spike", "spring", "elastic"].includes(
-          o.kind,
-        ) &&
+        [
+          "wall",
+          "platform",
+          "moving",
+          "spike",
+          "spring",
+          "elastic",
+          "bomb",
+          "respawn",
+        ].includes(o.kind) &&
         finite(o.w) &&
         finite(o.h) &&
         o.w > 0 &&
@@ -351,16 +363,30 @@ export function validateMap(value: unknown): TrackMap {
       m.checkpoints.filter((p) => p.id).length ||
     m.objects.some(
       (o) =>
+        ((o.kind === "bomb" ||
+          o.kind === "respawn" ||
+          o.launchStrength !== undefined ||
+          o.launchAngle !== undefined ||
+          o.restitution !== undefined) &&
+          m.environmentVersion !== 3) ||
+        (o.launchStrength !== undefined &&
+          (!finite(o.launchStrength) ||
+            o.launchStrength < 50 ||
+            o.launchStrength > 1200)) ||
+        (o.launchAngle !== undefined && !finite(o.launchAngle)) ||
+        (o.restitution !== undefined &&
+          (!finite(o.restitution) || o.restitution < 0 || o.restitution > 2)),
+    ) ||
+    m.objects.some(
+      (o) =>
         o.angle !== undefined &&
-        (!finite(o.angle) || (m.environmentVersion !== 2 && o.angle !== 0)),
+        (!finite(o.angle) ||
+          ((m.environmentVersion ?? 1) < 2 && o.angle !== 0)),
     )
   )
     throw Error("게이트 또는 회전 데이터가 유효하지 않습니다.");
   if (m.mode === "racing") {
-    if (
-      m.road.length < 2 ||
-      (m.environmentVersion !== 2 && m.checkpoints.length < 1)
-    )
+    if (m.road.length < 2)
       throw Error("도로에 최소 두 점과 체크포인트가 필요합니다.");
     if (
       Math.min(
@@ -387,14 +413,16 @@ export function validateMap(value: unknown): TrackMap {
       throw Error("결승선과 체크포인트는 도로 안에 있어야 합니다.");
   }
   if (
-    m.objects.some((o) =>
-      m.environmentVersion === 2
-        ? circleObject(o, m.start, 11)
-        : m.start.x + 11 > o.x &&
-          m.start.x - 11 < o.x + o.w &&
-          m.start.y + 11 > o.y &&
-          m.start.y - 11 < o.y + o.h,
-    )
+    m.objects
+      .filter((o) => o.kind !== "respawn")
+      .some((o) =>
+        (m.environmentVersion ?? 1) >= 2
+          ? circleObject(o, m.start, 11)
+          : m.start.x + 11 > o.x &&
+            m.start.x - 11 < o.x + o.w &&
+            m.start.y + 11 > o.y &&
+            m.start.y - 11 < o.y + o.h,
+      )
   )
     throw Error("출발 위치가 장애물과 겹칩니다.");
   return structuredClone(m);

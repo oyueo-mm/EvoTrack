@@ -13,18 +13,30 @@ export interface Checkpoint extends Point {
   directional?: boolean;
 }
 export interface Schemas {
-  environment: 1 | 2;
+  environment: 1 | 2 | 3;
   observation: 1;
   action: 1;
 }
 export interface MapObject extends Point {
   id: string;
-  kind: "wall" | "platform" | "moving" | "spike" | "spring" | "elastic";
+  kind:
+    | "wall"
+    | "platform"
+    | "moving"
+    | "spike"
+    | "spring"
+    | "elastic"
+    | "bomb"
+    | "respawn";
   w: number;
   h: number;
   amplitude?: number;
   period?: number;
   angle?: number;
+  launchStrength?: number;
+  /** Launch direction relative to the object's rotation, radians. */
+  launchAngle?: number;
+  restitution?: number;
 }
 export interface TrackMap {
   id: string;
@@ -32,7 +44,8 @@ export interface TrackMap {
   description: string;
   mode: Mode;
   version: 1;
-  environmentVersion?: 1 | 2;
+  environmentVersion?: 1 | 2 | 3;
+  category?: "standard" | "tutorial";
   difficulty?: "Easy" | "Medium" | "Hard";
   features?: string[];
   recommendedHorizon?: number;
@@ -69,6 +82,8 @@ export interface AgentState extends Point {
   progress: number;
   trail: Point[];
   sensors?: number[];
+  respawns?: number;
+  failureReason?: "bomb" | "spike" | "collision";
 }
 export interface Metrics {
   steps: number;

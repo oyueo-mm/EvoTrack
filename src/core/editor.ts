@@ -318,7 +318,7 @@ export function transformHandles(
       kind,
       point: objectWorld(o, { x: (x * o.w) / 2, y: (y * o.h) / 2 }),
     }));
-    if (map.environmentVersion === 2)
+    if ((map.environmentVersion ?? 1) >= 2)
       handles.push({
         kind: "rotate",
         point: objectWorld(o, { x: 0, y: -o.h / 2 - 28 * unit }),
@@ -328,7 +328,7 @@ export function transformHandles(
   if (s?.kind === "checkpoint" && map.checkpoints[s.index]) {
     const g = gateAt(map, s.index),
       [a, b] = gateEnds(g);
-    return map.environmentVersion === 2
+    return (map.environmentVersion ?? 1) >= 2
       ? [
           { kind: "gate-a", point: a },
           { kind: "gate-b", point: b },
@@ -353,12 +353,12 @@ export function transformSelection(
 ): TrackMap {
   const m = structuredClone(map),
     snap = (a: number) =>
-      shift ? (Math.round(a / (Math.PI / 12)) * Math.PI) / 12 : a;
+      shift ? Math.round(a / (Math.PI / 2)) * (Math.PI / 2) : a;
   if (s.kind === "object") {
     const o = m.objects.find((o) => o.id === s.id);
     if (!o) return map;
     if (h === "rotate") {
-      if (map.environmentVersion !== 2) return map;
+      if ((map.environmentVersion ?? 1) < 2) return map;
       o.angle = snap(
         Math.atan2(p.y - o.y - o.h / 2, p.x - o.x - o.w / 2) + Math.PI / 2,
       );
@@ -384,7 +384,7 @@ export function transformSelection(
       o.y = center.y - height / 2;
     }
     Object.assign(o, clampObject(o, m));
-  } else if (s.kind === "checkpoint" && map.environmentVersion === 2) {
+  } else if (s.kind === "checkpoint" && (map.environmentVersion ?? 1) >= 2) {
     const g = gateAt(m, s.index);
     if (h === "rotate") g.angle = snap(Math.atan2(p.y - g.y, p.x - g.x));
     else

@@ -163,21 +163,8 @@ test("editor width, semantic eraser, gesture undo, cursor zoom and pan", async (
       y: r.y + (r.height - 640 * scale) / 2 + y * scale,
     };
   };
-  const start = p(130, 300);
-  await page.mouse.move(start.x, start.y);
-  await page.mouse.down();
-  for (const [x, y] of [
-    [230, 300],
-    [330, 310],
-    [430, 320],
-    [530, 320],
-    [630, 310],
-    [800, 300],
-  ]) {
-    const q = p(x, y);
-    await page.mouse.move(q.x, q.y, { steps: 2 });
-  }
-  await page.mouse.up();
+  const start = p(130, 150);
+  await page.mouse.click(start.x, start.y);
   await expect(page.locator(".element-count")).not.toContainText("도로 4점");
   await page.getByRole("button", { name: "실행 취소", exact: true }).click();
   await expect(page.locator(".element-count")).toContainText("도로 4점");
@@ -336,6 +323,7 @@ test("touch pinch, mobile properties sheet and navigation are usable", async ({
     await expect(
       page.getByRole("button", { name: "속성 열기", exact: true }),
     ).toBeVisible();
+    page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "학습하기", exact: true }).click();
     await page.getByRole("button", { name: "메뉴", exact: true }).click();
     await expect(

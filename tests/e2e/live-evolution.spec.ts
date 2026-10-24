@@ -50,22 +50,20 @@ test("legacy backups preserve originals; v1 inference/evaluation stays on v1 aft
   };
   await page.goto("./");
   await page.getByRole("button", { name: "데이터 백업 · 이전" }).click();
-  await page
-    .getByLabel("작업 공간 JSON 파일")
-    .setInputFiles({
-      name: "old-workspace.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify({
-          format: "evotrack-workspace",
-          version: 1,
-          schemas: { environment: 1, observation: 1, action: 1 },
-          maps: [map],
-          models: [model],
-          experiments: [],
-        }),
-      ),
-    });
+  await page.getByLabel("작업 공간 JSON 파일").setInputFiles({
+    name: "old-workspace.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        format: "evotrack-workspace",
+        version: 1,
+        schemas: { environment: 1, observation: 1, action: 1 },
+        maps: [map],
+        models: [model],
+        experiments: [],
+      }),
+    ),
+  });
   await page.getByRole("button", { name: "확인한 자료 가져오기" }).click();
   await expect(page.locator('.toast[role="status"]')).toContainText(
     "가져왔습니다",
@@ -82,11 +80,9 @@ test("legacy backups preserve originals; v1 inference/evaluation stays on v1 aft
     .getByRole("button", { name: "맵 라이브러리", exact: false })
     .click();
   await expect(
-    page
-      .locator(".map-card")
-      .filter({
-        has: page.getByRole("heading", { name: "이전 맵", exact: true }),
-      }),
+    page.locator(".map-card").filter({
+      has: page.getByRole("heading", { name: "이전 맵", exact: true }),
+    }),
   ).toHaveCount(1);
   await expect(
     page.locator(".map-card").filter({ hasText: "이전 맵 · 게이트 편집본" }),
@@ -357,9 +353,11 @@ test("difficulty filters expose new physically validated maps", async ({
 }) => {
   await page.goto("./#maps");
   await page.getByLabel("맵 난이도").selectOption("Hard");
-  await expect(page.locator(".map-card")).toHaveCount(4);
+  await expect(page.locator(".map-card")).toHaveCount(
+    EXAMPLE_MAPS.filter((m) => m.difficulty === "Hard").length,
+  );
   await expect(
-    page.locator(".map-card").filter({ hasText: "연속 헤어핀" }),
+    page.locator(".map-card").filter({ hasText: "연속 헤어핀" }).first(),
   ).toBeVisible();
   await page.getByLabel("맵 난이도").selectOption("Medium");
   await expect(page.locator(".map-card")).toHaveCount(4);

@@ -71,7 +71,7 @@ export function Studio(props: Props) {
       maps={props.maps}
       options={props.options}
       config={props.config}
-      locked={props.training.active || props.training.paused}
+      locked={false}
       onChange={props.onMapChange}
       onChoose={props.onChooseMap}
       onSave={props.onSaveMap}
@@ -247,7 +247,7 @@ function TrainingStudio({
                 {tab === "GA" ? "실시간 개체군" : "정책 시뮬레이션"}{" "}
                 <small className="environment-label">
                   환경 v{map.environmentVersion ?? 1} ·{" "}
-                  {map.environmentVersion === 2
+                  {(map.environmentVersion ?? 1) >= 2
                     ? "방향 게이트·회전 충돌"
                     : "이전 점형 판정"}
                 </small>

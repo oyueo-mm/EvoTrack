@@ -6,10 +6,10 @@ import type { TrackMap } from "./types";
 export function demonstrate(
   map: TrackMap,
   horizon = 12000,
-  edgeDistance = map.id === "b-precision" ? 45 : 5,
-  obstacleDistance = map.id === "b-spring-relay"
+  edgeDistance = ["b-precision", "b-recovery-route"].includes(map.id) ? 45 : 5,
+  obstacleDistance = ["b-spring-relay", "b-bomb-relay"].includes(map.id)
     ? 105
-    : map.id === "b-precision"
+    : ["b-precision", "b-recovery-route"].includes(map.id)
       ? 70
       : 25,
 ) {
@@ -48,6 +48,8 @@ export function demonstrate(
         .filter(
           (o) =>
             o.kind !== "spike" &&
+            o.kind !== "bomb" &&
+            o.kind !== "respawn" &&
             s.x >= o.x - 2 &&
             s.x <= o.x + o.w + 2 &&
             Math.abs(s.y + 11 - o.y) < 5,
@@ -55,7 +57,7 @@ export function demonstrate(
         .sort((a, b) => a.x + a.w - b.x - b.w)[0];
       const danger = objects.some(
         (o) =>
-          o.kind === "spike" &&
+          (o.kind === "spike" || o.kind === "bomb") &&
           o.x > s.x &&
           o.x - s.x < obstacleDistance &&
           o.y < s.y + 25,
@@ -63,6 +65,8 @@ export function demonstrate(
       const blocker = objects.some(
         (o) =>
           o.kind !== "spike" &&
+          o.kind !== "bomb" &&
+          o.kind !== "respawn" &&
           o.x > s.x &&
           o.x - s.x < obstacleDistance &&
           o.y < s.y + 11 &&
@@ -73,6 +77,8 @@ export function demonstrate(
         ground.x + ground.w - s.x < edgeDistance &&
         ground.x + ground.w < map.goal.x;
       action = s.grounded && (edge || danger || blocker) ? 5 : 2;
+      if (!s.grounded && s.x > map.goal.x - 45 && s.y < map.goal.y - 25)
+        action = s.vx > 10 ? 1 : 0;
     }
     actions.push(action);
     env.step(action);

@@ -45,7 +45,7 @@ import {
 } from "../../core/editor";
 import { gateAt } from "../../core/geometry";
 import { World, type Tool, type ViewOptions } from "../World";
-import { NumberField, RangeField, Section, ToolButton } from "../ui";
+import { NumberField, RangeField, Section, ToolButton, Toggle } from "../ui";
 import { EditorPanel } from "./EditorPanel";
 
 interface Props {
@@ -89,6 +89,8 @@ const labels = {
   spike: "가시",
   spring: "점프대",
   elastic: "탄성 발판",
+  bomb: "폭탄",
+  respawn: "부활 지점",
 };
 export function EditorWorkspace({
   map,
@@ -116,6 +118,8 @@ export function EditorWorkspace({
   const [locks, setLocks] = useState<Set<string>>(new Set());
   const [radius, setRadius] = useState(22);
   const [cursor, setCursor] = useState<Point>({ x: 0, y: 0 });
+  const [snapRightAngles, setSnapRightAngles] = useState(false);
+  const [respawnToken, setRespawnToken] = useState(0);
   const [testing, setTesting] = useState(false);
   const [testRun, setTestRun] = useState(0);
   const [testState, setTestState] = useState<AgentState | null>(null);
@@ -159,7 +163,7 @@ export function EditorWorkspace({
       setTesting(false);
     }
   }, [map.id, view]);
-  const disabled = locked || testing;
+  const disabled = testing;
   const selectedLocked =
     !!selected &&
     (locks.has(selectionKey(selected)) || hidden.has(selectionKey(selected)));
@@ -211,7 +215,7 @@ export function EditorWorkspace({
           if (!clipboard.current) return;
           e.preventDefault();
           if (
-            map.environmentVersion !== 2 &&
+            (map.environmentVersion ?? 1) < 2 &&
             (clipboard.current.value.angle ?? 0) !== 0
           ) {
             onError(
@@ -292,6 +296,18 @@ export function EditorWorkspace({
     ["start", Flag, "시작점", "S"],
     ["goal", Target, "결승점", "G"],
     ["wall", Square, "벽", "W"],
+    ...(map.mode === "racing"
+      ? ([
+          ["spike", Zap, "가시"],
+          ["moving", MoveRight, "이동 장애물"],
+        ] as [Tool, LucideIcon, string][])
+      : []),
+    ...(map.environmentVersion === 3
+      ? ([
+          ["bomb", Zap, "폭탄"],
+          ...(map.mode === "bounce" ? [["respawn", Flag, "부활 지점"]] : []),
+        ] as [Tool, LucideIcon, string][])
+      : []),
     ["erase", Eraser, "지우개", "E"],
     ["pan", Hand, "화면 이동", "H"],
   ];
@@ -397,7 +413,7 @@ export function EditorWorkspace({
         <div className="editor-header-actions">
           <button
             className="button"
-            disabled={locked}
+            disabled={false}
             onClick={() =>
               testing ? (setTesting(false), setPressed([])) : test()
             }
@@ -486,6 +502,9 @@ export function EditorWorkspace({
               horizon={config.horizon}
               onTestState={setTestState}
               manualAction={manualAction}
+              manualButtons={pressed}
+              respawnToken={respawnToken}
+              snapRightAngles={snapRightAngles}
             />
           </div>
           <div className="editor-camera">
@@ -525,36 +544,57 @@ export function EditorWorkspace({
                   : testState?.done
                     ? "테스트 완료"
                     : map.mode === "racing"
-                      ? "↑ 가속 · ← → 조향 · ↓ 제동"
-                      : "← → 이동 · Space 점프"}
+                      ? "W/↑ 전진 · S/↓ 후진 · A/D 조향 · Space 부스트 · R 부활"
+                      : "A/D 이동 · W/↑ 점프 · S/↓ 빠른 낙하 · Space 감속 · R 부활"}
               </span>
+              <button
+                className="button"
+                onClick={() => setRespawnToken((n) => n + 1)}
+              >
+                즉시 부활 (R)
+              </button>
+              <output aria-label="테스트 부활 횟수">
+                부활 {testState?.respawns ?? 0}회
+              </output>
+              <p className="helper">
+                {map.mode === "bounce"
+                  ? "마지막 부활 표식으로 복귀합니다. 표식이 없으면 시작점에서 재시도합니다."
+                  : "실패하면 시작점으로 복귀합니다. 게이트는 진행도·보상을 위한 요소입니다."}
+              </p>
               <div className="row">
-                {[
-                  ["left", "←"],
-                  ["jump", map.mode === "racing" ? "가속" : "점프"],
-                  ["right", "→"],
-                  ["brake", "제동"],
-                ]
-                  .filter(([k]) => map.mode === "racing" || k !== "brake")
-                  .map(([k, label]) => (
-                    <button
-                      className="button"
-                      key={k}
-                      onPointerDown={(e) => {
-                        e.currentTarget.setPointerCapture(e.pointerId);
-                        setPressed((p) => [...p, k]);
-                      }}
-                      onPointerUp={() =>
-                        setPressed((p) => p.filter((x) => x !== k))
-                      }
-                      onPointerCancel={() => setPressed([])}
-                      onLostPointerCapture={() =>
-                        setPressed((p) => p.filter((x) => x !== k))
-                      }
-                    >
-                      {label}
-                    </button>
-                  ))}
+                {(map.mode === "racing"
+                  ? [
+                      ["left", "←"],
+                      ["forward", "전진"],
+                      ["reverse", "후진"],
+                      ["right", "→"],
+                      ["boost", "부스트"],
+                    ]
+                  : [
+                      ["left", "←"],
+                      ["jump", "점프"],
+                      ["right", "→"],
+                      ["brake", "감속"],
+                    ]
+                ).map(([k, label]) => (
+                  <button
+                    className="button"
+                    key={k}
+                    onPointerDown={(e) => {
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                      setPressed((p) => [...p, k]);
+                    }}
+                    onPointerUp={() =>
+                      setPressed((p) => p.filter((x) => x !== k))
+                    }
+                    onPointerCancel={() => setPressed([])}
+                    onLostPointerCapture={() =>
+                      setPressed((p) => p.filter((x) => x !== k))
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -607,7 +647,7 @@ export function EditorWorkspace({
                 id={`inspector-${tab}`}
                 aria-labelledby={`tab-${tab}`}
               >
-                {map.environmentVersion !== 2 && (
+                {(map.environmentVersion ?? 1) < 2 && (
                   <Section title="이전 환경 v1">
                     <p className="helper">
                       기존 모델과 같은 규칙으로 실행됩니다. 회전·게이트 판정을
@@ -634,6 +674,35 @@ export function EditorWorkspace({
                     </button>
                   </Section>
                 )}
+                {map.environmentVersion !== 3 && (
+                  <Section title="확장 환경">
+                    <p className="helper">
+                      폭탄·부활 지점과 발사/탄성 계수는 환경 v3에서 지원합니다.
+                      원본과 기존 모델을 보존하는 새 편집본으로 전환하세요.
+                    </p>
+                    <button
+                      className="button"
+                      disabled={disabled}
+                      onClick={() =>
+                        onChoose({
+                          ...structuredClone(map),
+                          id: crypto.randomUUID(),
+                          name: map.name + " · 확장 편집본",
+                          environmentVersion: 3,
+                        })
+                      }
+                    >
+                      확장 환경 v3 편집본 만들기
+                    </button>
+                  </Section>
+                )}
+                <div className="snap-option">
+                  <Toggle
+                    label="직각 스냅 (Shift: 90°)"
+                    checked={snapRightAngles}
+                    onChange={setSnapRightAngles}
+                  />
+                </div>
                 {tab === "properties" && (
                   <>
                     <Section

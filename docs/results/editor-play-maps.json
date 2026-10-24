@@ -1,0 +1,212 @@
+[
+  {
+    "id": "r-s-curves",
+    "difficulty": "Medium",
+    "success": true,
+    "steps": 550,
+    "reward": 98.04684723163645,
+    "checkpoint": 3,
+    "final": {
+      "x": 1638.982864752601,
+      "y": 501.74211812142835,
+      "collision": false
+    },
+    "computeMs": 17.744500000000016
+  },
+  {
+    "id": "r-angled-walls",
+    "difficulty": "Medium",
+    "success": true,
+    "steps": 420,
+    "reward": 80.05171107232584,
+    "checkpoint": 2,
+    "final": {
+      "x": 1629.8517762263796,
+      "y": 480,
+      "collision": false
+    },
+    "computeMs": 15.790700000000015
+  },
+  {
+    "id": "r-hairpin-chain",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 1379,
+    "reward": 177.05173278067846,
+    "checkpoint": 3,
+    "final": {
+      "x": 379.4142459483747,
+      "y": 780.6044066851067,
+      "collision": false
+    },
+    "computeMs": 24.675700000000006
+  },
+  {
+    "id": "r-endurance",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 692,
+    "reward": 117.53457974177726,
+    "checkpoint": 4,
+    "final": {
+      "x": 1671.5179502201172,
+      "y": 454.1179212779725,
+      "collision": false
+    },
+    "computeMs": 12.65809999999999
+  },
+  {
+    "id": "b-precision",
+    "difficulty": "Medium",
+    "success": true,
+    "steps": 411,
+    "reward": 62.775666666666595,
+    "checkpoint": 0,
+    "final": {
+      "x": 1286.5,
+      "y": 539,
+      "collision": false
+    },
+    "computeMs": 3.588499999999982
+  },
+  {
+    "id": "b-moving-gap",
+    "difficulty": "Medium",
+    "success": true,
+    "steps": 411,
+    "reward": 62.775666666666595,
+    "checkpoint": 0,
+    "final": {
+      "x": 1286.5,
+      "y": 539,
+      "collision": false
+    },
+    "computeMs": 4.217500000000001
+  },
+  {
+    "id": "b-spring-relay",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 411,
+    "reward": 62.775666666666595,
+    "checkpoint": 0,
+    "final": {
+      "x": 1286.5,
+      "y": 539,
+      "collision": false
+    },
+    "computeMs": 4.489699999999999
+  },
+  {
+    "id": "b-moving-gauntlet",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 413,
+    "reward": 62.85415277777768,
+    "checkpoint": 0,
+    "final": {
+      "x": 1290.1527777777765,
+      "y": 522.4611111111113,
+      "collision": false
+    },
+    "computeMs": 3.183799999999991
+  },
+  {
+    "id": "r-precision-hairpins",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 1379,
+    "reward": 177.05173278067846,
+    "checkpoint": 3,
+    "final": {
+      "x": 379.4142459483747,
+      "y": 780.6044066851067,
+      "collision": false
+    },
+    "computeMs": 30.508700000000005
+  },
+  {
+    "id": "r-sparse-expert",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 550,
+    "reward": 88.04684723163643,
+    "checkpoint": 1,
+    "final": {
+      "x": 1638.982864752601,
+      "y": 501.74211812142835,
+      "collision": false
+    },
+    "computeMs": 11.239499999999992
+  },
+  {
+    "id": "r-free-endurance",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 692,
+    "reward": 97.53457974177721,
+    "checkpoint": 0,
+    "final": {
+      "x": 1671.5179502201172,
+      "y": 454.1179212779725,
+      "collision": false
+    },
+    "computeMs": 15.740700000000004
+  },
+  {
+    "id": "r-bomb-run",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 420,
+    "reward": 80.05171107232584,
+    "checkpoint": 2,
+    "final": {
+      "x": 1629.8517762263796,
+      "y": 480,
+      "collision": false
+    },
+    "computeMs": 21.859100000000012
+  },
+  {
+    "id": "b-timing-hazards",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 413,
+    "reward": 62.85415277777768,
+    "checkpoint": 0,
+    "final": {
+      "x": 1290.1527777777765,
+      "y": 522.4611111111113,
+      "collision": false
+    },
+    "computeMs": 6.613699999999994
+  },
+  {
+    "id": "b-bomb-relay",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 428,
+    "reward": 63.03045871181605,
+    "checkpoint": 0,
+    "final": {
+      "x": 1301.0550151393113,
+      "y": 512.5416666666669,
+      "collision": false
+    },
+    "computeMs": 6.664600000000007
+  },
+  {
+    "id": "b-recovery-route",
+    "difficulty": "Hard",
+    "success": true,
+    "steps": 418,
+    "reward": 63.00748611111104,
+    "checkpoint": 0,
+    "final": {
+      "x": 1297.5694444444443,
+      "y": 517.3958333333335,
+      "collision": false
+    },
+    "computeMs": 4.43100000000004
+  }
+]

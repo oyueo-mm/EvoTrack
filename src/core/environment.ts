@@ -11,6 +11,14 @@ import {
   roadLengths,
 } from "./geometry";
 export const DT = 1 / 60;
+export interface ManualInput {
+  steer: number;
+  throttle: number;
+  boost?: boolean;
+  jump?: boolean;
+  drop?: boolean;
+  brake?: boolean;
+}
 export function objectPosition(o: MapObject, time: number, seed = 42) {
   return {
     ...o,
@@ -37,8 +45,11 @@ export class Simulator implements Environment {
   private segment = 0;
   private gateArcs: number[] = [];
   private roadGrid = new Map<string, number[]>();
+  private manual: ManualInput | null = null;
+  private respawnPoint: { x: number; y: number; angle: number } | null = null;
+  private respawnCount = 0;
   private get modern() {
-    return this.map.environmentVersion === 2;
+    return (this.map.environmentVersion ?? 1) >= 2;
   }
   constructor(
     private map: TrackMap,
@@ -74,6 +85,8 @@ export class Simulator implements Environment {
     this.reset(42);
   }
   reset(seed: number) {
+    this.respawnPoint = null;
+    this.respawnCount = 0;
     this.seed = seed;
     this.bestX = this.map.start.x;
     const projected = projectRoad(this.map.start, this.map.road, this.lengths);
@@ -95,6 +108,44 @@ export class Simulator implements Environment {
       trail: [],
     };
     return this.observe();
+  }
+  respawn() {
+    const point = this.respawnPoint,
+      count = this.respawnCount + 1;
+    this.reset(this.seed);
+    this.respawnPoint = point;
+    this.respawnCount = count;
+    if (point) {
+      Object.assign(this.state, point);
+      this.bestX = point.x;
+    }
+    this.state.respawns = count;
+  }
+  stepManual(input: ManualInput) {
+    this.manual = input;
+    try {
+      if (this.map.mode === "bounce") {
+        if (input.brake) this.state.vx *= 0.8;
+        if (input.drop && !this.state.grounded)
+          this.state.vy = Math.min(650, this.state.vy + 40);
+        return this.step(
+          input.jump
+            ? input.steer < 0
+              ? 4
+              : input.steer > 0
+                ? 5
+                : 3
+            : input.steer < 0
+              ? 1
+              : input.steer > 0
+                ? 2
+                : 0,
+        );
+      }
+      return this.step(4);
+    } finally {
+      this.manual = null;
+    }
   }
   serialize() {
     return structuredClone(this.map);
@@ -161,13 +212,15 @@ export class Simulator implements Environment {
         y > this.map.height - radius ||
         (this.map.mode === "racing" &&
           this.roadDistance(x, y) > this.map.roadWidth / 2 - radius) ||
-        this.map.objects.some((o) =>
-          circleObject(
-            objectPosition(o, this.state.steps * DT, this.seed),
-            { x, y },
-            radius,
-          ),
-        )
+        this.map.objects
+          .filter((o) => o.kind !== "respawn")
+          .some((o) =>
+            circleObject(
+              objectPosition(o, this.state.steps * DT, this.seed),
+              { x, y },
+              radius,
+            ),
+          )
       );
     return (
       x < radius ||
@@ -272,19 +325,52 @@ export class Simulator implements Environment {
     if (m.mode === "racing") {
       const target = m.checkpoints[s.checkpoint] ?? m.goal,
         before = distance(s, target);
-      const accel = action <= 2 ? 180 : action === 3 ? -300 : -40;
-      s.speed = clamp(s.speed + accel * DT, 0, m.physics.maxSpeed);
+      const accel = this.manual
+        ? this.manual.throttle * 180 +
+          (this.manual.boost ? 250 : 0) -
+          (!this.manual.throttle && !this.manual.boost
+            ? Math.sign(s.speed) * 50
+            : 0)
+        : action <= 2
+          ? 180
+          : action === 3
+            ? -300
+            : -40;
+      s.speed = clamp(
+        s.speed + accel * DT,
+        this.manual ? -m.physics.maxSpeed * 0.6 : 0,
+        m.physics.maxSpeed * (this.manual?.boost ? 1.6 : 1),
+      );
       s.speed *= 0.998;
-      const steering = action === 1 ? -1 : action === 2 ? 1 : 0;
-      s.angle = wrapAngle(s.angle + ((steering * s.speed) / 65) * DT);
+      const steering =
+        this.manual?.steer ?? (action === 1 ? -1 : action === 2 ? 1 : 0);
+      s.angle = wrapAngle(
+        s.angle +
+          (this.manual ? steering * 2.4 : (steering * s.speed) / 65) * DT,
+      );
       s.vx = Math.cos(s.angle) * s.speed;
       s.vy = Math.sin(s.angle) * s.speed;
-      const n = Math.max(1, Math.ceil((s.speed * DT) / 3));
+      const n = Math.max(1, Math.ceil((Math.abs(s.speed) * DT) / 3));
       for (let i = 0; i < n; i++) {
         const x = s.x + (s.vx * DT) / n,
           y = s.y + (s.vy * DT) / n;
         if (this.blocked(x, y)) {
           s.collision = true;
+          const hazard = m.objects.find(
+            (o) =>
+              o.kind !== "respawn" &&
+              circleObject(
+                objectPosition(o, s.steps * DT, this.seed),
+                { x, y },
+                9,
+              ),
+          );
+          s.failureReason =
+            hazard?.kind === "bomb"
+              ? "bomb"
+              : hazard?.kind === "spike"
+                ? "spike"
+                : "collision";
           s.done = true;
           reward -= 3;
           break;
@@ -383,11 +469,14 @@ export class Simulator implements Environment {
         s.vy = -350;
         s.grounded = false;
       }
-      s.vx = clamp(
-        s.vx + move * (s.grounded ? 950 : 650) * DT,
-        -m.physics.maxSpeed,
-        m.physics.maxSpeed,
-      );
+      s.vx =
+        m.environmentVersion === 3 && Math.abs(s.vx) > m.physics.maxSpeed
+          ? s.vx * 0.99
+          : clamp(
+              s.vx + move * (s.grounded ? 950 : 650) * DT,
+              -m.physics.maxSpeed,
+              m.physics.maxSpeed,
+            );
       if (!move) s.vx *= 0.84;
       const previousGrounded = s.grounded;
       s.grounded = false;
@@ -400,14 +489,20 @@ export class Simulator implements Environment {
       );
       for (let j = 0; j < substeps && !s.done; j++) {
         const dt = DT / substeps;
-        s.vy = clamp(s.vy + m.physics.gravity * dt, -800, 650);
+        s.vy = clamp(
+          s.vy + m.physics.gravity * dt,
+          m.environmentVersion === 3 ? -1400 : -800,
+          650,
+        );
         if (this.modern) {
           s.x = clamp(s.x + s.vx * dt, 11, m.width - 11);
           s.y += s.vy * dt;
           for (const o of objects) {
+            if (o.kind === "respawn") continue;
             const contact = circleContact(o, s, 11);
             if (!contact) continue;
-            if (o.kind === "spike") {
+            if (o.kind === "spike" || o.kind === "bomb") {
+              s.failureReason = o.kind;
               s.collision = true;
               s.done = true;
               break;
@@ -420,9 +515,32 @@ export class Simulator implements Environment {
               s.vx -= into * n.x;
               s.vy -= into * n.y;
             }
+            if (m.environmentVersion === 3 && o.kind === "spring") {
+              const direction =
+                  (o.angle ?? 0) + (o.launchAngle ?? -Math.PI / 2),
+                strength = o.launchStrength ?? 520;
+              s.vx = Math.cos(direction) * strength;
+              s.vy = Math.sin(direction) * strength;
+              s.grounded = false;
+              continue;
+            }
+            if (
+              m.environmentVersion === 3 &&
+              o.kind === "elastic" &&
+              into < -30
+            ) {
+              const bounce = -into * (o.restitution ?? 0.8);
+              s.vx += n.x * bounce;
+              s.vy += n.y * bounce;
+              s.grounded = false;
+              continue;
+            }
             if (n.y < -0.45) {
               s.grounded = true;
-              if (o.kind === "spring" || o.kind === "elastic") {
+              if (
+                m.environmentVersion !== 3 &&
+                (o.kind === "spring" || o.kind === "elastic")
+              ) {
                 const impulse = o.kind === "spring" ? 520 : 410;
                 s.vx += n.x * impulse;
                 s.vy += n.y * impulse;
@@ -513,6 +631,18 @@ export class Simulator implements Environment {
       }
       if (s.collision) reward -= 3;
     }
+    if (m.environmentVersion === 3) {
+      const marker = m.objects.find(
+        (o) => o.kind === "respawn" && circleObject(o, s, 11),
+      );
+      if (marker)
+        this.respawnPoint = {
+          x: marker.x + marker.w / 2,
+          y: marker.y + marker.h / 2,
+          angle: marker.angle ?? 0,
+        };
+    }
+    if (this.manual) s.respawns = this.respawnCount;
     s.steps++;
     if (s.steps >= this.limit) s.done = true;
     s.reward += reward;

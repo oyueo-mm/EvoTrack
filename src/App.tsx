@@ -35,6 +35,7 @@ import {
   type SavedModel,
   type TrackMap,
 } from "./core/types";
+import { HeroDemo } from "./components/HeroDemo";
 import { World, type ViewOptions } from "./components/World";
 import { Chart } from "./components/Chart";
 import { WorkspaceTransfer } from "./components/WorkspaceTransfer";
@@ -116,6 +117,22 @@ export default function App() {
       null,
     ),
     [sidebar, setSidebar] = useState(false),
+    [navCollapsed, setNavCollapsed] = useState(
+      () => localStorage.getItem("evotrack-nav-collapsed") === "true",
+    ),
+    [navWidth, setNavWidth] = useState(() =>
+      Math.max(
+        192,
+        Math.min(
+          360,
+          Number(localStorage.getItem("evotrack-nav-width")) || 216,
+        ),
+      ),
+    ),
+    [sessionMap, setSessionMap] = useState<TrackMap | null>(null),
+    [draftSession, setDraftSession] = useState(false),
+    [saveChoice, setSaveChoice] = useState(false),
+    [showTutorials, setShowTutorials] = useState(false),
     [compactNav, setCompactNav] = useState(() => window.innerWidth <= 1100),
     [light, setLight] = useState(
       () => localStorage.getItem("evotrack-theme") !== "dark",
@@ -128,6 +145,33 @@ export default function App() {
     [evaluateModel, setEvaluateModel] = useState<SavedModel | null>(null),
     [evaluationMap, setEvaluationMap] = useState(""),
     [evaluating, setEvaluating] = useState(false);
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  const route = useRef<(p: Page) => void>(() => {});
+  const baseline = useRef(structuredClone(EXAMPLE_MAPS[2]));
+  const dirty = JSON.stringify(map) !== JSON.stringify(baseline.current);
+  const guard = useRef<(p: Page) => boolean>(() => true);
+  guard.current = (p) =>
+    page !== "editor" ||
+    p === "editor" ||
+    !dirty ||
+    window.confirm(
+      "저장되지 않은 변경이 있습니다. 저장하지 않고 나가시겠습니까?",
+    );
+  useEffect(() => {
+    const unload = (e: BeforeUnloadEvent) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", unload);
+    return () => window.removeEventListener("beforeunload", unload);
+  }, [dirty]);
+  useEffect(() => {
+    localStorage.setItem("evotrack-nav-collapsed", String(navCollapsed));
+    localStorage.setItem("evotrack-nav-width", String(navWidth));
+  }, [navCollapsed, navWidth]);
   const undo = useRef<TrackMap[]>([]),
     hydrated = useRef(false),
     redo = useRef<TrackMap[]>([]),
@@ -181,9 +225,11 @@ export default function App() {
         setMap((current) => {
           const stored = a.find((m) => m.id === current.id);
           const example = EXAMPLE_MAPS.find((m) => m.id === current.id);
-          return stored && JSON.stringify(current) === JSON.stringify(example)
-            ? validateMap(stored)
-            : current;
+          if (stored && JSON.stringify(current) === JSON.stringify(example)) {
+            baseline.current = validateMap(stored);
+            return baseline.current;
+          }
+          return current;
         });
       }
       setModels(b.map(validateModel));
@@ -207,7 +253,7 @@ export default function App() {
     void refresh();
     const hash = () => {
       const p = location.hash.slice(1) as Page;
-      if (NAV.some((n) => n.id === p)) setPage(p);
+      if (NAV.some((n) => n.id === p)) route.current(p);
     };
     window.addEventListener("hashchange", hash);
     return () => {
@@ -216,20 +262,40 @@ export default function App() {
     };
   }, []);
   const navigate = (p: Page) => {
+    if (!guard.current(p)) {
+      window.history.replaceState(null, "", "#" + pageRef.current);
+      return;
+    }
+    if (
+      p === "editor" &&
+      (training.active || training.paused) &&
+      !draftSession
+    ) {
+      const original = sessionMap ?? map;
+      setSessionMap(structuredClone(original));
+      const fork = {
+        ...structuredClone(original),
+        id: crypto.randomUUID(),
+        name: original.name + " · 편집본",
+      };
+      baseline.current = structuredClone(fork);
+      setMap(fork);
+      setDraftSession(true);
+      undo.current = [];
+      redo.current = [];
+    }
     setPage(p);
     location.hash = p;
     setSidebar(false);
   };
+  route.current = navigate;
   const histories = training.histories,
     snapshot = training.snapshots[tab],
     stats = snapshot?.stats;
   const locked = training.active || training.paused;
   const lastEditGroup = useRef<string | undefined>(undefined);
   function edit(m: TrackMap, group?: string) {
-    if (locked) {
-      notify("맵을 수정하기 전에 학습을 중지하세요.", true);
-      return;
-    }
+    if (locked && page !== "editor") return;
     // A cancelled touch gesture restores its initial snapshot without leaving a
     // no-op undo entry or marking the map dirty (e.g. a second finger starts pinch).
     if (
@@ -250,19 +316,24 @@ export default function App() {
     setMap({ ...m, updatedAt: new Date().toISOString() });
   }
   function chooseMap(m: TrackMap) {
-    if (locked) {
-      notify("맵을 변경하기 전에 학습을 중지하세요.", true);
+    if (locked && page !== "editor") {
+      notify("학습 중에는 편집 화면에서 편집본을 선택하세요.", true);
       return;
     }
-    training.clear();
+    if (!locked) {
+      training.clear();
+      setSessionMap(null);
+      setDraftSession(false);
+    }
+    baseline.current = structuredClone(m);
     setMap(structuredClone(m));
-    if (m.recommendedHorizon)
+    if (!locked && m.recommendedHorizon)
       setConfig((c) => ({ ...c, horizon: m.recommendedHorizon! }));
     undo.current = [];
     redo.current = [];
   }
   function history(forward = false) {
-    if (locked) return;
+    if (locked && page !== "editor") return;
     lastEditGroup.current = undefined;
     const from = forward ? redo : undo,
       to = forward ? undo : redo;
@@ -272,10 +343,27 @@ export default function App() {
       setMap(last);
     }
   }
-  async function saveMap() {
+  async function saveMap(apply?: "next" | "now") {
     try {
       const checked = validateMap(map);
+      if (locked && draftSession && !apply) {
+        setSaveChoice(true);
+        return;
+      }
       await put("maps", checked);
+      baseline.current = structuredClone(checked);
+      setSaveChoice(false);
+      if (apply === "now") {
+        setSessionMap(structuredClone(checked));
+        training.start(
+          checked,
+          config,
+          method === "both" ? ["GA", "PPO"] : [method],
+        );
+        setDraftSession(false);
+        setPage("lab");
+        location.hash = "lab";
+      }
       await refresh();
       notify("맵을 이 브라우저에 저장했습니다.");
     } catch (e) {
@@ -286,6 +374,8 @@ export default function App() {
     try {
       validateMap(map);
       validateConfig(config);
+      setSessionMap(structuredClone(map));
+      setDraftSession(false);
       training.start(map, config, method === "both" ? ["GA", "PPO"] : [method]);
       setTab(method === "PPO" ? "PPO" : "GA");
     } catch (e) {
@@ -297,18 +387,19 @@ export default function App() {
       notify("먼저 학습을 실행하세요.", true);
       return;
     }
+    const source = sessionMap ?? map;
     const m: SavedModel = {
       id: crypto.randomUUID(),
-      name: map.name + " · " + tab + " policy",
+      name: source.name + " · " + tab + " policy",
       kind: "inference",
       algorithm: tab,
-      mode: map.mode,
-      schemas: schemasFor(map),
+      mode: source.mode,
+      schemas: schemasFor(source),
       policy: snapshot.policy,
       config: { ...config },
       stats: snapshot.stats,
-      mapId: map.id,
-      trainingMap: structuredClone(map),
+      mapId: source.id,
+      trainingMap: structuredClone(source),
       createdAt: new Date().toISOString(),
     };
     try {
@@ -340,13 +431,14 @@ export default function App() {
   }
   async function saveExperiment() {
     if (!stats) return;
+    const source = sessionMap ?? map;
     try {
       await put("experiments", {
         id: crypto.randomUUID(),
-        name: map.name + " · training",
+        name: source.name + " · training",
         createdAt: new Date().toISOString(),
-        mapId: map.id,
-        mapName: map.name,
+        mapId: source.id,
+        mapName: source.name,
         algorithm: method,
         result: { config, histories },
       });
@@ -370,6 +462,8 @@ export default function App() {
       setConfig(model.config);
       setMethod(model.algorithm);
       setTab(model.algorithm);
+      setSessionMap(structuredClone(target));
+      setDraftSession(false);
       training.start(target, model.config, [model.algorithm], model);
       navigate("lab");
       notify(
@@ -440,8 +534,10 @@ export default function App() {
       className={
         "app " +
         (light ? "light " : "") +
-        (page === "editor" ? "editor-mode" : "")
+        (page === "editor" ? "editor-mode " : "") +
+        (navCollapsed ? "nav-collapsed" : "")
       }
+      style={{ "--nav-width": `${navWidth}px` } as React.CSSProperties}
     >
       <aside
         className={"sidebar " + (sidebar ? "open" : "")}
@@ -449,7 +545,14 @@ export default function App() {
         aria-hidden={(compactNav || page === "editor") && !sidebar}
         aria-label="주요 메뉴"
       >
-        <a className="brand" href="#home" onClick={() => navigate("home")}>
+        <a
+          className="brand"
+          href="#home"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate("home");
+          }}
+        >
           <span className="brand-symbol">
             <GitBranch size={24} />
           </span>
@@ -476,12 +579,13 @@ export default function App() {
         <nav>
           {NAV.slice(0, 4).map(({ id, label, icon: Icon }) => (
             <button
+              aria-label={label}
               className={page === id ? "active" : ""}
               onClick={() => navigate(id)}
               key={id}
             >
               <Icon size={18} />
-              {label}
+              <span className="nav-text">{label}</span>
               {page === id && <span className="nav-dot" />}
             </button>
           ))}
@@ -490,12 +594,13 @@ export default function App() {
         <nav>
           {NAV.slice(4).map(({ id, label, icon: Icon }) => (
             <button
+              aria-label={label}
               className={page === id ? "active" : ""}
               onClick={() => navigate(id)}
               key={id}
             >
               <Icon size={18} />
-              {label}
+              <span className="nav-text">{label}</span>
               {id === "maps" && <span className="count">{allMaps.length}</span>}
               {id === "models" && (
                 <span className="count">{models.length}</span>
@@ -524,6 +629,38 @@ export default function App() {
             />
           </div>
         </div>
+        <div
+          className="nav-resizer"
+          role="separator"
+          aria-label="사이드바 너비"
+          aria-orientation="vertical"
+          aria-valuemin={192}
+          aria-valuemax={360}
+          aria-valuenow={navWidth}
+          tabIndex={0}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            if (e.currentTarget.hasPointerCapture(e.pointerId))
+              setNavWidth(Math.max(192, Math.min(360, e.clientX)));
+          }}
+          onPointerUp={(e) => {
+            if (e.currentTarget.hasPointerCapture(e.pointerId))
+              e.currentTarget.releasePointerCapture(e.pointerId);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+              e.preventDefault();
+              setNavWidth((n) =>
+                Math.max(
+                  192,
+                  Math.min(360, n + (e.key === "ArrowRight" ? 16 : -16)),
+                ),
+              );
+            }
+          }}
+        />
       </aside>
       {sidebar && compactNav && (
         <button
@@ -537,7 +674,9 @@ export default function App() {
           <IconButton
             icon={Menu}
             label="메뉴"
-            onClick={() => setSidebar(!sidebar)}
+            onClick={() =>
+              compactNav ? setSidebar(!sidebar) : setNavCollapsed(!navCollapsed)
+            }
           />
           <div className="breadcrumb">
             작업 공간 <ChevronRight size={13} />
@@ -556,6 +695,11 @@ export default function App() {
         <main>
           {page === "editor" && (
             <div className="editor-return">
+              <IconButton
+                icon={Menu}
+                label="메뉴"
+                onClick={() => setSidebar(!sidebar)}
+              />
               <button className="text-btn" onClick={() => navigate("home")}>
                 EvoTrack <span>/ 작업 공간</span>
               </button>
@@ -592,9 +736,11 @@ export default function App() {
             <div className="heading-actions">
               {(page === "lab" || page === "editor") && (
                 <>
-                  <button className="button" onClick={saveMap}>
-                    <Save size={15} /> 맵 저장
-                  </button>
+                  {page === "lab" && (
+                    <button className="button" onClick={() => void saveMap()}>
+                      <Save size={15} /> 맵 저장
+                    </button>
+                  )}
                   <button
                     className="button"
                     onClick={() => {
@@ -640,10 +786,21 @@ export default function App() {
               )}
             </div>
           </div>
+          {draftSession && (
+            <div className="draft-session-banner">
+              학습 원본: {sessionMap?.name} · 편집본의 변경은 실행 중인 학습에
+              영향을 주지 않습니다.{" "}
+              {page === "lab" && !locked && (
+                <button className="button primary" onClick={start}>
+                  편집본으로 새 학습
+                </button>
+              )}
+            </div>
+          )}
           {(page === "lab" || page === "editor") && (
             <Studio
               editing={page === "editor"}
-              map={map}
+              map={page === "editor" ? map : (sessionMap ?? map)}
               maps={allMaps}
               config={config}
               onConfig={setConfig}
@@ -689,7 +846,7 @@ export default function App() {
                   </button>
                 </div>
                 <div className="welcome-visual">
-                  <World map={EXAMPLE_MAPS[2]} options={options} />
+                  <HeroDemo />
                 </div>
               </section>
               <div className="section-heading">
@@ -699,22 +856,24 @@ export default function App() {
                 </button>
               </div>
               <div className="library-grid">
-                {[EXAMPLE_MAPS[0], EXAMPLE_MAPS[2], EXAMPLE_MAPS[4]].map(
-                  (m) => (
-                    <MapCard
-                      key={m.id}
-                      map={m}
-                      onOpen={() => {
-                        chooseMap(m);
-                        navigate("lab");
-                      }}
-                      onEdit={() => {
-                        chooseMap(m);
-                        navigate("editor");
-                      }}
-                    />
-                  ),
-                )}
+                {[
+                  EXAMPLE_MAPS.find((m) => m.id === "r-sparse-expert")!,
+                  EXAMPLE_MAPS.find((m) => m.id === "b-timing-hazards")!,
+                  EXAMPLE_MAPS.find((m) => m.id === "b-bomb-relay")!,
+                ].map((m) => (
+                  <MapCard
+                    key={m.id}
+                    map={m}
+                    onOpen={() => {
+                      chooseMap(m);
+                      navigate("lab");
+                    }}
+                    onEdit={() => {
+                      chooseMap(m);
+                      navigate("editor");
+                    }}
+                  />
+                ))}
               </div>
             </>
           )}
@@ -744,8 +903,22 @@ export default function App() {
                   <Upload size={15} /> JSON 가져오기
                 </button>
               </div>
+              <label className="tutorial-filter">
+                <input
+                  type="checkbox"
+                  checked={showTutorials}
+                  onChange={(e) => setShowTutorials(e.target.checked)}
+                />
+                튜토리얼 맵도 보기 (원본 유지)
+              </label>
               <div className="library-grid">
                 {allMaps
+                  .filter(
+                    (m) =>
+                      showTutorials ||
+                      m.category !== "tutorial" ||
+                      maps.some((saved) => saved.id === m.id),
+                  )
                   .filter(
                     (m) =>
                       difficulty === "all" ||
@@ -829,7 +1002,9 @@ export default function App() {
                           환경 v{m.schemas.environment} ·{" "}
                           {m.schemas.environment === 1
                             ? "이전 판정 규칙"
-                            : "방향 게이트·회전 충돌"}
+                            : m.schemas.environment === 3
+                              ? "방향 게이트·회전 충돌·발사/탄성 계수"
+                              : "방향 게이트·회전 충돌"}
                           {m.kind === "checkpoint" && m.algorithm === "GA"
                             ? " · 세대 경계 재개"
                             : ""}
@@ -908,7 +1083,7 @@ export default function App() {
                     <div className="comparison-world">
                       <World
                         animate={training.statuses[a] === "running"}
-                        map={map}
+                        map={sessionMap ?? map}
                         snapshot={training.snapshots[a]}
                         options={options}
                         color={a === "GA" ? "#a7e879" : "#9fafff"}
@@ -1055,6 +1230,37 @@ export default function App() {
         hidden
         onChange={(e) => void importFile(e.target.files?.[0])}
       />
+      {saveChoice && (
+        <div className="modal-backdrop">
+          <section
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="학습 중 편집본 저장"
+          >
+            <h2>편집본 적용 시점</h2>
+            <p>
+              실행 중인 학습은 원본 맵을 계속 사용합니다. 지금 반영하려면 새
+              맵으로 세션을 재시작해야 합니다.
+            </p>
+            <button
+              className="button primary"
+              onClick={() => void saveMap("next")}
+            >
+              저장 · 다음 세션부터 적용
+            </button>
+            <button className="button" onClick={() => void saveMap("now")}>
+              저장 · 지금 세션 재시작
+            </button>
+            <button
+              className="button quiet"
+              onClick={() => setSaveChoice(false)}
+            >
+              계속 편집
+            </button>
+          </section>
+        </div>
+      )}
       {notice && (
         <div
           className={"toast " + (notice.error ? "error" : "")}
@@ -1112,6 +1318,12 @@ export default function App() {
                   v{evaluateModel.schemas.environment})
                 </option>
                 {allMaps
+                  .filter(
+                    (m) =>
+                      showTutorials ||
+                      m.category !== "tutorial" ||
+                      maps.some((saved) => saved.id === m.id),
+                  )
                   .filter(
                     (m) =>
                       m.mode === evaluateModel.mode &&

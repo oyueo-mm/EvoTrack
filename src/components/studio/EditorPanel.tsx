@@ -1,3 +1,4 @@
+import { ELEMENT_INFO } from "../../core/elements";
 import { Copy, Trash2 } from "lucide-react";
 import type { TrackMap } from "../../core/types";
 import {
@@ -96,6 +97,13 @@ export function EditorPanel({
         >
           {selection && p ? (
             <>
+              <p className="element-description">
+                {object
+                  ? ELEMENT_INFO[object.kind].description
+                  : selection.kind === "checkpoint"
+                    ? ELEMENT_INFO.checkpoint.description
+                    : "요소의 위치를 직접 입력하거나 캔버스에서 드래그하세요."}
+              </p>
               <div className="selection-tag">
                 {selection.kind === "road"
                   ? "제어점 " + (selection.index + 1)
@@ -109,6 +117,8 @@ export function EditorPanel({
                           spike: "가시",
                           spring: "점프대",
                           elastic: "탄성 발판",
+                          bomb: "폭탄",
+                          respawn: "부활 지점",
                         }[object!.kind]
                       : title}
               </div>
@@ -169,7 +179,7 @@ export function EditorPanel({
                 />
               )}
               {selection.kind === "checkpoint" &&
-                map.environmentVersion === 2 && (
+                (map.environmentVersion ?? 1) >= 2 && (
                   <>
                     <NumberField
                       label="게이트 너비"
@@ -220,7 +230,77 @@ export function EditorPanel({
                 )}
               {object && (
                 <>
-                  {map.environmentVersion === 2 && (
+                  {(object.kind === "spring" || object.kind === "elastic") && (
+                    <>
+                      {map.environmentVersion !== 3 && (
+                        <p className="helper">
+                          이전 환경의 고정 반발 규칙입니다. 확장 환경 v3
+                          편집본을 만들면 계수를 바꿀 수 있습니다.
+                        </p>
+                      )}
+                      {object.kind === "spring" ? (
+                        <>
+                          <NumberField
+                            label="발사 세기"
+                            value={object.launchStrength ?? 520}
+                            min={50}
+                            max={1200}
+                            unit="px/s"
+                            disabled={disabled || map.environmentVersion !== 3}
+                            onChange={(launchStrength) =>
+                              onChange({
+                                ...map,
+                                objects: map.objects.map((o) =>
+                                  o.id === object.id
+                                    ? { ...o, launchStrength }
+                                    : o,
+                                ),
+                              })
+                            }
+                          />
+                          <NumberField
+                            label="상대 발사 방향"
+                            value={
+                              ((object.launchAngle ?? -Math.PI / 2) * 180) /
+                              Math.PI
+                            }
+                            min={-360}
+                            max={360}
+                            unit="°"
+                            disabled={disabled || map.environmentVersion !== 3}
+                            onChange={(n) =>
+                              onChange({
+                                ...map,
+                                objects: map.objects.map((o) =>
+                                  o.id === object.id
+                                    ? { ...o, launchAngle: (n * Math.PI) / 180 }
+                                    : o,
+                                ),
+                              })
+                            }
+                          />
+                        </>
+                      ) : (
+                        <NumberField
+                          label="탄성 계수"
+                          value={object.restitution ?? 0.8}
+                          min={0}
+                          max={2}
+                          step={0.05}
+                          disabled={disabled || map.environmentVersion !== 3}
+                          onChange={(restitution) =>
+                            onChange({
+                              ...map,
+                              objects: map.objects.map((o) =>
+                                o.id === object.id ? { ...o, restitution } : o,
+                              ),
+                            })
+                          }
+                        />
+                      )}
+                    </>
+                  )}
+                  {(map.environmentVersion ?? 1) >= 2 && (
                     <NumberField
                       label="객체 회전"
                       value={Math.round(((object.angle ?? 0) * 180) / Math.PI)}

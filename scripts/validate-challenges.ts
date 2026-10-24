@@ -1,10 +1,11 @@
 import { performance } from "node:perf_hooks";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { UX_MAPS } from "../src/core/ux-maps";
 import { CHALLENGE_MAPS } from "../src/core/challenge-maps";
 import { validateMap } from "../src/core/maps";
 import { demonstrate } from "../src/core/demonstrations";
 const report = [];
-for (const map of CHALLENGE_MAPS) {
+for (const map of [...CHALLENGE_MAPS, ...UX_MAPS]) {
   validateMap(map);
   const before = performance.now(),
     r = demonstrate(map);

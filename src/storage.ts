@@ -222,12 +222,157 @@ export function download(value: unknown, name: string) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export async function readJSON(file: File) {
-  if (file.size > 20 * 1024 * 1024)
-    throw Error("20 MB 이하의 JSON 파일만 가져올 수 있습니다.");
+export async function readJSON(file: File, limitMB = 20) {
+  if (file.size > limitMB * 1024 * 1024)
+    throw Error(`${limitMB} MB 이하의 JSON 파일만 가져올 수 있습니다.`);
   try {
     return JSON.parse(await file.text());
   } catch {
     throw Error("JSON 파일을 읽을 수 없습니다.");
   }
+}
+
+const STORES: Store[] = ["maps", "models", "experiments"];
+export interface Workspace {
+  format?: "evotrack-workspace";
+  version?: 1;
+  schemas?: typeof SCHEMAS;
+  maps: TrackMap[];
+  models: SavedModel[];
+  experiments: Experiment[];
+}
+export function validateWorkspace(value: unknown): Workspace {
+  if (!value || typeof value !== "object")
+    throw Error("작업 공간 파일이 아닙니다.");
+  const w = value as Workspace;
+  // Unversioned exports from v0.1 remain supported.
+  const versioned = "format" in w || "version" in w || "schemas" in w;
+  if (
+    versioned &&
+    (w.format !== "evotrack-workspace" ||
+      w.version !== 1 ||
+      !w.schemas ||
+      Object.entries(SCHEMAS).some(
+        ([k, v]) => w.schemas?.[k as keyof typeof SCHEMAS] !== v,
+      ))
+  )
+    throw Error("지원하지 않는 작업 공간 버전 또는 스키마입니다.");
+  for (const store of STORES) {
+    if (!Array.isArray(w[store]) || w[store].length > 10000)
+      throw Error("작업 공간 목록이 올바르지 않습니다: " + store);
+    const ids = new Set<string>();
+    for (const item of w[store]) {
+      if (
+        !item ||
+        typeof item.id !== "string" ||
+        !item.id.trim() ||
+        ids.has(item.id)
+      )
+        throw Error("파일 안에 잘못되거나 중복된 ID가 있습니다: " + store);
+      ids.add(item.id);
+      if (store === "maps") validateMap(item);
+      if (store === "models") validateModel(item);
+      if (store === "experiments") {
+        const e = item as Experiment;
+        if (
+          ![e.name, e.createdAt, e.mapId, e.mapName, e.algorithm].every(
+            (v) => typeof v === "string",
+          ) ||
+          !Number.isFinite(Date.parse(e.createdAt)) ||
+          !["GA", "PPO", "both"].includes(e.algorithm) ||
+          e.result === undefined
+        )
+          throw Error("실험 기록이 올바르지 않습니다.");
+      }
+    }
+  }
+  return structuredClone(w);
+}
+export async function exportWorkspace(): Promise<Workspace> {
+  const db = await database();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORES, "readonly");
+    const w: Workspace = {
+      format: "evotrack-workspace",
+      version: 1,
+      schemas: SCHEMAS,
+      maps: [],
+      models: [],
+      experiments: [],
+    };
+    for (const store of STORES) {
+      const r = tx.objectStore(store).getAll();
+      r.onsuccess = () => {
+        (w[store] as unknown[]) = r.result;
+      };
+    }
+    tx.oncomplete = () => {
+      db.close();
+      resolve(w);
+    };
+    tx.onabort = () => {
+      db.close();
+      reject(Error("작업 공간을 읽지 못했습니다."));
+    };
+  });
+}
+export function workspaceSummary(incoming: Workspace, existing: Workspace) {
+  return STORES.map((store) => {
+    const ids = new Set(existing[store].map((item) => item.id));
+    return {
+      store,
+      count: incoming[store].length,
+      conflicts: incoming[store].filter((item) => ids.has(item.id)).length,
+    };
+  });
+}
+export async function restoreWorkspace(
+  value: unknown,
+  conflict: "skip" | "overwrite",
+  reviewed: Workspace,
+) {
+  const incoming = validateWorkspace(value);
+  const db = await database();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORES, "readwrite");
+    let failure = "가져오기에 실패했습니다. 기존 데이터는 보존되었습니다.";
+    let remaining = STORES.length;
+    const current: Workspace = { maps: [], models: [], experiments: [] };
+    for (const store of STORES) {
+      const r = tx.objectStore(store).getAll();
+      r.onsuccess = () => {
+        (current[store] as unknown[]) = r.result;
+        if (--remaining) return;
+        try {
+          if (
+            STORES.some(
+              (s) => JSON.stringify(current[s]) !== JSON.stringify(reviewed[s]),
+            )
+          ) {
+            failure =
+              "저장소가 변경되었습니다. 파일을 다시 선택해 개수를 확인하세요.";
+            tx.abort();
+            return;
+          }
+          for (const s of STORES) {
+            const ids = new Set(current[s].map((item) => item.id));
+            for (const item of incoming[s]) {
+              if (conflict === "skip" && ids.has(item.id)) continue;
+              tx.objectStore(s).put(item);
+            }
+          }
+        } catch {
+          tx.abort();
+        }
+      };
+    }
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onabort = () => {
+      db.close();
+      reject(Error(failure));
+    };
+  });
 }

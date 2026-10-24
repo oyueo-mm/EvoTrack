@@ -117,10 +117,14 @@ test("editor, GA/PPO workers, pause/resume, storage, checkpoint and evaluation",
     .first()
     .getByRole("button", { name: "평가", exact: true })
     .click();
+  await page.getByLabel("평가 환경").selectOption(EXAMPLE_MAPS[2].id);
   await page
     .getByRole("button", { name: "3개 시드로 평가", exact: true })
     .click();
   await expect(page.locator(".evaluation-result")).toContainText("평균 보상");
+  await expect(page.locator(".evaluation-result")).toContainText(
+    "HELD-OUT MAP EVALUATION",
+  );
   await page.getByRole("button", { name: "평가 닫기" }).click();
   await page
     .locator(".model-card")

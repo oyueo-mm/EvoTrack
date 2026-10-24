@@ -153,6 +153,7 @@ test("editor width, semantic eraser, gesture undo, cursor zoom and pan", async (
   await expect.poll(() => canvas.getAttribute("data-pan-x")).not.toBe("0.00");
   await page.getByRole("button", { name: "화면 맞춤", exact: true }).click();
   await page.getByRole("button", { name: "도로 그리기", exact: true }).click();
+  await page.getByLabel("경로 제작 방식").selectOption("replace");
   await canvas.scrollIntoViewIfNeeded();
   r = (await canvas.boundingBox())!;
   const p = (x: number, y: number) => {
@@ -327,11 +328,15 @@ test("touch pinch, mobile properties sheet and navigation are usable", async ({
     await expect(
       page.getByRole("heading", { name: "요소와 속성", exact: true }),
     ).toBeVisible();
-    await page.getByLabel("맵 이름", { exact: true }).fill("모바일 편집");
+    await page.getByRole("tab", { name: "맵 설정", exact: true }).click();
+    await page
+      .getByLabel("맵 이름 (설정)", { exact: true })
+      .fill("모바일 편집");
     await page.getByRole("button", { name: "패널 닫기", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "속성 열기", exact: true }),
     ).toBeVisible();
+    await page.getByRole("button", { name: "학습하기", exact: true }).click();
     await page.getByRole("button", { name: "메뉴", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "메뉴 닫기", exact: true }),

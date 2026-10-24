@@ -7,12 +7,51 @@ import {
   hitSelection,
   moveSelection,
   removeSelection,
+  remapCheckpointLayers,
+  smoothRoad,
+  hitSelections,
   worldPoint,
   zoomAt,
 } from "../src/core/editor";
 import { DEFAULT_CONFIG } from "../src/core/types";
 import { validateConfig } from "../src/storage";
 describe("editor geometry and camera", () => {
+  it("bakes smooth corners into bounded, shared collision/render geometry", () => {
+    const map = structuredClone(EXAMPLE_MAPS[2]);
+    const before = JSON.stringify(map);
+    const next = smoothRoad(map);
+    expect(next.road.length).toBeGreaterThan(map.road.length);
+    expect(next.road[0]).toEqual(map.road[0]);
+    expect(next.road.at(-1)).toEqual(map.road.at(-1));
+    expect(
+      next.road.every(
+        (p) => p.x >= 0 && p.x <= map.width && p.y >= 0 && p.y <= map.height,
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(map)).toBe(before);
+    expect(() => validateMap(next)).not.toThrow();
+    expect(smoothRoad({ ...map, draft: { roadBreaks: [1] } }).road).toEqual(
+      map.road,
+    );
+  });
+  it("cycles overlapping hits and protects a checkpoint after earlier points are erased", () => {
+    const map = structuredClone(EXAMPLE_MAPS[0]);
+    map.checkpoints = [
+      { x: 200, y: 320 },
+      { x: 250, y: 320 },
+    ];
+    const locked = new Set(["checkpoint-at:250:320"]);
+    const first = eraseAt(map, { x: 200, y: 320 }, 15, locked);
+    const second = eraseAt(first, { x: 250, y: 320 }, 15, locked);
+    expect(second.checkpoints).toEqual([{ x: 250, y: 320 }]);
+    expect(
+      remapCheckpointLayers(map, first, new Set(["checkpoint:1"])),
+    ).toEqual(new Set(["checkpoint:0"]));
+    expect(hitSelections(map, map.checkpoints[0]).map((s) => s.kind)).toEqual([
+      "checkpoint",
+      "road",
+    ]);
+  });
   it("rejects malformed imported draft metadata before rendering", () => {
     for (const draft of [
       { roadBreaks: 5 },

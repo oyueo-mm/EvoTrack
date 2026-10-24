@@ -162,20 +162,33 @@ export function removeSelection(map: TrackMap, s: Selection): TrackMap {
   }
   return m;
 }
-export function eraseAt(map: TrackMap, p: Point, radius: number): TrackMap {
+export function eraseAt(
+  map: TrackMap,
+  p: Point,
+  radius: number,
+  protectedLayers: ReadonlySet<string> = new Set(),
+): TrackMap {
   const m = structuredClone(map),
     near = (a: Point) => Math.hypot(a.x - p.x, a.y - p.y) <= radius;
   m.objects = m.objects.filter(
     (o) =>
+      protectedLayers.has("object:" + o.id) ||
       Math.hypot(
         p.x - Math.max(o.x, Math.min(p.x, o.x + o.w)),
         p.y - Math.max(o.y, Math.min(p.y, o.y + o.h)),
       ) > radius,
   );
-  m.checkpoints = m.checkpoints.filter((a) => !near(a));
-  if (near(m.start)) m.draft = { ...m.draft, missingStart: true };
-  if (near(m.goal)) m.draft = { ...m.draft, missingGoal: true };
-  if (m.mode === "racing") {
+  m.checkpoints = m.checkpoints.filter(
+    (a, i) =>
+      protectedLayers.has("checkpoint:" + i) ||
+      protectedLayers.has(`checkpoint-at:${a.x}:${a.y}`) ||
+      !near(a),
+  );
+  if (!protectedLayers.has("start") && near(m.start))
+    m.draft = { ...m.draft, missingStart: true };
+  if (!protectedLayers.has("goal") && near(m.goal))
+    m.draft = { ...m.draft, missingGoal: true };
+  if (m.mode === "racing" && !protectedLayers.has("road")) {
     const oldBreaks = new Set(m.draft?.roadBreaks ?? []);
     m.road.slice(1).forEach((b, i) => {
       if (segmentDistance(p, m.road[i], b) <= radius) oldBreaks.add(i + 1);
@@ -187,4 +200,106 @@ export function eraseAt(map: TrackMap, p: Point, radius: number): TrackMap {
     );
   }
   return m;
+}
+
+/** Session-only layer keys; never added to the persisted map format. */
+export function selectionKey(s: Selection): string {
+  return s.kind === "object"
+    ? "object:" + s.id
+    : s.kind === "checkpoint"
+      ? "checkpoint:" + s.index
+      : s.kind;
+}
+export function remapCheckpointLayers(
+  previous: TrackMap,
+  next: TrackMap,
+  keys: ReadonlySet<string>,
+): Set<string> {
+  return new Set(
+    [...keys].flatMap((key) => {
+      if (!key.startsWith("checkpoint:")) return [key];
+      const p = previous.checkpoints[Number(key.slice(11))];
+      const index = p
+        ? next.checkpoints.findIndex((q) => q.x === p.x && q.y === p.y)
+        : -1;
+      return index < 0 ? [] : ["checkpoint:" + index];
+    }),
+  );
+}
+export function hitSelections(
+  map: TrackMap,
+  p: Point,
+  tolerance = 15,
+): Selection[] {
+  const hits: Selection[] = [];
+  const near = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y) <= tolerance;
+  if (!map.draft?.missingStart && near(map.start)) hits.push({ kind: "start" });
+  if (!map.draft?.missingGoal && near(map.goal)) hits.push({ kind: "goal" });
+  map.checkpoints.forEach((q, index) => {
+    if (near(q)) hits.push({ kind: "checkpoint", index });
+  });
+  for (const o of [...map.objects].reverse())
+    if (
+      p.x >= o.x - tolerance / 3 &&
+      p.x <= o.x + o.w + tolerance / 3 &&
+      p.y >= o.y - tolerance / 3 &&
+      p.y <= o.y + o.h + tolerance / 3
+    )
+      hits.push({ kind: "object", id: o.id });
+  const road = hitSelection(
+    {
+      ...map,
+      objects: [],
+      checkpoints: [],
+      draft: { ...map.draft, missingStart: true, missingGoal: true },
+    },
+    p,
+    tolerance,
+  );
+  if (road) hits.push(road);
+  return hits;
+}
+/** Bake corner cutting into map geometry so physics and rendering use identical segments. */
+export function smoothRoad(map: TrackMap): TrackMap {
+  if (
+    map.road.length < 3 ||
+    map.road.length > 500 ||
+    map.draft?.roadBreaks?.length
+  )
+    return map;
+  const road: Point[] = [map.road[0]];
+  for (let i = 0; i < map.road.length - 1; i++) {
+    const a = map.road[i],
+      b = map.road[i + 1];
+    road.push(
+      { x: a.x * 0.75 + b.x * 0.25, y: a.y * 0.75 + b.y * 0.25 },
+      { x: a.x * 0.25 + b.x * 0.75, y: a.y * 0.25 + b.y * 0.75 },
+    );
+  }
+  road.push(map.road.at(-1)!);
+  const checkpoints = map.checkpoints.map((p) => {
+    let closest = p,
+      distance = Infinity;
+    for (let i = 1; i < road.length; i++) {
+      const a = road[i - 1],
+        b = road[i],
+        dx = b.x - a.x,
+        dy = b.y - a.y;
+      const t = Math.max(
+        0,
+        Math.min(
+          1,
+          ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1),
+        ),
+      );
+      const q = { x: a.x + t * dx, y: a.y + t * dy },
+        d = Math.hypot(q.x - p.x, q.y - p.y);
+      if (d < distance) {
+        distance = d;
+        closest = q;
+      }
+    }
+    return closest;
+  });
+  return { ...map, road, checkpoints };
 }

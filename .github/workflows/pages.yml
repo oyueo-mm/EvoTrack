@@ -69,4 +69,5 @@ jobs:
           retention-days: 7
           path: |
             .cache/deployment-qa/
+            .cache/ui-review/
             test-results/

@@ -40,6 +40,7 @@ import type { useTraining } from "../../hooks/useTraining";
 import { World, type Tool, type ViewOptions } from "../World";
 import { Chart } from "../Chart";
 import { RangeField, ToolButton, Toggle } from "../ui";
+import { EditorWorkspace } from "./EditorWorkspace";
 import { EditorPanel } from "./EditorPanel";
 import { TrainingPanel } from "./TrainingPanel";
 const fmt = (n: number | undefined, d = 0) =>
@@ -54,7 +55,7 @@ const statusText: Record<string, string> = {
   stopped: "중지됨",
   error: "오류",
 };
-interface Props {
+export interface Props {
   editing: boolean;
   map: TrackMap;
   maps: TrackMap[];
@@ -143,40 +144,6 @@ export function Studio({
       document.body.style.overflow = before;
     };
   }, [panel]);
-  useEffect(() => {
-    if (!editing) return;
-    const handler = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement ||
-        locked ||
-        testing
-      )
-        return;
-      const meta = e.ctrlKey || e.metaKey;
-      if (meta && e.code === "KeyZ") {
-        e.preventDefault();
-        if (e.shiftKey) onRedo();
-        else onUndo();
-      } else if (meta && e.code === "KeyY") {
-        e.preventDefault();
-        onRedo();
-      } else if (!meta) {
-        const shortcuts: Record<string, Tool> = {
-          KeyV: "select",
-          KeyP: "road",
-          KeyE: "erase",
-          KeyH: "pan",
-        };
-        if (shortcuts[e.code] && (e.code !== "KeyP" || map.mode === "racing"))
-          setTool(shortcuts[e.code]);
-        if (e.code === "Escape") setSelection(null);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [editing, locked, testing, map.mode, onUndo, onRedo]);
   let validation = "";
   try {
     validateMap(map);
@@ -255,6 +222,24 @@ export function Studio({
             ? 2
             : 0
     : -1;
+  if (editing)
+    return (
+      <EditorWorkspace
+        map={map}
+        maps={maps}
+        options={options}
+        config={config}
+        locked={locked}
+        onChange={onMapChange}
+        onChoose={onChooseMap}
+        onSave={onSaveMap}
+        onError={onError}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={onUndo}
+        onRedo={onRedo}
+      />
+    );
   return (
     <>
       <section className="experiment-context" aria-label="실험 대상">

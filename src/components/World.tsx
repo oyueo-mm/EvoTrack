@@ -4,7 +4,8 @@ import {
   baseScale,
   eraseAt,
   FIT_VIEW,
-  hitSelection,
+  hitSelections,
+  selectionKey,
   moveSelection,
   removeSelection,
   worldPoint,
@@ -53,13 +54,15 @@ export function drawWorld(
   ghost?: AgentState,
   stateOverride?: AgentState,
   editing = false,
+  hidden: ReadonlySet<string> = new Set(),
+  light = false,
 ) {
   const w = map.width,
     h = map.height;
   const state = stateOverride ?? snapshot?.state;
-  ctx.fillStyle = "#171c21";
+  ctx.fillStyle = light ? "#f7f8f6" : "#171c21";
   ctx.fillRect(0, 0, w, h);
-  ctx.strokeStyle = "#242c32";
+  ctx.strokeStyle = light ? "#e6e9e4" : "#242c32";
   ctx.lineWidth = 0.7;
   ctx.beginPath();
   for (let x = 0; x < w; x += 40) {
@@ -71,7 +74,7 @@ export function drawWorld(
     ctx.lineTo(w, y);
   }
   ctx.stroke();
-  if (map.mode === "racing" && map.road.length) {
+  if (map.mode === "racing" && map.road.length && !hidden.has("road")) {
     const path = () => {
       ctx.beginPath();
       map.road.forEach((p, i) =>
@@ -83,11 +86,11 @@ export function drawWorld(
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     path();
-    ctx.strokeStyle = "#53615f";
+    ctx.strokeStyle = light ? "#adb8ad" : "#53615f";
     ctx.lineWidth = map.roadWidth + 7;
     ctx.stroke();
     path();
-    ctx.strokeStyle = "#2a3438";
+    ctx.strokeStyle = light ? "#d9e0d6" : "#2a3438";
     ctx.lineWidth = map.roadWidth;
     ctx.stroke();
     path();
@@ -96,10 +99,18 @@ export function drawWorld(
     ctx.setLineDash([9, 11]);
     ctx.stroke();
     ctx.setLineDash([]);
+  }
+  if (map.mode === "racing") {
     map.checkpoints.forEach((p, i) => {
+      if (hidden.has("checkpoint:" + i)) return;
       const prev = map.checkpoints[i - 1] ?? map.start;
       const a = Math.atan2(p.y - prev.y, p.x - prev.x) + Math.PI / 2;
-      ctx.strokeStyle = i < (state?.checkpoint ?? 0) ? "#83a78c" : "#b6c6c066";
+      ctx.strokeStyle =
+        i < (state?.checkpoint ?? 0)
+          ? "#83a78c"
+          : light
+            ? "#849b8d"
+            : "#b6c6c066";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(
@@ -112,11 +123,12 @@ export function drawWorld(
       );
       ctx.stroke();
       ctx.font = "10px monospace";
-      ctx.fillStyle = "#96a8a5";
+      ctx.fillStyle = light ? "#50685a" : "#96a8a5";
       ctx.fillText(String(i + 1).padStart(2, "0"), p.x + 8, p.y - 10);
     });
   }
   map.objects.forEach((original) => {
+    if (hidden.has("object:" + original.id)) return;
     const o = editing
       ? original
       : objectPosition(original, (state?.steps ?? 0) / 60, 42);
@@ -132,7 +144,9 @@ export function drawWorld(
               : "#657b7c";
     ctx.strokeStyle =
       selected?.kind === "object" && selected.id === o.id
-        ? "#e9ecef"
+        ? light
+          ? "#275e46"
+          : "#e9ecef"
         : "#a3b0b6";
     ctx.lineWidth = selected?.kind === "object" && selected.id === o.id ? 3 : 1;
     if (o.kind === "spike") {
@@ -158,26 +172,27 @@ export function drawWorld(
       }
     }
   });
-  if (!map.draft?.missingStart) {
-    ctx.strokeStyle = "#91b59a";
+  if (!map.draft?.missingStart && !hidden.has("start")) {
+    ctx.strokeStyle = light ? "#557d62" : "#91b59a";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(map.start.x, map.start.y, 17, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.fillStyle = "#b2cbb8";
+    ctx.fillStyle = light ? "#386349" : "#b2cbb8";
     ctx.font = "10px monospace";
     ctx.fillText("START", map.start.x - 16, map.start.y + 31);
   }
-  if (!map.draft?.missingGoal) {
+  if (!map.draft?.missingGoal && !hidden.has("goal")) {
     ctx.fillStyle = "#83a78c20";
     ctx.fillRect(map.goal.x - 18, map.goal.y - 24, 36, 48);
-    ctx.strokeStyle = "#91b59a";
+    ctx.strokeStyle = light ? "#557d62" : "#91b59a";
     ctx.strokeRect(map.goal.x - 18, map.goal.y - 24, 36, 48);
-    ctx.fillStyle = "#b2cbb8";
+    ctx.fillStyle = light ? "#386349" : "#b2cbb8";
     ctx.fillText("FINISH", map.goal.x - 17, map.goal.y + 40);
   }
   if (editing) {
     map.road.forEach((p, i) => {
+      if (hidden.has("road")) return;
       ctx.beginPath();
       ctx.arc(
         p.x,
@@ -188,11 +203,13 @@ export function drawWorld(
       );
       ctx.fillStyle =
         selected?.kind === "road" && selected.index === i
-          ? "#e5ece7"
+          ? light
+            ? "#275e46"
+            : "#e5ece7"
           : "#8d9ba1";
       ctx.fill();
     });
-    if (selected) {
+    if (selected && !hidden.has(selectionKey(selected))) {
       const p =
         selected.kind === "checkpoint"
           ? map.checkpoints[selected.index]
@@ -202,7 +219,7 @@ export function drawWorld(
               ? map.goal
               : undefined;
       if (p) {
-        ctx.strokeStyle = "#e5ece7";
+        ctx.strokeStyle = light ? "#275e46" : "#e5ece7";
         ctx.lineWidth = 2;
         ctx.strokeRect(p.x - 21, p.y - 21, 42, 42);
       }
@@ -309,6 +326,11 @@ export function World({
   horizon = 600,
   onTestState,
   manualAction = -1,
+  hidden = new Set<string>(),
+  lockedLayers = new Set<string>(),
+  onCursor,
+  roadAppend = true,
+  keyboardDelete = true,
 }: {
   map: TrackMap;
   snapshot?: Snapshot;
@@ -334,6 +356,11 @@ export function World({
   onTestState?: (state: AgentState) => void;
   manualAction?: number;
   zoom?: number;
+  hidden?: ReadonlySet<string>;
+  lockedLayers?: ReadonlySet<string>;
+  onCursor?: (p: Point) => void;
+  roadAppend?: boolean;
+  keyboardDelete?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null),
     miniRef = useRef<HTMLCanvasElement>(null);
@@ -354,6 +381,7 @@ export function World({
     horizon,
     onTestState,
     manualAction,
+    hidden,
   });
   latest.current = {
     map,
@@ -370,6 +398,7 @@ export function World({
     horizon,
     onTestState,
     manualAction,
+    hidden,
   };
   const renderRef = useRef<() => void>(() => {}),
     camera = useRef(view),
@@ -381,13 +410,16 @@ export function World({
       null,
     );
   const drag = useRef<{
-    kind: "pan" | "road" | "erase" | "move";
+    kind: "pan" | "road" | "erase" | "move" | "place";
     point: Point;
     screen: Point;
     map: TrackMap;
     view: Viewport;
     transaction: string;
     selection?: Selection;
+    protectedLayers?: Set<string>;
+    before?: TrackMap;
+    changed?: boolean;
   } | null>(null);
   const replay = useRef<{
     mapId: string;
@@ -499,6 +531,8 @@ export function World({
         p.ghost,
         state,
         p.editing && !p.testing,
+        p.testing ? undefined : p.hidden,
+        !!canvas.closest(".light"),
       );
       if (p.editing && tool === "erase" && brush.current) {
         ctx.beginPath();
@@ -530,6 +564,8 @@ export function World({
           undefined,
           undefined,
           true,
+          p.hidden,
+          !!canvas.closest(".light"),
         );
         const a = worldPoint({ x: 0, y: 0 }, p.map, r, effective),
           b = worldPoint({ x: r.width, y: r.height }, p.map, r, effective);
@@ -628,7 +664,18 @@ export function World({
   ]);
   useEffect(() => {
     renderRef.current();
-  }, [map, snapshot, options, selected, view, color, ghost, follow, overview]);
+  }, [
+    map,
+    snapshot,
+    options,
+    selected,
+    view,
+    color,
+    ghost,
+    follow,
+    overview,
+    hidden,
+  ]);
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !interactive) return;
@@ -670,6 +717,7 @@ export function World({
         if (e.code === "Space") space.current = true;
       }
       if (
+        keyboardDelete &&
         editing &&
         !testing &&
         focused &&
@@ -690,6 +738,7 @@ export function World({
     const blur = () => {
       keys.current.clear();
       space.current = false;
+      cancel();
     };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
@@ -699,7 +748,14 @@ export function World({
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", blur);
     };
-  }, [interactive, editing, testing, onChange, onSelect]);
+  }, [interactive, editing, testing, onChange, onSelect, keyboardDelete]);
+  useEffect(() => {
+    const app = canvasRef.current?.closest(".app");
+    if (!app) return;
+    const observer = new MutationObserver(() => renderRef.current());
+    observer.observe(app, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
   function beginPinch() {
     const a = [...pointers.current.values()];
     const center = { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 };
@@ -712,12 +768,15 @@ export function World({
   }
   function down(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!interactive) return;
+    if (![0, 1, 2].includes(e.button)) return;
     e.preventDefault();
     e.currentTarget.focus({ preventScroll: true });
     e.currentTarget.setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, screen(e));
     if (pointers.current.size === 2) {
-      finish();
+      const pending = drag.current;
+      if (pending?.changed)
+        onChange?.(pending.before ?? pending.map, pending.transaction);
       beginPinch();
       return;
     }
@@ -726,7 +785,15 @@ export function World({
       s = screen(e),
       transaction = crypto.randomUUID(),
       initial = structuredClone(map);
-    if (!editing || tool === "pan" || space.current || e.button === 1) {
+    if (e.button !== 0 && drag.current?.kind !== "pan") drag.current = null;
+    if (
+      !editing ||
+      tool === "pan" ||
+      space.current ||
+      e.button === 1 ||
+      e.button === 2
+    ) {
+      e.currentTarget.classList.add("panning");
       drag.current = {
         kind: "pan",
         point: p,
@@ -738,11 +805,18 @@ export function World({
       return;
     }
     if (tool === "select") {
-      const hit = hitSelection(
+      const hits = hitSelections(
         map,
         p,
         14 / baseScale(map, frame()) / view.zoom,
+      ).filter(
+        (h) =>
+          !hidden.has(selectionKey(h)) && !lockedLayers.has(selectionKey(h)),
       );
+      const previous = hits.findIndex(
+        (h) => JSON.stringify(h) === JSON.stringify(selected),
+      );
+      const hit = hits.length ? hits[(previous + 1) % hits.length] : null;
       onSelect?.(hit);
       drag.current = {
         kind: hit ? "move" : "pan",
@@ -756,7 +830,12 @@ export function World({
       return;
     }
     if (tool === "erase") {
-      const m = eraseAt(initial, p, eraserSize);
+      const protectedLayers = new Set([...hidden, ...lockedLayers]);
+      map.checkpoints.forEach((q, i) => {
+        if (protectedLayers.delete("checkpoint:" + i))
+          protectedLayers.add(`checkpoint-at:${q.x}:${q.y}`);
+      });
+      const m = eraseAt(initial, p, eraserSize, protectedLayers);
       onSelect?.(null);
       drag.current = {
         kind: "erase",
@@ -765,19 +844,27 @@ export function World({
         map: m,
         view: camera.current,
         transaction,
+        protectedLayers,
+        before: initial,
+        changed: true,
       };
       onChange?.(m, transaction);
       return;
     }
     if (tool === "road") {
+      if (hidden.has("road") || lockedLayers.has("road")) return;
       const m = {
         ...initial,
-        road: [p],
-        checkpoints: [],
-        draft: { missingStart: true, missingGoal: true, roadBreaks: [] },
+        road: roadAppend ? [...initial.road, p] : [p],
+        checkpoints: roadAppend ? initial.checkpoints : [],
+        draft: roadAppend
+          ? { ...initial.draft }
+          : { missingStart: true, missingGoal: true, roadBreaks: [] },
       };
       drag.current = {
         kind: "road",
+        before: initial,
+        changed: true,
         point: p,
         screen: s,
         map: m,
@@ -788,7 +875,7 @@ export function World({
       onChange?.(m, transaction);
       return;
     }
-    const m = initial;
+    const m = structuredClone(initial);
     if (tool === "start") {
       m.start = { ...snapped(p), angle: m.start.angle };
       m.draft = { ...m.draft, missingStart: false };
@@ -812,7 +899,17 @@ export function World({
       m.objects.push(o);
       onSelect?.({ kind: "object", id: o.id });
     }
-    onChange?.(m);
+    drag.current = {
+      kind: "place",
+      point: p,
+      screen: s,
+      map: m,
+      before: initial,
+      changed: true,
+      view: camera.current,
+      transaction,
+    };
+    onChange?.(m, transaction);
   }
   function move(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!interactive) return;
@@ -843,6 +940,7 @@ export function World({
     }
     const p = point(e);
     brush.current = p;
+    onCursor?.(p);
     if (tool === "erase") renderRef.current();
     const d = drag.current;
     if (!d) return;
@@ -862,9 +960,10 @@ export function World({
         onChange?.(structuredClone(d.map), d.transaction);
       }
     } else if (d.kind === "erase") {
-      d.map = eraseAt(d.map, p, eraserSize);
+      d.map = eraseAt(d.map, p, eraserSize, d.protectedLayers);
       onChange?.(d.map, d.transaction);
     } else if (d.selection) {
+      d.changed = true;
       onChange?.(
         moveSelection(
           d.map,
@@ -880,24 +979,37 @@ export function World({
     if (d?.kind === "road") {
       const m = structuredClone(d.map);
       if (m.road.length > 1) {
-        m.start = {
-          ...m.road[0],
-          angle: Math.atan2(
-            m.road[1].y - m.road[0].y,
-            m.road[1].x - m.road[0].x,
-          ),
-        };
-        m.goal = m.road.at(-1)!;
-        m.checkpoints = m.road.filter(
-          (_, i) => i > 0 && (i % 3 === 0 || i === m.road.length - 1),
-        );
-        m.draft = {};
+        if (!roadAppend || m.draft?.missingStart)
+          m.start = {
+            ...m.road[0],
+            angle: Math.atan2(
+              m.road[1].y - m.road[0].y,
+              m.road[1].x - m.road[0].x,
+            ),
+          };
+        if (!roadAppend || m.draft?.missingGoal) m.goal = m.road.at(-1)!;
+        if (!roadAppend || !m.checkpoints.length)
+          m.checkpoints = m.road.filter(
+            (_, i) => i > 0 && (i % 3 === 0 || i === m.road.length - 1),
+          );
+        m.draft = { roadBreaks: m.draft?.roadBreaks ?? [] };
         onChange?.(m, d.transaction);
       } else onChange?.(m, d.transaction);
     }
     drag.current = null;
   }
+  function cancel() {
+    const d = drag.current;
+    if (d?.changed) onChange?.(d.before ?? d.map, d.transaction);
+    drag.current = null;
+    pointers.current.clear();
+    pinch.current = null;
+    canvasRef.current?.classList.remove("panning");
+  }
   function up(e: React.PointerEvent<HTMLCanvasElement>) {
+    e.currentTarget.classList.remove("panning");
+    if (e.currentTarget.hasPointerCapture(e.pointerId))
+      e.currentTarget.releasePointerCapture(e.pointerId);
     pointers.current.delete(e.pointerId);
     if (pinch.current) {
       if (pointers.current.size < 2) pinch.current = null;
@@ -925,7 +1037,9 @@ export function World({
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
-        onPointerCancel={up}
+        onPointerCancel={cancel}
+        onLostPointerCapture={cancel}
+        onContextMenu={(e) => e.preventDefault()}
         onDoubleClick={() => interactive && updateView(FIT_VIEW)}
       />
       {overview && (

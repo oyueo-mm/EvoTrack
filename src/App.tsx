@@ -36,6 +36,7 @@ import {
 } from "./core/types";
 import { World, type ViewOptions } from "./components/World";
 import { Chart } from "./components/Chart";
+import { WorkspaceTransfer } from "./components/WorkspaceTransfer";
 import { Studio } from "./components/studio/Studio";
 import { useTraining } from "./hooks/useTraining";
 import { assertCompatible, evaluate } from "./learning/evaluate";
@@ -114,7 +115,10 @@ export default function App() {
     ),
     [sidebar, setSidebar] = useState(false),
     [compactNav, setCompactNav] = useState(() => window.innerWidth <= 1100),
-    [light, setLight] = useState(false),
+    [light, setLight] = useState(
+      () => localStorage.getItem("evotrack-theme") !== "dark",
+    ),
+    [transfer, setTransfer] = useState(false),
     [evaluation, setEvaluation] = useState<ReturnType<typeof evaluate> | null>(
       null,
     ),
@@ -122,11 +126,13 @@ export default function App() {
     [evaluationMap, setEvaluationMap] = useState(""),
     [evaluating, setEvaluating] = useState(false);
   const undo = useRef<TrackMap[]>([]),
+    hydrated = useRef(false),
     redo = useRef<TrackMap[]>([]),
     importRef = useRef<HTMLInputElement>(null),
     noticeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
-    const resize = () => setCompactNav(window.innerWidth <= 1100),
+    const resize = () =>
+        setCompactNav(window.innerWidth <= 1100 || location.hash === "#editor"),
       escape = (e: KeyboardEvent) => {
         if (e.key === "Escape") setSidebar(false);
       };
@@ -147,6 +153,13 @@ export default function App() {
         )?.focus();
       });
   }, [sidebar, compactNav]);
+  useEffect(() => {
+    setCompactNav(window.innerWidth <= 1100 || page === "editor");
+    setSidebar(false);
+  }, [page]);
+  useEffect(() => {
+    localStorage.setItem("evotrack-theme", light ? "light" : "dark");
+  }, [light]);
   const notify = (message: string, error = false) => {
     setNotice({ message, error });
     clearTimeout(noticeTimer.current);
@@ -160,6 +173,16 @@ export default function App() {
         list<Experiment>("experiments"),
       ]);
       setMaps(a.map(validateMap));
+      if (!hydrated.current) {
+        hydrated.current = true;
+        setMap((current) => {
+          const stored = a.find((m) => m.id === current.id);
+          const example = EXAMPLE_MAPS.find((m) => m.id === current.id);
+          return stored && JSON.stringify(current) === JSON.stringify(example)
+            ? validateMap(stored)
+            : current;
+        });
+      }
       setModels(b.map(validateModel));
       setExperiments(c);
     } catch (e) {
@@ -202,6 +225,18 @@ export default function App() {
   function edit(m: TrackMap, group?: string) {
     if (locked) {
       notify("맵을 수정하기 전에 학습을 중지하세요.", true);
+      return;
+    }
+    // A cancelled touch gesture restores its initial snapshot without leaving a
+    // no-op undo entry or marking the map dirty (e.g. a second finger starts pinch).
+    if (
+      group &&
+      lastEditGroup.current === group &&
+      JSON.stringify(undo.current.at(-1)) === JSON.stringify(m)
+    ) {
+      undo.current.pop();
+      lastEditGroup.current = undefined;
+      setMap(m);
       return;
     }
     if (!group || lastEditGroup.current !== group)
@@ -391,10 +426,17 @@ export default function App() {
     ...maps,
   ];
   return (
-    <div className={"app " + (light ? "light" : "")}>
+    <div
+      className={
+        "app " +
+        (light ? "light " : "") +
+        (page === "editor" ? "editor-mode" : "")
+      }
+    >
       <aside
         className={"sidebar " + (sidebar ? "open" : "")}
-        inert={compactNav && !sidebar}
+        inert={(compactNav || page === "editor") && !sidebar}
+        aria-hidden={(compactNav || page === "editor") && !sidebar}
         aria-label="주요 메뉴"
       >
         <a className="brand" href="#home" onClick={() => navigate("home")}>
@@ -495,21 +537,25 @@ export default function App() {
             <span className="system-status">
               <i /> 브라우저에서 실행
             </span>
-            <button
-              className="text-btn"
-              onClick={() => {
-                download({ maps, models, experiments }, "evotrack-workspace");
-                notify(
-                  "저장된 자료를 백업 파일로 내보냈습니다. 개별 맵·모델 가져오기를 사용하세요.",
-                );
-              }}
-            >
-              <Download size={14} /> 데이터 백업
+            <button className="text-btn" onClick={() => setTransfer(true)}>
+              <Download size={14} /> 데이터 백업 · 이전
             </button>
             <span className="avatar">EV</span>
           </div>
         </header>
         <main>
+          {page === "editor" && (
+            <div className="editor-return">
+              <button className="text-btn" onClick={() => navigate("home")}>
+                EvoTrack <span>/ 작업 공간</span>
+              </button>
+              <IconButton
+                icon={Sun}
+                label="테마 전환"
+                onClick={() => setLight(!light)}
+              />
+            </div>
+          )}
           <div className="page-heading">
             <div>
               <h1>
@@ -981,6 +1027,17 @@ export default function App() {
             <X size={14} />
           </button>
         </div>
+      )}
+      {transfer && (
+        <WorkspaceTransfer
+          onClose={() => setTransfer(false)}
+          onError={(message) => notify(message, true)}
+          onRestored={() => {
+            setTransfer(false);
+            void refresh();
+            notify("작업 공간을 가져왔습니다.");
+          }}
+        />
       )}
       {evaluateModel && (
         <div className="modal-backdrop">

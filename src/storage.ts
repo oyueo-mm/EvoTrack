@@ -50,6 +50,32 @@ export function validateConfig(c: Config) {
     throw Error("학습 설정의 허용 범위를 벗어났습니다.");
   return c;
 }
+function validPolicySummary(s: any, algorithm: string) {
+  return (
+    s &&
+    s.algorithm === algorithm &&
+    ["generation", "evaluation"].includes(s.source) &&
+    Number.isInteger(s.iteration) &&
+    s.iteration >= 0 &&
+    [s.fitness, s.progress, s.successRate].every(Number.isFinite) &&
+    s.progress >= 0 &&
+    s.progress <= 1 &&
+    s.successRate >= 0 &&
+    s.successRate <= 1 &&
+    Number.isInteger(s.horizon) &&
+    s.horizon >= 1 &&
+    s.horizon <= 10000 &&
+    (s.seeds === undefined ||
+      (Array.isArray(s.seeds) &&
+        s.seeds.length > 0 &&
+        s.seeds.length <= 10 &&
+        s.seeds.every(
+          (n: any) => Number.isInteger(n) && n >= 0 && n <= 4294967295,
+        ))) &&
+    (s.phase === undefined ||
+      (typeof s.phase === "string" && s.phase.length <= 500))
+  );
+}
 export function validateModel(value: unknown): SavedModel {
   if (!value || typeof value !== "object")
     throw Error("모델 파일이 올바르지 않습니다.");
@@ -75,6 +101,14 @@ export function validateModel(value: unknown): SavedModel {
   if (m.schemas.environment !== schemasFor(trainingMap).environment)
     throw Error("모델과 학습 맵의 환경 버전이 다릅니다.");
   validatePolicy(m.policy, m.mode === "racing" ? 5 : 6);
+  if (m.policySelection && !validPolicySummary(m.policySelection, m.algorithm))
+    throw Error("정책 선정 정보가 손상되었습니다.");
+  if (m.bestPolicy) {
+    if (!validPolicySummary(m.bestPolicy, m.algorithm))
+      throw Error("최고 정책 정보가 손상되었습니다.");
+    validatePolicy(m.bestPolicy.policy, m.policy.output);
+  }
+
   validateConfig(m.config);
   const numericStats = [
     "iteration",
@@ -119,6 +153,36 @@ export function validateModel(value: unknown): SavedModel {
         !Number.isFinite(c.bestScore)
       )
         throw Error("GA 체크포인트가 유효하지 않습니다.");
+      if (
+        c.bestGeneration !== undefined &&
+        (!Number.isInteger(c.bestGeneration) ||
+          c.bestGeneration < 0 ||
+          c.bestGeneration > c.generation)
+      )
+        throw Error("최고 정책 세대 정보가 손상되었습니다.");
+      if (
+        c.bestState &&
+        (![
+          "x",
+          "y",
+          "angle",
+          "vx",
+          "vy",
+          "speed",
+          "reward",
+          "progress",
+          "steps",
+        ].every((k) => Number.isFinite(c.bestState[k])) ||
+          !["done", "success", "collision", "grounded"].every(
+            (k) => typeof c.bestState[k] === "boolean",
+          ) ||
+          !Array.isArray(c.bestState.trail) ||
+          c.bestState.trail.length > 200 ||
+          c.bestState.trail.some(
+            (p: any) => !Number.isFinite(p.x) || !Number.isFinite(p.y),
+          ))
+      )
+        throw Error("최고 정책 상태가 손상되었습니다.");
       c.population.forEach((p: any) => validatePolicy(p, m.policy.output));
       if (c.best) validatePolicy(c.best, m.policy.output);
     } else {

@@ -10,6 +10,7 @@ import type {
   TrackMap,
   TrainingStats,
   WorkerReply,
+  PolicyCatalog,
 } from "../core/types";
 interface Handle {
   worker: Worker;
@@ -24,6 +25,23 @@ export function useTraining(
 ) {
   const handles = useRef<Partial<Record<Algorithm, Handle>>>({}),
     request = useRef(0);
+  const pending = useRef(
+    new Map<
+      number,
+      {
+        resolve: (r: WorkerReply) => void;
+        reject: (e: Error) => void;
+        timer: ReturnType<typeof setTimeout>;
+      }
+    >(),
+  );
+  const cancelPending = () => {
+    for (const p of pending.current.values()) {
+      clearTimeout(p.timer);
+      p.reject(new Error("학습 세션이 변경되었습니다."));
+    }
+    pending.current.clear();
+  };
   const [checkpointPending, setCheckpointPending] = useState<
     Partial<Record<Algorithm, boolean>>
   >({});
@@ -41,8 +59,10 @@ export function useTraining(
   errorRef.current = onError;
   saveRef.current = onSave;
   useEffect(
-    () => () =>
-      Object.values(handles.current).forEach((h) => h?.worker.terminate()),
+    () => () => {
+      cancelPending();
+      Object.values(handles.current).forEach((h) => h?.worker.terminate());
+    },
     [],
   );
   function start(
@@ -51,6 +71,7 @@ export function useTraining(
     algorithms: Algorithm[],
     model?: SavedModel,
   ) {
+    cancelPending();
     Object.values(handles.current).forEach((h) => h?.worker.terminate());
     handles.current = {};
     bestSnapshots.current = {};
@@ -76,6 +97,16 @@ export function useTraining(
       worker.onmessage = (e: MessageEvent<WorkerReply>) => {
         const r = e.data;
         if (r.session !== handles.current[algorithm]?.session) return;
+        const waiting = pending.current.get(r.requestId);
+        if (waiting && ["ACK", "POLICIES", "ERROR"].includes(r.type)) {
+          clearTimeout(waiting.timer);
+          pending.current.delete(r.requestId);
+          if (r.type === "ERROR") {
+            waiting.reject(new Error(r.error));
+            return;
+          }
+          waiting.resolve(r);
+        }
         if (r.type === "ERROR") {
           setCheckpointPending((p) => ({ ...p, [algorithm]: false }));
           errorRef.current(r.error ?? "Worker 오류");
@@ -168,7 +199,34 @@ export function useTraining(
       sequence,
     } satisfies Command);
   }
+  function rpc(algorithm: Algorithm, type: CommandName): Promise<WorkerReply> {
+    const h = handles.current[algorithm];
+    if (!h) return Promise.reject(new Error("학습 세션이 없습니다."));
+    const id = ++request.current;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        pending.current.delete(id);
+        reject(new Error("학습 Worker 응답 시간이 초과되었습니다."));
+      }, 20000);
+      pending.current.set(id, { resolve, reject, timer });
+      h.worker.postMessage({
+        type,
+        algorithm,
+        session: h.session,
+        requestId: id,
+      } satisfies Command);
+    });
+  }
+  async function inspect(algorithm: Algorithm): Promise<PolicyCatalog> {
+    await Promise.all(
+      (Object.keys(handles.current) as Algorithm[]).map((a) => rpc(a, "PAUSE")),
+    );
+    const reply = await rpc(algorithm, "INSPECT_POLICIES");
+    if (!reply.catalog) throw Error("정책 정보가 없습니다.");
+    return reply.catalog;
+  }
   function clear() {
+    cancelPending();
     Object.values(handles.current).forEach((h) => h?.worker.terminate());
     handles.current = {};
     bestSnapshots.current = {};
@@ -182,6 +240,7 @@ export function useTraining(
     start,
     send,
     presentFrame,
+    inspect,
     clear,
     ghosts,
     snapshots,

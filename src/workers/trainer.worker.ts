@@ -1,4 +1,11 @@
-﻿import type {
+import {
+  evaluatedPolicy,
+  betterPolicy,
+  policySummary,
+  POLICY_EVALUATION_INTERVAL,
+} from "../learning/best-policy";
+import type { PolicyCatalog, PolicyRecord } from "../core/types";
+import type {
   Command,
   Config,
   SavedModel,
@@ -33,6 +40,61 @@ let lastTick = 0,
   gaSteps = 0;
 let wallOffset = 0;
 let pendingCheckpoints: number[] = [];
+let catalog: PolicyCatalog = {};
+function capturePolicies(evaluateCurrent = false) {
+  if (trainer instanceof GeneticTrainer) {
+    const ga = trainer,
+      states = ga.states(false),
+      leader = states.length
+        ? states.reduce(
+            (best, s, i) => (s.reward > states[best].reward ? i : best),
+            0,
+          )
+        : 0;
+    const final = ga.boundary ? ga.lastGenerationBest : undefined;
+    const state = final?.state ?? states[leader];
+    if (state)
+      catalog.current = {
+        algorithm: "GA",
+        iteration: final?.generation ?? ga.generation + 1,
+        source: "generation",
+        fitness: state.reward,
+        successRate: +state.success,
+        progress: state.progress,
+        horizon: config.horizon,
+        phase: ga.boundary ? "완료" : "진행 중",
+        policy: structuredClone(final?.policy ?? ga.population[leader]),
+      };
+    if (ga.best && !ga.bestState && !catalog.best) {
+      catalog.best = evaluatedPolicy(ga.best, map, "GA", 0, config.horizon);
+      catalog.best.phase = "기존 체크포인트 · 재평가";
+    }
+    if (ga.best && ga.bestState)
+      catalog.best = {
+        algorithm: "GA",
+        iteration: ga.bestGeneration,
+        source: "generation",
+        fitness: ga.bestScore,
+        successRate: +ga.bestState.success,
+        progress: ga.bestState.progress,
+        horizon: config.horizon,
+        policy: structuredClone(ga.best),
+      };
+  } else if (trainer instanceof PPOTrainer && evaluateCurrent) {
+    const current = evaluatedPolicy(
+      trainer.getPolicy(),
+      map,
+      "PPO",
+      trainer.updates,
+      config.horizon,
+    );
+    current.phase = trainer.phase;
+    catalog.current = current;
+    if (trainer.phase !== "OPTIMIZING" && betterPolicy(current, catalog.best))
+      catalog.best = structuredClone(current);
+  }
+}
+
 function reply(message: Omit<WorkerReply, "session">) {
   self.postMessage({ ...message, session });
 }
@@ -63,6 +125,10 @@ function schedule() {
 }
 function emit() {
   if (!snapshot) return;
+  snapshot.policies = {
+    current: policySummary(catalog.current),
+    best: policySummary(catalog.best),
+  };
   snapshot.sequence = ++sequence;
   snapshot.session = session;
   if (mode() === "observe") awaitingFrame = sequence;
@@ -99,6 +165,7 @@ function runtime(
     sample: ppo?.totalSamples ?? stats.steps,
     frameBytes: 0,
     bestProgress,
+    learningEnvironmentCount: ppo ? 1 : config.population,
   };
 }
 function publishPPO(ppo: PPOTrainer) {
@@ -174,6 +241,11 @@ function next() {
         stats.steps += samples;
         accumulator -= samples;
         if (result) {
+          if (
+            ppo.updates === 1 ||
+            ppo.updates % POLICY_EVALUATION_INTERVAL === 0
+          )
+            capturePolicies(true);
           stats.iteration = ppo.updates;
           stats.mean = result.mean;
           stats.episodes += result.episodes;
@@ -204,6 +276,7 @@ function next() {
   }
 }
 function publishGA(ga: GeneticTrainer, boundary: boolean) {
+  capturePolicies();
   const states = ga.states(false);
   bestProgress = Math.max(bestProgress, ...states.map((s) => s.progress));
   if (!states.length) return;
@@ -262,6 +335,7 @@ async function checkpoint(requestId: number) {
     trainingMap: structuredClone(map),
     createdAt: new Date().toISOString(),
     checkpoint: cp,
+    bestPolicy: catalog.best ? structuredClone(catalog.best) : undefined,
   };
   reply({ type: "CHECKPOINT", requestId, model });
 }
@@ -306,6 +380,7 @@ self.onmessage = (event: MessageEvent<Command>) => {
           stepsPerSecond: 0,
         };
         snapshot = undefined;
+        catalog = {};
         awaitingFrame = 0;
         sequence = 0;
         debug = !!cmd.debug;
@@ -327,6 +402,7 @@ self.onmessage = (event: MessageEvent<Command>) => {
               trainer.restore(m.checkpoint as GACheckpoint);
             else await trainer.restore(m.checkpoint as PPOCheckpoint);
             stats = { ...m.stats };
+            if (m.bestPolicy) catalog.best = structuredClone(m.bestPolicy);
           } else {
             if (trainer instanceof GeneticTrainer) {
               trainer.population[0] = structuredClone(m.policy);
@@ -349,6 +425,18 @@ self.onmessage = (event: MessageEvent<Command>) => {
         return;
       }
       if (cmd.session !== session) return;
+      if (cmd.type === "INSPECT_POLICIES") {
+        if (running) throw Error("모델 확인 전에 학습을 일시정지하세요.");
+        capturePolicies(true);
+        if (!catalog.current && !catalog.best)
+          throw Error("확인할 정책이 없습니다.");
+        reply({
+          type: "POLICIES",
+          requestId: cmd.requestId,
+          catalog: structuredClone(catalog),
+        });
+        return;
+      }
       if (cmd.type === "FRAME_ACK") {
         selectedAgent =
           Number.isInteger(cmd.selectedAgent) &&
@@ -368,7 +456,11 @@ self.onmessage = (event: MessageEvent<Command>) => {
         if (trainer instanceof GeneticTrainer)
           publishGA(trainer, trainer.boundary);
         else if (trainer instanceof PPOTrainer) publishPPO(trainer);
-        reply({ type: "ACK", requestId: cmd.requestId, status: "paused" });
+        reply({
+          type: "ACK",
+          requestId: cmd.requestId,
+          status: trainer ? "paused" : "stopped",
+        });
       } else if (cmd.type === "RESUME") {
         if (!trainer) throw Error("학습 세션이 없습니다.");
         if (!running) {
@@ -380,8 +472,16 @@ self.onmessage = (event: MessageEvent<Command>) => {
         }
         reply({ type: "ACK", requestId: cmd.requestId, status: "running" });
       } else if (cmd.type === "STOP" || cmd.type === "RESET") {
+        running = false;
+        capturePolicies(true);
+        if (trainer instanceof GeneticTrainer)
+          publishGA(trainer, trainer.boundary);
+        else if (trainer instanceof PPOTrainer) publishPPO(trainer);
         dispose();
-        if (cmd.type === "RESET") snapshot = undefined;
+        if (cmd.type === "RESET") {
+          snapshot = undefined;
+          catalog = {};
+        }
         reply({ type: "ACK", requestId: cmd.requestId, status: "stopped" });
       } else if (cmd.type === "UPDATE_CONFIG") {
         const updated = validateConfig(cmd.config!);

@@ -1,3 +1,4 @@
+import { chooseTool } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { EXAMPLE_MAPS } from "../../src/core/maps";
 
@@ -13,11 +14,13 @@ test("touch pinch cancels pending road and object placement without dirtying the
   const page = await context.newPage();
   try {
     await page.goto(baseURL! + "#editor");
+    await page.getByRole("button", { name: "맵 저장", exact: true }).click();
+    await expect(page.locator(".save-state")).toHaveText("저장됨");
     const canvas = page.getByLabel("맵 편집 캔버스");
     const r = (await canvas.boundingBox())!;
     const cdp = await context.newCDPSession(page);
     for (const name of ["도로 그리기", "벽"]) {
-      await page.getByRole("button", { name, exact: true }).click();
+      await chooseTool(page, name);
       await cdp.send("Input.dispatchTouchEvent", {
         type: "touchStart",
         touchPoints: [
@@ -38,7 +41,11 @@ test("touch pinch cancels pending road and object placement without dirtying the
       });
       await expect(page.locator(".save-state")).toHaveText("저장됨");
       await expect(
-        page.getByRole("button", { name: "실행 취소", exact: true }),
+        page.getByRole("button", {
+          name: "실행 취소",
+          exact: true,
+          includeHidden: true,
+        }),
       ).toBeDisabled();
       await expect
         .poll(async () => Number(await canvas.getAttribute("data-zoom")))
@@ -131,7 +138,7 @@ test("right-button pan preserves tool and geometry; cancellation, middle pan, la
     position: { x: box.width * 0.8, y: box.height * 0.25 },
   });
   await expect(page.locator(".element-count")).not.toHaveText(count);
-  await page.getByRole("button", { name: "실행 취소", exact: true }).click();
+  await chooseTool(page, "실행 취소");
   await expect(page.locator(".element-count")).toHaveText(count);
   await page.getByRole("tab", { name: "레이어", exact: true }).click();
   await page
@@ -159,7 +166,7 @@ test("right-button pan preserves tool and geometry; cancellation, middle pan, la
     ),
   ).toBe(true);
   await page.getByRole("tab", { name: "속성", exact: true }).click();
-  await page.getByRole("button", { name: "선택 / 이동", exact: true }).click();
+  await chooseTool(page, "선택 / 이동");
   await page.screenshot({ path: ".cache/ui-review/editor-desktop-light.png" });
   await page.getByRole("button", { name: "테마 전환", exact: true }).click();
   await page.screenshot({

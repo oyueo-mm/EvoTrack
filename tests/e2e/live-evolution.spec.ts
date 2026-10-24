@@ -1,4 +1,4 @@
-import { openSettings } from "./helpers";
+import { openSettings, chooseTool } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { objectWorld } from "../../src/core/geometry";
@@ -71,9 +71,8 @@ test("legacy backups preserve originals; v1 inference/evaluation stays on v1 aft
   );
   await page.getByLabel("현재 맵").selectOption(map.id);
   await page.getByRole("button", { name: "맵 편집", exact: true }).click();
-  await page.getByRole("button", { name: "새 환경 v2 편집본 만들기" }).click();
   await expect(page.getByLabel("맵 이름", { exact: true })).toHaveValue(
-    "이전 맵 · 게이트 편집본",
+    "이전 맵 (v4)",
   );
   await page.getByRole("button", { name: "맵 저장", exact: true }).click();
   await page.getByRole("button", { name: "학습하기", exact: true }).click();
@@ -86,7 +85,7 @@ test("legacy backups preserve originals; v1 inference/evaluation stays on v1 aft
     }),
   ).toHaveCount(1);
   await expect(
-    page.locator(".map-card").filter({ hasText: "이전 맵 · 게이트 편집본" }),
+    page.locator(".map-card").filter({ hasText: "이전 맵 (v4)" }),
   ).toHaveCount(1);
   await page
     .getByRole("button", { name: "모델 라이브러리", exact: false })
@@ -149,7 +148,7 @@ test("placement selects existing objects; real resize/rotation, clipboard and fl
   await expect(
     toolbar.getByRole("button", { name: "실행 취소", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "벽", exact: true }).click();
+  await chooseTool(page, "벽");
   await clickWorld(page, 750, 120);
   await clickWorld(page, 767, 170);
   await expect(page.locator(".element-count")).toContainText("장애물 1개");
@@ -199,7 +198,7 @@ test("placement selects existing objects; real resize/rotation, clipboard and fl
   expect(angle % 15).toBe(0);
   await toolbar.getByRole("button", { name: "실행 취소", exact: true }).click();
   await expect(page.getByLabel("객체 회전", { exact: true })).toHaveValue("45");
-  await page.getByRole("button", { name: "체크포인트", exact: true }).click();
+  await chooseTool(page, "체크포인트");
   await clickWorld(page, 450, 320);
   await clickWorld(page, 450, 320);
   await expect(page.locator(".element-count")).toContainText("체크포인트 4개");

@@ -1,4 +1,4 @@
-import { openSettings } from "./helpers";
+import { openSettings, chooseTool } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 import { EXAMPLE_MAPS } from "../../src/core/maps";
 import { DEFAULT_CONFIG } from "../../src/core/types";
@@ -90,19 +90,19 @@ test("editor width, semantic eraser, gesture undo, cursor zoom and pan", async (
     .getByRole("button", { name: "선택 요소 삭제", exact: true })
     .click();
   await expect(page.locator(".element-count")).toContainText("체크포인트 2개");
-  await page.getByRole("button", { name: "실행 취소", exact: true }).click();
+  await chooseTool(page, "실행 취소");
   await expect(page.locator(".element-count")).toContainText("체크포인트 3개");
-  await page.getByRole("button", { name: "벽", exact: true }).click();
+  await chooseTool(page, "벽");
   await worldClick(page, 750, 100);
   await expect(page.locator(".element-count")).toContainText("장애물 1개");
-  await page.getByRole("button", { name: "지우개", exact: true }).click();
+  await chooseTool(page, "지우개");
   await worldClick(page, 755, 105);
   await expect(page.locator(".element-count")).toContainText("장애물 0개");
   await worldClick(page, 470, 320);
   await expect(page.locator(".validation-message")).toContainText(
     "도로가 끊어져",
   );
-  await page.getByRole("button", { name: "실행 취소", exact: true }).click();
+  await chooseTool(page, "실행 취소");
   await expect(page.locator(".valid-message")).toBeVisible();
   await worldClick(page, 110, 320);
   await expect(page.locator(".validation-message")).toContainText(
@@ -110,12 +110,12 @@ test("editor width, semantic eraser, gesture undo, cursor zoom and pan", async (
   );
   await page.getByRole("button", { name: "맵 저장", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("시작점이 없습니다");
-  await page.getByRole("button", { name: "실행 취소", exact: true }).click();
+  await chooseTool(page, "실행 취소");
   await worldClick(page, 880, 320);
   await expect(page.locator(".validation-message")).toContainText(
     "결승점이 없습니다",
   );
-  await page.getByRole("button", { name: "실행 취소", exact: true }).click();
+  await chooseTool(page, "실행 취소");
   const canvas = page.getByLabel("맵 편집 캔버스");
   await canvas.scrollIntoViewIfNeeded();
   let r = (await canvas.boundingBox())!;
@@ -157,7 +157,7 @@ test("editor width, semantic eraser, gesture undo, cursor zoom and pan", async (
     .click({ position: { x: 125, y: 30 } });
   await expect.poll(() => canvas.getAttribute("data-pan-x")).not.toBe("0.00");
   await page.getByRole("button", { name: "화면 맞춤", exact: true }).click();
-  await page.getByRole("button", { name: "도로 그리기", exact: true }).click();
+  await chooseTool(page, "도로 그리기");
   await page.getByLabel("경로 제작 방식").selectOption("replace");
   await canvas.scrollIntoViewIfNeeded();
   r = (await canvas.boundingBox())!;
@@ -171,7 +171,7 @@ test("editor width, semantic eraser, gesture undo, cursor zoom and pan", async (
   const start = p(130, 150);
   await page.mouse.click(start.x, start.y);
   await expect(page.locator(".element-count")).not.toContainText("도로 4점");
-  await page.getByRole("button", { name: "실행 취소", exact: true }).click();
+  await chooseTool(page, "실행 취소");
   await expect(page.locator(".element-count")).toContainText("도로 4점");
   await expect(
     page.getByRole("slider", { name: "도로 두께", exact: true }),
@@ -295,7 +295,7 @@ test("touch pinch, mobile properties sheet and navigation are usable", async ({
   try {
     await page.goto(baseURL!);
     await page.getByRole("button", { name: "맵 편집", exact: true }).click();
-    await page.getByRole("button", { name: "화면 이동", exact: true }).click();
+    await chooseTool(page, "화면 이동");
     const canvas = page.getByLabel("맵 편집 캔버스");
     await canvas.scrollIntoViewIfNeeded();
     const r = (await canvas.boundingBox())!;

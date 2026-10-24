@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { BestPolicyDialog } from "./BestPolicyDialog";
+import type { PolicyCatalog, SavedModel } from "../../core/types";
+import { useEffect, useState, useRef, type CSSProperties } from "react";
 import {
   Activity,
   ArrowRight,
@@ -63,8 +65,11 @@ export interface Props {
   onCompare: () => void;
   onModels: () => void;
   onError: (message: string) => void;
+  onSaveModel: (model: SavedModel) => Promise<void>;
 }
 export function Studio(props: Props) {
+  if (props.editing && props.map.environmentVersion !== 4)
+    return <section role="status">v4 편집 환경 준비 중…</section>;
   return props.editing ? (
     <EditorWorkspace
       map={props.map}
@@ -102,8 +107,34 @@ function TrainingStudio({
   onSaveInference,
   onCompare,
   onModels,
+  onSaveModel,
+  onError,
 }: Props) {
   const [panel, setPanel] = useState(false);
+  const [inspection, setInspection] = useState<PolicyCatalog | null>(null),
+    [inspecting, setInspecting] = useState(false);
+  const headingRef = useRef<HTMLDivElement>(null),
+    [headingHeight, setHeadingHeight] = useState(120);
+  useEffect(() => {
+    const el = headingRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() =>
+      setHeadingHeight(el.getBoundingClientRect().height),
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const inspect = async () => {
+    setInspecting(true);
+    try {
+      setInspection(await training.inspect(tab));
+    } catch (e) {
+      onError(String(e));
+    } finally {
+      setInspecting(false);
+    }
+  };
+
   const [viewport, setViewport] = useState<Viewport>(FIT_VIEW);
   const [follow, setFollow] = useState(false);
   const [chartMetric, setChartMetric] = useState<"best" | "mean">("best");
@@ -131,139 +162,33 @@ function TrainingStudio({
   };
   return (
     <>
-      <section
-        className="experiment-context training-controls"
-        aria-label="학습 실행 제어"
-      >
-        <div className="mode-tabs">
-          <button
-            aria-pressed={map.mode === "racing"}
-            onClick={() =>
-              map.mode !== "racing" && onChooseMap(EXAMPLE_MAPS[2])
-            }
-          >
-            <Gauge size={16} />
-            Racing
-          </button>
-          <button
-            aria-pressed={map.mode === "bounce"}
-            onClick={() =>
-              map.mode !== "bounce" && onChooseMap(EXAMPLE_MAPS[4])
-            }
-          >
-            <Activity size={16} />
-            Bounce
-          </button>
-        </div>
-        <label className="current-map">
-          <MapIcon size={16} />
-          <select
-            aria-label="현재 맵"
-            value={map.id}
-            onChange={(e) =>
-              onChooseMap(maps.find((m) => m.id === e.target.value)!)
-            }
-          >
-            {!maps.some((m) => m.id === map.id) && (
-              <option value={map.id}>{map.name}</option>
-            )}
-            {maps
-              .filter((m) => m.mode === map.mode)
-              .map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.id === map.id ? map.name : m.name}
-                </option>
-              ))}
-          </select>
-        </label>
-        <select
-          aria-label="학습 알고리즘"
-          value={method}
-          onChange={(e) => onMethod(e.target.value as typeof method)}
-        >
-          <option value="GA">GA</option>
-          <option value="PPO">PPO</option>
-          <option value="both">GA + PPO</option>
-        </select>
-        <label className="top-speed">
-          배속
-          <input
-            type="number"
-            aria-label="상단 학습 배속"
-            value={config.speed}
-            min={0.5}
-            max={10}
-            step={0.1}
-            onChange={(e) => {
-              const n = Number(e.target.value);
-              if (n >= 0.5 && n <= 10) changeConfig({ ...config, speed: n });
-            }}
-          />
-          ×
-        </label>
-        <button
-          className="button primary training-main-action"
-          onClick={() =>
-            training.active
-              ? training.send("PAUSE")
-              : training.paused
-                ? training.send("RESUME")
-                : onStart()
+      {inspection && snapshot && (
+        <BestPolicyDialog
+          map={map}
+          config={config}
+          stats={snapshot.stats}
+          catalog={inspection}
+          onClose={() => setInspection(null)}
+          onResume={
+            training.paused
+              ? () => {
+                  setInspection(null);
+                  training.send("RESUME");
+                }
+              : undefined
           }
-        >
-          {training.active ? <Pause size={17} /> : <Play size={17} />}
-          {training.active
-            ? "일시정지"
-            : training.paused
-              ? "학습 재개"
-              : "학습 시작"}
-        </button>
-        <button
-          className="button"
-          disabled={!locked}
-          onClick={() => training.send("STOP")}
-        >
-          <Square size={14} />
-          학습 중지
-        </button>
-        <button
-          className="button panel-trigger"
-          aria-expanded={panel}
-          onClick={() => setPanel(!panel)}
-        >
-          <Settings2 size={16} />
-          {panel ? "패널 접기" : "학습 설정"}
-        </button>
-      </section>
-      <section className="observation-controls">
-        <label>
-          학습 모드{" "}
-          <select
-            aria-label="학습 진행 모드"
-            value={config.trainingMode ?? "observe"}
-            onChange={(e) =>
-              changeConfig({
-                ...config,
-                trainingMode: e.target.value as "observe" | "fast",
-              })
-            }
-          >
-            <option value="observe">실시간 관찰</option>
-            <option value="fast">빠른 학습 · 중간 프레임 생략</option>
-          </select>
-        </label>
-        <span>
-          요청 {config.speed.toFixed(1)}× · 실제{" "}
-          {(snapshot?.runtime?.effectiveSpeed ?? 0).toFixed(2)}× ·{" "}
-          {(snapshot?.runtime?.ticksPerSecond ?? 0).toFixed(0)} ticks/s
-        </span>
-        {training.paused && (
-          <span>일시정지 · 학습 재개로 이어서 관찰하세요.</span>
-        )}
-      </section>
-      <div className={"studio " + (!panel ? "panel-hidden" : "")}>
+          onSave={onSaveModel}
+        />
+      )}
+
+      <div
+        className={"studio " + (!panel ? "panel-hidden" : "")}
+        style={
+          { "--training-heading-height": `${headingHeight}px` } as CSSProperties
+        }
+      >
         <section className="canvas-card">
-          <div className="canvas-heading">
+          <div className="canvas-heading training-card-header" ref={headingRef}>
             <div>
               <h2>
                 {tab === "GA" ? "실시간 개체군" : "실제 PPO Rollout"}{" "}
@@ -277,11 +202,153 @@ function TrainingStudio({
               <span>
                 {tab === "GA"
                   ? "독립된 환경 · 고정 1/60초 · 개체 간 충돌 없음."
-                  : "화면의 에이전트가 실제 경험을 수집합니다."}
+                  : "단일 학습 환경 · PPO 에이전트 1개 · 실제 경험 수집"}
               </span>
+              <span className="status-badge">{statusText[status]}</span>
+              <div className="map-context">
+                {" "}
+                <div className="mode-tabs">
+                  <button
+                    aria-pressed={map.mode === "racing"}
+                    onClick={() =>
+                      map.mode !== "racing" && onChooseMap(EXAMPLE_MAPS[2])
+                    }
+                  >
+                    <Gauge size={16} />
+                    Racing
+                  </button>
+                  <button
+                    aria-pressed={map.mode === "bounce"}
+                    onClick={() =>
+                      map.mode !== "bounce" && onChooseMap(EXAMPLE_MAPS[4])
+                    }
+                  >
+                    <Activity size={16} />
+                    Bounce
+                  </button>
+                </div>
+                <label className="current-map">
+                  <MapIcon size={16} />
+                  <select
+                    aria-label="현재 맵"
+                    value={map.id}
+                    onChange={(e) =>
+                      onChooseMap(maps.find((m) => m.id === e.target.value)!)
+                    }
+                  >
+                    {!maps.some((m) => m.id === map.id) && (
+                      <option value={map.id}>{map.name}</option>
+                    )}
+                    {maps
+                      .filter((m) => m.mode === map.mode)
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.id === map.id ? map.name : m.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </div>
             </div>
-            <span className="status-badge">{statusText[status]}</span>
+            <div
+              className="card-training-controls training-controls"
+              aria-label="학습 실행 제어"
+            >
+              {" "}
+              <select
+                aria-label="학습 알고리즘"
+                value={method}
+                onChange={(e) => onMethod(e.target.value as typeof method)}
+              >
+                <option value="GA">GA</option>
+                <option value="PPO">PPO</option>
+                <option value="both">GA + PPO</option>
+              </select>
+              <label className="top-speed">
+                배속
+                <input
+                  type="number"
+                  aria-label="상단 학습 배속"
+                  value={config.speed}
+                  min={0.5}
+                  max={10}
+                  step={0.1}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (n >= 0.5 && n <= 10)
+                      changeConfig({ ...config, speed: n });
+                  }}
+                />
+                ×
+              </label>
+              <button
+                className="button primary training-main-action"
+                onClick={() =>
+                  training.active
+                    ? training.send("PAUSE")
+                    : training.paused
+                      ? training.send("RESUME")
+                      : onStart()
+                }
+              >
+                {training.active ? <Pause size={17} /> : <Play size={17} />}
+                {training.active
+                  ? "일시정지"
+                  : training.paused
+                    ? "학습 재개"
+                    : "학습 시작"}
+              </button>
+              <button
+                className="button"
+                disabled={!locked}
+                onClick={() => training.send("STOP")}
+              >
+                <Square size={14} />
+                학습 중지
+              </button>
+              <button
+                className="button panel-trigger"
+                aria-expanded={panel}
+                onClick={() => setPanel(!panel)}
+              >
+                <Settings2 size={16} />
+                {panel ? "패널 접기" : "학습 설정"}
+              </button>
+              <button
+                className="button"
+                disabled={!snapshot || inspecting}
+                onClick={() => void inspect()}
+              >
+                {inspecting ? "정책 확인 중…" : "최고 모델 확인"}
+              </button>
+            </div>
           </div>
+          <section className="observation-controls">
+            <label>
+              학습 모드{" "}
+              <select
+                aria-label="학습 진행 모드"
+                value={config.trainingMode ?? "observe"}
+                onChange={(e) =>
+                  changeConfig({
+                    ...config,
+                    trainingMode: e.target.value as "observe" | "fast",
+                  })
+                }
+              >
+                <option value="observe">실시간 관찰</option>
+                <option value="fast">빠른 학습 · 중간 프레임 생략</option>
+              </select>
+            </label>
+            <span>
+              요청 {config.speed.toFixed(1)}× · 실제{" "}
+              {(snapshot?.runtime?.effectiveSpeed ?? 0).toFixed(2)}× ·{" "}
+              {(snapshot?.runtime?.ticksPerSecond ?? 0).toFixed(0)} ticks/s
+            </span>
+            {training.paused && (
+              <span>일시정지 · 학습 재개로 이어서 관찰하세요.</span>
+            )}
+          </section>
           <div className="view-toolbar">
             <div className="row">
               <div className="algorithm-switch">
@@ -458,7 +525,7 @@ function TrainingStudio({
             </div>
             {method === "both" && (
               <div className="learning-pane">
-                <span className="pane-label">PPO · 실제 Rollout</span>
+                <span className="pane-label">PPO · 단일 에이전트 Rollout</span>
                 <World
                   map={map}
                   options={options}

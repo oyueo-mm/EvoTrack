@@ -1,4 +1,4 @@
-import { openSettings } from "./helpers";
+import { openSettings, chooseTool } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { EXAMPLE_MAPS } from "../../src/core/maps";
@@ -33,7 +33,7 @@ test("road drag builds real geometry in one Undo; click appends; camera stays fi
   await page.getByRole("button", { name: "맵 편집", exact: true }).click();
   const c = page.getByLabel("맵 편집 캔버스"),
     before = await page.locator(".element-count").innerText();
-  await page.getByRole("button", { name: "도로 그리기", exact: true }).click();
+  await chooseTool(page, "도로 그리기");
   await mouseDrag(
     page,
     await worldPoint(page, 200, 150),
@@ -45,9 +45,9 @@ test("road drag builds real geometry in one Undo; click appends; camera stays fi
   await expect(c).toHaveAttribute("data-zoom", "1.000");
   await expect(c).toHaveAttribute("data-pan-x", "0.00");
   await expect(c).toHaveAttribute("data-pan-y", "0.00");
-  await page.getByRole("button", { name: "실행 취소", exact: true }).click();
+  await chooseTool(page, "실행 취소");
   await expect(page.locator(".element-count")).toHaveText(before);
-  await page.getByRole("button", { name: "다시 실행", exact: true }).click();
+  await chooseTool(page, "다시 실행");
   await expect(page.locator(".element-count")).toHaveText(after);
   const p = await worldPoint(page, 800, 220);
   await page.mouse.click(p.x, p.y);
@@ -82,12 +82,9 @@ test("v1 rotation explains upgrade; real handle magnet snaps at 87 and rotates f
   });
   await expect(page.locator(".toast")).toContainText("가져왔습니다");
   await page.getByRole("button", { name: "맵 에디터", exact: true }).click();
-  await expect(
-    page.getByText("이 맵은 기존 물리 규칙을 사용합니다.", { exact: false }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "확장 환경 v3 편집본 만들기" })
-    .click();
+  await expect(page.getByLabel("맵 이름", { exact: true })).toHaveValue(
+    "회전 원본 (v4)",
+  );
   await page.getByRole("tab", { name: "레이어", exact: true }).click();
   await page.getByRole("button", { name: /레이어 선택 벽/ }).click();
   await page.getByRole("tab", { name: "속성", exact: true }).click();
@@ -117,7 +114,7 @@ test("v1 rotation explains upgrade; real handle magnet snaps at 87 and rotates f
     page.getByRole("heading", { name: "회전 원본", exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "회전 원본 · 확장 편집본 편집", exact: true })
+    .getByRole("button", { name: "회전 원본 (v4) 편집", exact: true })
     .click();
   await page.getByRole("tab", { name: "레이어", exact: true }).click();
   await page.getByRole("button", { name: /레이어 선택 벽/ }).click();
@@ -312,7 +309,7 @@ test("both algorithms use separate real canvases; navigation and hidden tabs pau
   await page.getByRole("button", { name: "학습 재개", exact: true }).click();
   await page.getByRole("button", { name: "맵 편집", exact: true }).click();
   await expect(page.getByLabel("맵 이름", { exact: true })).toHaveValue(
-    /편집본/,
+    /\(v4\)/,
   );
   await page.getByRole("button", { name: "학습하기", exact: true }).click();
   await expect(

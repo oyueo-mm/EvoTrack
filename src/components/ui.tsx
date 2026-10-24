@@ -25,6 +25,7 @@ export function ToolButton({
   icon: Icon,
   label,
   hint,
+  description,
   active = false,
   disabled = false,
   onClick,
@@ -32,6 +33,7 @@ export function ToolButton({
   icon: LucideIcon;
   label: string;
   hint?: string;
+  description?: string;
   active?: boolean;
   disabled?: boolean;
   onClick: () => void;
@@ -42,7 +44,7 @@ export function ToolButton({
       className={"tool-button " + (active ? "selected" : "")}
       aria-label={label}
       aria-pressed={active}
-      title={hint ? `${label} · ${hint}` : label}
+      title={[label, description, hint].filter(Boolean).join(" · ")}
       disabled={disabled}
       onClick={onClick}
     >

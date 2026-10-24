@@ -462,3 +462,31 @@ export function pasteSelection(
     selection: { kind: "checkpoint", index: m.checkpoints.length - 1 },
   };
 }
+
+export function v4EditorName(name: string) {
+  let base = name.trim(),
+    previous = "";
+  while (base !== previous) {
+    previous = base;
+    base = base
+      .replace(
+        /(?:\s*·\s*(?:확장 편집본|요소 확장본|게이트 편집본|편집본)|\s*\(v[1-4]\))\s*$/,
+        "",
+      )
+      .trim();
+  }
+  return `${base || "Untitled"} (v4)`;
+}
+export function editableV4(map: TrackMap, forceCopy = false): TrackMap {
+  if (map.environmentVersion === 4 && !forceCopy) return structuredClone(map);
+  const now = new Date().toISOString();
+  return {
+    ...structuredClone(map),
+    id: crypto.randomUUID(),
+    sourceMapId: map.sourceMapId ?? map.id,
+    name: v4EditorName(map.name),
+    environmentVersion: 4,
+    createdAt: now,
+    updatedAt: now,
+  };
+}

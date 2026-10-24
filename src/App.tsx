@@ -1,3 +1,4 @@
+import { editableV4 } from "./core/editor";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -231,6 +232,23 @@ export default function App() {
       if (!hydrated.current) {
         hydrated.current = true;
         setMap((current) => {
+          if (pageRef.current === "editor") {
+            const id = localStorage.getItem("evotrack-editor-map"),
+              source = localStorage.getItem("evotrack-editor-source");
+            const original =
+              a.find((m) => m.id === id) ??
+              a.find((m) => m.id === source) ??
+              EXAMPLE_MAPS.find((m) => m.id === source) ??
+              current;
+            const draft = editableV4(validateMap(original));
+            baseline.current = structuredClone(draft);
+            localStorage.setItem("evotrack-editor-map", draft.id);
+            localStorage.setItem(
+              "evotrack-editor-source",
+              draft.sourceMapId ?? draft.id,
+            );
+            return draft;
+          }
           const stored = a.find((m) => m.id === current.id);
           const example = EXAMPLE_MAPS.find((m) => m.id === current.id);
           if (stored && JSON.stringify(current) === JSON.stringify(example)) {
@@ -269,28 +287,30 @@ export default function App() {
       clearTimeout(noticeTimer.current);
     };
   }, []);
-  const navigate = (p: Page) => {
+  const navigate = (p: Page, editorSource?: TrackMap) => {
     if (!guard.current(p)) {
       window.history.replaceState(null, "", "#" + pageRef.current);
       return;
     }
-    if (
-      p === "editor" &&
-      (training.active || training.paused) &&
-      !draftSession
-    ) {
-      const original = sessionMap ?? map;
-      setSessionMap(structuredClone(original));
-      const fork = {
-        ...structuredClone(original),
-        id: crypto.randomUUID(),
-        name: original.name + " · 편집본",
-      };
-      baseline.current = structuredClone(fork);
-      setMap(fork);
-      setDraftSession(true);
+    if (p === "editor" && page !== "editor") {
+      const forkSession = (training.active || training.paused) && !draftSession;
+      const source = editorSource ?? (forkSession ? (sessionMap ?? map) : map);
+      if (forkSession) {
+        setSessionMap(structuredClone(source));
+        setDraftSession(true);
+      }
+      const draft = editableV4(source, forkSession);
+      baseline.current = structuredClone(draft);
+      setMap(draft);
       undo.current = [];
       redo.current = [];
+      localStorage.setItem("evotrack-editor-map", draft.id);
+      localStorage.setItem(
+        "evotrack-editor-source",
+        draft.sourceMapId ?? draft.id,
+      );
+      if (source.environmentVersion !== 4)
+        notify("원본을 보존한 v4 편집본을 열었습니다.");
     }
     setPage(p);
     location.hash = p;
@@ -344,6 +364,14 @@ export default function App() {
     setMap({ ...m, updatedAt: new Date().toISOString() });
   }
   function chooseMap(m: TrackMap) {
+    if (page === "editor") {
+      const source = m;
+      m = editableV4(source);
+      localStorage.setItem("evotrack-editor-map", m.id);
+      localStorage.setItem("evotrack-editor-source", m.sourceMapId ?? m.id);
+      if (source.environmentVersion !== 4)
+        notify("원본을 보존한 v4 편집본을 열었습니다.");
+    }
     const restart = locked && page !== "editor";
     if (!locked || restart) {
       training.clear();
@@ -842,8 +870,9 @@ export default function App() {
                 <button
                   className="button primary"
                   onClick={() => {
-                    chooseMap(newMap(map.mode));
-                    navigate("editor");
+                    const draft = newMap(map.mode);
+                    chooseMap(draft);
+                    navigate("editor", draft);
                   }}
                 >
                   <Plus size={16} /> 새 맵 만들기
@@ -887,6 +916,13 @@ export default function App() {
               onSaveMap={() => void saveMap()}
               onCompare={() => navigate("compare")}
               onModels={() => navigate("models")}
+              onSaveModel={async (model) => {
+                await put("models", model);
+                await refresh();
+                notify(
+                  "추론용 최고/현재 정책을 모델 라이브러리에 저장했습니다.",
+                );
+              }}
               onError={(message) => notify(message, true)}
             />
           )}
@@ -928,7 +964,7 @@ export default function App() {
                     }}
                     onEdit={() => {
                       chooseMap(m);
-                      navigate("editor");
+                      navigate("editor", m);
                     }}
                   />
                 ))}
@@ -992,7 +1028,7 @@ export default function App() {
                       }}
                       onEdit={() => {
                         chooseMap(m);
-                        navigate("editor");
+                        navigate("editor", m);
                       }}
                       onExport={() => download(m, m.name)}
                       onDelete={
@@ -1069,6 +1105,18 @@ export default function App() {
                             ? " · 세대 경계 재개"
                             : ""}
                         </small>
+                        {m.policySelection && (
+                          <small className="policy-selection">
+                            {m.policySelection.source === "evaluation"
+                              ? "고정 시드 평가"
+                              : "세대 최고 정책"}{" "}
+                            · 발견 {m.policySelection.iteration} · 완주{" "}
+                            {(m.policySelection.successRate * 100).toFixed(1)}%
+                            · 적합도 {m.policySelection.fitness.toFixed(2)}
+                            {m.policySelection.seeds &&
+                              ` · 시드 ${m.policySelection.seeds.join(", ")}`}
+                          </small>
+                        )}
                         {m.algorithm === "PPO" && m.kind === "checkpoint" && (
                           <small className="muted">
                             에피소드 경계 재개 · Adam 상태 포함

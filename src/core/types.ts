@@ -67,6 +67,7 @@ export interface TrackMap {
   version: 1;
   environmentVersion?: 1 | 2 | 3 | 4;
   category?: "standard" | "tutorial";
+  sourceMapId?: string;
   difficulty?: "Easy" | "Medium" | "Hard";
   features?: string[];
   recommendedHorizon?: number;
@@ -213,6 +214,24 @@ export interface PolicyData {
   output: number;
   weights: number[];
 }
+export interface PolicySummary {
+  algorithm: Algorithm;
+  iteration: number;
+  source: "generation" | "evaluation";
+  fitness: number;
+  successRate: number;
+  progress: number;
+  seeds?: number[];
+  horizon: number;
+  phase?: string;
+}
+export interface PolicyRecord extends PolicySummary {
+  policy: PolicyData;
+}
+export interface PolicyCatalog {
+  current?: PolicyRecord;
+  best?: PolicyRecord;
+}
 export interface SavedModel {
   id: string;
   name: string;
@@ -227,6 +246,8 @@ export interface SavedModel {
   trainingMap: TrackMap;
   createdAt: string;
   checkpoint?: unknown;
+  policySelection?: PolicySummary;
+  bestPolicy?: PolicyRecord;
 }
 export interface Snapshot {
   stats: TrainingStats;
@@ -235,6 +256,7 @@ export interface Snapshot {
   policy: PolicyData;
   sequence?: number;
   session?: string;
+  policies?: { current?: PolicySummary; best?: PolicySummary };
   runtime?: {
     phase: "COLLECTING" | "OPTIMIZING" | "READY";
     mode: "observe" | "fast";
@@ -248,6 +270,7 @@ export interface Snapshot {
     sample: number;
     frameBytes: number;
     bestProgress: number;
+    learningEnvironmentCount?: number;
   };
   debug?: { transition?: unknown; policyChecksum: number };
   live?: {
@@ -264,6 +287,7 @@ export interface Snapshot {
   };
 }
 export type CommandName =
+  | "INSPECT_POLICIES"
   | "FRAME_ACK"
   | "START"
   | "PAUSE"
@@ -287,11 +311,12 @@ export interface Command {
   debug?: boolean;
 }
 export interface WorkerReply {
-  type: "ACK" | "SNAPSHOT" | "CHECKPOINT" | "ERROR";
+  type: "ACK" | "SNAPSHOT" | "CHECKPOINT" | "ERROR" | "POLICIES";
   session: string;
   requestId: number;
   status?: "running" | "paused" | "stopped";
   snapshot?: Snapshot;
   model?: SavedModel;
   error?: string;
+  catalog?: PolicyCatalog;
 }

@@ -1,3 +1,4 @@
+import { TOOL_GROUPS, toolsFor } from "./editor-tools";
 import { TestControls, TEST_HELP_KEY } from "./TestControls";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -283,44 +284,14 @@ export function EditorWorkspace({
     onSave,
     onChange,
   ]);
-  const tools: [Tool, LucideIcon, string, string?][] = [
-    ["select", MousePointer2, "선택 / 이동", "V"],
-    ...(map.mode === "racing"
-      ? ([
-          ["road", Pencil, "도로 그리기", "P"],
-          ["checkpoint", Navigation, "체크포인트", "C"],
-        ] as [Tool, LucideIcon, string, string][])
-      : ([
-          ["platform", Layers, "고정 발판", "P"],
-          ["moving", MoveRight, "이동 발판"],
-          ["spike", Zap, "가시"],
-          ["spring", ArrowUpRight, "점프대"],
-          ["elastic", Activity, "탄성 발판"],
-        ] as [Tool, LucideIcon, string][])),
-    ["start", Flag, "시작점", "S"],
-    ["goal", Target, "결승점", "G"],
-    ["wall", Square, "벽", "W"],
-    ...(map.mode === "racing"
-      ? ([
-          ["spike", Zap, "가시"],
-          ["moving", MoveRight, "이동 장애물"],
-        ] as [Tool, LucideIcon, string][])
-      : []),
-    ...((map.environmentVersion ?? 1) >= 3
-      ? ([
-          ["bomb", Zap, "폭탄"],
-          ...(map.mode === "bounce" ? [["respawn", Flag, "부활 지점"]] : []),
-        ] as [Tool, LucideIcon, string][])
-      : []),
-    ...(map.environmentVersion === 4
-      ? ([
-          ["belt", MoveRight, "속도 벨트"],
-          ["reward", Target, "중간 보상"],
-        ] as [Tool, LucideIcon, string][])
-      : []),
-    ["erase", Eraser, "지우개", "E"],
-    ["pan", Hand, "화면 이동", "H"],
-  ];
+  const tools = toolsFor(map.mode);
+  const [compactTools, setCompactTools] = useState(() => innerWidth <= 900),
+    [openToolGroup, setOpenToolGroup] = useState<string | null>(null);
+  useEffect(() => {
+    const resize = () => setCompactTools(innerWidth <= 900);
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
   const layers: { s: Selection; label: string }[] = [
     ...(map.road.length
       ? [
@@ -395,7 +366,11 @@ export function EditorWorkspace({
           ? 1
           : 2;
   return (
-    <section className="editor-workspace" aria-label="맵 편집 작업 공간">
+    <section
+      className="editor-workspace"
+      aria-label="맵 편집 작업 공간"
+      data-environment-version={map.environmentVersion}
+    >
       <header className="editor-header">
         <div className="editor-document">
           <input
@@ -451,41 +426,81 @@ export function EditorWorkspace({
       <div className={"editor-body " + (panel ? "with-inspector" : "")}>
         <div className="editor-stage">
           <div
-            className="floating-tools"
+            className="floating-tools grouped-tools"
             role="toolbar"
             aria-label="맵 편집 도구"
           >
-            {tools.map(([t, icon, label, hint]) => (
-              <ToolButton
-                key={t}
-                icon={icon}
-                label={label}
-                hint={hint}
-                active={tool === t}
-                disabled={disabled}
-                onClick={() => {
-                  setTool(t);
-                  setSelected(null);
-                  setTab("properties");
-                }}
-              />
+            {TOOL_GROUPS.map((group) => (
+              <details
+                key={group}
+                className="tool-group"
+                open={!compactTools || openToolGroup === group}
+                data-active={tools.some(
+                  (t) => t.group === group && t.id === tool,
+                )}
+              >
+                <summary
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (compactTools)
+                      setOpenToolGroup((v) => (v === group ? null : group));
+                  }}
+                >
+                  {group}
+                </summary>
+                <div
+                  className="tool-group-items"
+                  role="group"
+                  aria-label={group}
+                >
+                  {group === "편집 기록" ? (
+                    <>
+                      <ToolButton
+                        icon={Undo2}
+                        label="실행 취소"
+                        description="마지막 편집 되돌리기"
+                        hint="Ctrl Z"
+                        disabled={!canUndo || disabled}
+                        onClick={onUndo}
+                      />
+                      <ToolButton
+                        icon={Redo2}
+                        label="다시 실행"
+                        description="되돌린 편집 복원"
+                        hint="Ctrl Shift Z"
+                        disabled={!canRedo || disabled}
+                        onClick={onRedo}
+                      />
+                    </>
+                  ) : (
+                    tools
+                      .filter((t) => t.group === group)
+                      .map((t) => (
+                        <span
+                          key={t.id}
+                          data-tool-id={t.id}
+                          data-tool-icon={t.iconName}
+                        >
+                          <ToolButton
+                            icon={t.icon}
+                            label={t.label}
+                            description={t.description}
+                            hint={t.hint}
+                            active={tool === t.id}
+                            disabled={disabled}
+                            onClick={() => {
+                              setTool(t.id);
+                              setSelected(null);
+                              setTab("properties");
+                              if (compactTools) setOpenToolGroup(null);
+                            }}
+                          />
+                        </span>
+                      ))
+                  )}
+                </div>
+              </details>
             ))}
-            <div className="floating-history">
-              <ToolButton
-                icon={Undo2}
-                label="실행 취소"
-                hint="Ctrl Z"
-                disabled={!canUndo || disabled}
-                onClick={onUndo}
-              />
-              <ToolButton
-                icon={Redo2}
-                label="다시 실행"
-                hint="Ctrl Shift Z"
-                disabled={!canRedo || disabled}
-                onClick={onRedo}
-              />
-            </div>
           </div>
           <div className="editor-canvas">
             <World
@@ -601,79 +616,6 @@ export function EditorWorkspace({
                 id={`inspector-${tab}`}
                 aria-labelledby={`tab-${tab}`}
               >
-                {(map.environmentVersion ?? 1) < 2 && (
-                  <Section title="이전 환경 v1">
-                    <p className="helper">
-                      이 맵은 기존 물리 규칙을 사용합니다. 객체 회전을
-                      사용하려면 확장 환경 v3 편집본을 만드세요.
-                    </p>
-                    <button
-                      className="button full-width"
-                      disabled={disabled}
-                      onClick={() =>
-                        onChoose({
-                          ...structuredClone(map),
-                          id: crypto.randomUUID(),
-                          name: map.name + " · 게이트 편집본",
-                          environmentVersion: 2,
-                          checkpoints: map.checkpoints.map((_, i) =>
-                            gateAt(map, i),
-                          ),
-                          createdAt: new Date().toISOString(),
-                          updatedAt: new Date().toISOString(),
-                        })
-                      }
-                    >
-                      새 환경 v2 편집본 만들기
-                    </button>
-                  </Section>
-                )}
-                {(map.environmentVersion ?? 1) < 3 && (
-                  <Section title="확장 환경">
-                    <p className="helper">
-                      폭탄·부활 지점과 발사/탄성 계수는 환경 v3에서 지원합니다.
-                      원본과 기존 모델을 보존하는 새 편집본으로 전환하세요.
-                    </p>
-                    <button
-                      className="button"
-                      disabled={disabled}
-                      onClick={() =>
-                        onChoose({
-                          ...structuredClone(map),
-                          id: crypto.randomUUID(),
-                          name: map.name + " · 확장 편집본",
-                          environmentVersion: 3,
-                        })
-                      }
-                    >
-                      확장 환경 v3 편집본 만들기
-                    </button>
-                  </Section>
-                )}
-                {map.environmentVersion !== 4 && (
-                  <Section title="새 맵 요소">
-                    <p className="helper">
-                      점프 보조·벨트·중간 보상은 환경 v4 편집본에서 사용합니다.
-                      원본과 기존 모델은 보존합니다.
-                    </p>
-                    <button
-                      className="button"
-                      disabled={disabled}
-                      onClick={() =>
-                        onChoose({
-                          ...structuredClone(map),
-                          id: crypto.randomUUID(),
-                          name: map.name + " · 요소 확장본",
-                          environmentVersion: 4,
-                          createdAt: new Date().toISOString(),
-                          updatedAt: new Date().toISOString(),
-                        })
-                      }
-                    >
-                      환경 v4 편집본 만들기
-                    </button>
-                  </Section>
-                )}
                 <button
                   className="button restore-test-help"
                   onClick={() => {
@@ -695,7 +637,7 @@ export function EditorWorkspace({
                   <>
                     <Section
                       title={
-                        tools.find((t) => t[0] === tool)?.[2] ?? "도구 옵션"
+                        tools.find((t) => t.id === tool)?.label ?? "도구 옵션"
                       }
                     >
                       {map.mode === "racing" && tool !== "erase" && (
@@ -966,7 +908,7 @@ export function EditorWorkspace({
       </div>
       <footer className="editor-status">
         <span>
-          {tools.find((t) => t[0] === tool)?.[2]}
+          {tools.find((t) => t.id === tool)?.label}
           <span className="status-coordinates">
             {" "}
             · x {Math.round(cursor.x)} y {Math.round(cursor.y)}

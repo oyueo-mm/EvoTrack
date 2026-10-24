@@ -1,4 +1,4 @@
-import { openSettings } from "./helpers";
+import { openSettings, chooseTool } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { EXAMPLE_MAPS } from "../../src/core/maps";
 import { DEFAULT_CONFIG } from "../../src/core/types";
@@ -57,11 +57,11 @@ test("editor, GA/PPO workers, pause/resume, storage, checkpoint and evaluation",
   ).toBeVisible();
   await page.getByRole("button", { name: "맵 편집", exact: true }).click();
   await page.getByLabel("맵 이름", { exact: true }).fill("E2E circuit");
-  await page.getByRole("button", { name: "벽", exact: true }).click();
+  await chooseTool(page, "벽");
   const canvas = page.getByLabel("맵 편집 캔버스");
   const box = await canvas.boundingBox();
   await canvas.click({
-    position: { x: box!.width * 0.75, y: box!.height * 0.15 },
+    position: { x: box!.width * 0.75, y: box!.height * 0.35 },
   });
   await page.getByRole("button", { name: "맵 저장", exact: true }).click();
   await expect(page.locator('.toast[role="status"]')).toContainText(
@@ -100,7 +100,7 @@ test("editor, GA/PPO workers, pause/resume, storage, checkpoint and evaluation",
     "추론 모델",
   );
   await page.getByRole("button", { name: "학습 재개", exact: true }).click();
-  await page.getByRole("button", { name: "체크포인트", exact: true }).click();
+  await chooseTool(page, "체크포인트");
   await expect(page.locator('.toast[role="status"]')).toContainText(
     "체크포인트",
   );
@@ -184,7 +184,7 @@ test("mobile layout, Bounce editing and training remain usable", async ({
   await page.goto("./");
   await page.getByRole("button", { name: /Bounce/ }).click();
   await page.getByRole("button", { name: "맵 편집", exact: true }).click();
-  await page.getByRole("button", { name: "가시", exact: true }).click();
+  await chooseTool(page, "가시");
   await page
     .getByLabel("맵 편집 캔버스")
     .click({ position: { x: 180, y: 120 } });
@@ -333,7 +333,7 @@ test("saved map, GA checkpoint and exported model survive reload and restore", a
   );
   await page.reload();
   await page.getByRole("button", { name: "학습하기", exact: true }).click();
-  await page.getByLabel("현재 맵").selectOption("r-straight");
+
   await expect(page.getByLabel("현재 맵").locator("option:checked")).toHaveText(
     "Release verification circuit",
   );
@@ -374,7 +374,7 @@ test("saved map, GA checkpoint and exported model survive reload and restore", a
     "추론 모델",
   );
   await page.getByRole("button", { name: "학습 재개", exact: true }).click();
-  await page.getByRole("button", { name: "체크포인트", exact: true }).click();
+  await chooseTool(page, "체크포인트");
   await expect(page.locator('.toast[role="status"]')).toContainText(
     "체크포인트",
   );

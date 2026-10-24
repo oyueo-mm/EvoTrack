@@ -9,6 +9,8 @@ export interface GACheckpoint {
   rng: number;
   best: PolicyData | null;
   bestScore: number;
+  bestGeneration?: number;
+  bestState?: AgentState;
 }
 export class GeneticTrainer {
   rng: Random;
@@ -16,6 +18,13 @@ export class GeneticTrainer {
   generation = 0;
   best: PolicyData | null = null;
   bestScore = -Infinity;
+  bestGeneration = 0;
+  bestState?: AgentState;
+  lastGenerationBest?: {
+    policy: PolicyData;
+    state: AgentState;
+    generation: number;
+  };
   environments: Simulator[] = [];
   tick = 0;
   boundary = true;
@@ -62,9 +71,16 @@ export class GeneticTrainer {
       scores = states.map((s) => s.reward);
     const max = Math.max(...scores),
       index = scores.indexOf(max);
+    this.lastGenerationBest = {
+      policy: structuredClone(this.population[index]),
+      state: structuredClone(states[index]),
+      generation: this.generation + 1,
+    };
     if (max > this.bestScore) {
       this.bestScore = max;
       this.best = structuredClone(this.population[index]);
+      this.bestGeneration = this.generation + 1;
+      this.bestState = structuredClone(states[index]);
     }
     this.reproduce(scores);
     this.boundary = true;
@@ -139,6 +155,8 @@ export class GeneticTrainer {
       rng: this.rng.state,
       best: this.best,
       bestScore: this.bestScore,
+      bestGeneration: this.bestGeneration,
+      bestState: this.bestState,
     });
   }
   restore(c: GACheckpoint) {
@@ -147,6 +165,9 @@ export class GeneticTrainer {
     this.rng.state = c.rng;
     this.best = structuredClone(c.best);
     this.bestScore = c.bestScore;
+    this.bestGeneration = c.bestGeneration ?? 0;
+    this.bestState = c.bestState;
+    this.lastGenerationBest = undefined;
     this.environments = [];
     this.tick = 0;
     this.boundary = true;

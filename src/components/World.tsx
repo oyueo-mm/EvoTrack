@@ -1470,6 +1470,7 @@ export function World({
         data-generation={snapshot?.live?.generation}
         data-frame-bytes={snapshot?.runtime?.frameBytes}
         data-actual-tps={snapshot?.runtime?.ticksPerSecond}
+        data-training-environments={snapshot?.runtime?.learningEnvironmentCount}
         data-training-phase={snapshot?.runtime?.phase}
         data-environment-id={snapshot?.runtime?.environmentId}
         data-training-samples={snapshot?.runtime?.sample}

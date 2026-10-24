@@ -289,6 +289,26 @@ export default function App() {
     setSidebar(false);
   };
   route.current = navigate;
+  const trainingRef = useRef(training);
+  trainingRef.current = training;
+  const observationRef = useRef(config.trainingMode !== "fast");
+  observationRef.current = config.trainingMode !== "fast";
+  useEffect(() => {
+    if (page !== "lab" && observationRef.current && trainingRef.current.active)
+      trainingRef.current.send("PAUSE");
+  }, [page]);
+  useEffect(() => {
+    const hidden = () => {
+      if (
+        document.hidden &&
+        observationRef.current &&
+        trainingRef.current.active
+      )
+        trainingRef.current.send("PAUSE");
+    };
+    document.addEventListener("visibilitychange", hidden);
+    return () => document.removeEventListener("visibilitychange", hidden);
+  }, []);
   const histories = training.histories,
     snapshot = training.snapshots[tab],
     stats = snapshot?.stats;
@@ -1098,7 +1118,7 @@ export default function App() {
                         <b>{fmt(training.snapshots[a]?.stats.elapsed, 1)} s</b>
                       </span>
                       <span>
-                        평가 보상{" "}
+                        관찰 보상{" "}
                         <b>{fmt(training.snapshots[a]?.stats.best, 2)}</b>
                       </span>
                     </div>
@@ -1107,7 +1127,7 @@ export default function App() {
               </div>
               <section className="graph-card compare-chart">
                 <div className="card-heading">
-                  <h2>동일 환경의 결정론적 정책 평가</h2>
+                  <h2>동일 맵에서 수집한 실제 학습 기록</h2>
                   <div className="legend">
                     <span>
                       <i className="ga-dot" />

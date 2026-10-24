@@ -1,0 +1,30 @@
+{
+  "measuredAt": "2026-10-24T08:25:10.125506+00:00",
+  "context": "Local Windows Chromium headless, 2.2-second samples, debug instrumentation enabled; JSON UTF-8 payload estimates, not browser internal clone bytes. No performance guarantee on other devices.",
+  "GA": [
+    {
+      "population": 32,
+      "p95FrameMs": 16.700000000000273,
+      "uiResponseMs": 13,
+      "frameBytes": 24187,
+      "actualTicksPerSecond": 102.89737340909313
+    },
+    {
+      "population": 64,
+      "p95FrameMs": 16.799999999999727,
+      "uiResponseMs": 12,
+      "frameBytes": 36520,
+      "actualTicksPerSecond": 105.95761695321872
+    }
+  ],
+  "PPO": {
+    "p95FrameMs": 16.799999999999955,
+    "frames": 133,
+    "automationActionMs": 15,
+    "pointerEventDelayMs": 1.1000000014901161,
+    "maxSnapshotJSONBytes": 12225,
+    "lastActualTicksPerSecond": 51.48833467417538,
+    "observedSnapshotHz": 27.27272727272727,
+    "matchingTransitionSamples": 133
+  }
+}

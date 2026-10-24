@@ -77,7 +77,7 @@ export function TrainingPanel({
       </Section>
       <Section
         title="시뮬레이션 속도"
-        description="실제 학습 작업의 처리 주기를 조절합니다."
+        description="고정 1/60초 물리 tick의 요청 진행 속도입니다. 실제 배속은 화면에 별도로 표시합니다."
       >
         <RangeField
           label="학습 배속"

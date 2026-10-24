@@ -118,7 +118,7 @@ export function EditorWorkspace({
   const [locks, setLocks] = useState<Set<string>>(new Set());
   const [radius, setRadius] = useState(22);
   const [cursor, setCursor] = useState<Point>({ x: 0, y: 0 });
-  const [snapRightAngles, setSnapRightAngles] = useState(false);
+  const [snapRightAngles, setSnapRightAngles] = useState(true);
   const [respawnToken, setRespawnToken] = useState(0);
   const [testing, setTesting] = useState(false);
   const [testRun, setTestRun] = useState(0);
@@ -650,8 +650,8 @@ export function EditorWorkspace({
                 {(map.environmentVersion ?? 1) < 2 && (
                   <Section title="이전 환경 v1">
                     <p className="helper">
-                      기존 모델과 같은 규칙으로 실행됩니다. 회전·게이트 판정을
-                      쓰려면 원본을 보존하는 새 편집본을 만드세요.
+                      이 맵은 기존 물리 규칙을 사용합니다. 객체 회전을
+                      사용하려면 확장 환경 v3 편집본을 만드세요.
                     </p>
                     <button
                       className="button full-width"
@@ -698,7 +698,7 @@ export function EditorWorkspace({
                 )}
                 <div className="snap-option">
                   <Toggle
-                    label="직각 스냅 (Shift: 90°)"
+                    label="자석형 직각 스냅 (Alt: 임시 해제)"
                     checked={snapRightAngles}
                     onChange={setSnapRightAngles}
                   />

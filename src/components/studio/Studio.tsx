@@ -239,12 +239,38 @@ function TrainingStudio({
           {panel ? "패널 접기" : "학습 설정"}
         </button>
       </section>
+      <section className="observation-controls">
+        <label>
+          학습 모드{" "}
+          <select
+            aria-label="학습 진행 모드"
+            value={config.trainingMode ?? "observe"}
+            onChange={(e) =>
+              changeConfig({
+                ...config,
+                trainingMode: e.target.value as "observe" | "fast",
+              })
+            }
+          >
+            <option value="observe">실시간 관찰</option>
+            <option value="fast">빠른 학습 · 중간 프레임 생략</option>
+          </select>
+        </label>
+        <span>
+          요청 {config.speed.toFixed(1)}× · 실제{" "}
+          {(snapshot?.runtime?.effectiveSpeed ?? 0).toFixed(2)}× ·{" "}
+          {(snapshot?.runtime?.ticksPerSecond ?? 0).toFixed(0)} ticks/s
+        </span>
+        {training.paused && (
+          <span>일시정지 · 학습 재개로 이어서 관찰하세요.</span>
+        )}
+      </section>
       <div className={"studio " + (!panel ? "panel-hidden" : "")}>
         <section className="canvas-card">
           <div className="canvas-heading">
             <div>
               <h2>
-                {tab === "GA" ? "실시간 개체군" : "정책 시뮬레이션"}{" "}
+                {tab === "GA" ? "실시간 개체군" : "실제 PPO Rollout"}{" "}
                 <small className="environment-label">
                   환경 v{map.environmentVersion ?? 1} ·{" "}
                   {(map.environmentVersion ?? 1) >= 2
@@ -255,7 +281,7 @@ function TrainingStudio({
               <span>
                 {tab === "GA"
                   ? "독립된 환경 · 고정 1/60초 · 개체 간 충돌 없음."
-                  : "대표 PPO 정책의 실제 물리 재생"}
+                  : "화면의 에이전트가 실제 경험을 수집합니다."}
               </span>
             </div>
             <span className="status-badge">{statusText[status]}</span>
@@ -309,7 +335,7 @@ function TrainingStudio({
               icon={Navigation}
               label="에이전트 추적"
               active={follow}
-              disabled={!snapshot || (tab === "GA" && !stats?.iteration)}
+              disabled={!snapshot}
               onClick={() => setFollow(!follow)}
             />
             <details className="view-options">
@@ -400,23 +426,54 @@ function TrainingStudio({
               />
             </div>
           )}
-          <div className="viewport">
-            <World
-              map={map}
-              options={options}
-              snapshot={snapshot}
-              animate={training.active}
-              viewport={viewport}
-              onViewportChange={setViewport}
-              interactive
-              onAgentSelect={(index) =>
-                onOptions({ ...options, selectedAgent: index })
-              }
-              follow={follow}
-              onNavigate={() => setFollow(false)}
-              seed={config.seed}
-              horizon={config.horizon}
-            />
+          <div
+            className={
+              "viewport " + (method === "both" ? "split-learning" : "")
+            }
+          >
+            <div className="learning-pane">
+              {method === "both" && (
+                <span className="pane-label">GA · 실시간 개체군</span>
+              )}
+              <World
+                map={map}
+                options={options}
+                snapshot={method === "both" ? training.snapshots.GA : snapshot}
+                animate={false}
+                onFrame={(sequence, session) =>
+                  training.presentFrame(
+                    method === "both" ? "GA" : tab,
+                    sequence,
+                    options.selectedAgent,
+                    session,
+                  )
+                }
+                viewport={viewport}
+                onViewportChange={setViewport}
+                interactive
+                onAgentSelect={(index) =>
+                  onOptions({ ...options, selectedAgent: index })
+                }
+                follow={follow}
+                onNavigate={() => setFollow(false)}
+                seed={config.seed}
+                horizon={config.horizon}
+              />
+            </div>
+            {method === "both" && (
+              <div className="learning-pane">
+                <span className="pane-label">PPO · 실제 Rollout</span>
+                <World
+                  map={map}
+                  options={options}
+                  snapshot={training.snapshots.PPO}
+                  label="PPO 실제 학습 캔버스"
+                  onFrame={(sequence, session) =>
+                    training.presentFrame("PPO", sequence, undefined, session)
+                  }
+                />
+              </div>
+            )}
             {!snapshot && (
               <div className="canvas-idle-hint">
                 <Play size={16} />
@@ -424,6 +481,49 @@ function TrainingStudio({
               </div>
             )}
           </div>
+          {method === "both" && (
+            <div className="split-comparison" aria-label="실제 학습량 비교">
+              {(["GA", "PPO"] as const).map((a) => {
+                const s = training.snapshots[a];
+                return (
+                  <div key={a}>
+                    <strong>{a}</strong> · 환경 상호작용 {s?.stats.steps ?? 0} ·{" "}
+                    {a === "GA" ? "세대" : "업데이트"} {s?.stats.iteration ?? 0}{" "}
+                    · 평균 보상 {(s?.stats.mean ?? 0).toFixed(2)} · 완주율{" "}
+                    {((s?.stats.successRate ?? 0) * 100).toFixed(0)}% · 최고
+                    진행도 {((s?.runtime?.bestProgress ?? 0) * 100).toFixed(1)}%
+                    · {(s?.stats.elapsed ?? 0).toFixed(1)}초
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {training.snapshots.PPO?.runtime && (
+            <div className="ppo-runtime" aria-label="PPO 경험 수집 상태">
+              <strong>
+                {training.paused
+                  ? "PAUSED"
+                  : training.snapshots.PPO.runtime.phase}
+              </strong>
+              <span>
+                {training.snapshots.PPO.runtime.phase === "OPTIMIZING"
+                  ? "수집한 경험으로 정책을 업데이트하는 중"
+                  : "실제 환경에서 경험 수집"}
+              </span>
+              <span>
+                Rollout {training.snapshots.PPO.runtime.rollout}/
+                {training.snapshots.PPO.runtime.target} · 업데이트{" "}
+                {training.snapshots.PPO.runtime.updates}
+              </span>
+              <span>
+                현재 보상 {training.snapshots.PPO.state.reward.toFixed(2)} ·
+                정책 손실 {training.snapshots.PPO.stats.policyLoss.toFixed(4)} ·
+                가치 손실 {training.snapshots.PPO.stats.valueLoss.toFixed(4)} ·
+                엔트로피 {training.snapshots.PPO.stats.entropy.toFixed(3)} · KL{" "}
+                {training.snapshots.PPO.stats.kl.toFixed(4)}
+              </span>
+            </div>
+          )}
           {live && (
             <div className="population-stats" aria-label="실시간 개체군 상태">
               <span>
@@ -546,9 +646,9 @@ function TrainingStudio({
             sub: "최근 학습 배치 기준",
           },
           {
-            label: "최고 적합도 / 평가 보상",
+            label: "최고 관찰 보상 / 적합도",
             value: fmt(stats?.best, 2),
-            sub: "같은 맵·시드의 정책 평가",
+            sub: "실제 학습 환경에서 기록한 보상",
           },
           {
             label: "완주율",
@@ -585,7 +685,7 @@ function TrainingStudio({
                   setChartMetric(e.target.value as "best" | "mean")
                 }
               >
-                <option value="best">최고 적합도 / 평가 보상</option>
+                <option value="best">최고 관찰 보상 / 적합도</option>
                 <option value="mean">최근 평균 보상</option>
               </select>
               <select
@@ -676,7 +776,7 @@ function TrainingStudio({
           <div className="session-buttons">
             <button
               className="button"
-              disabled={!snapshot || (tab === "GA" && !stats?.iteration)}
+              disabled={!snapshot}
               onClick={onSaveInference}
             >
               <Save size={15} />
@@ -688,21 +788,29 @@ function TrainingStudio({
                 !snapshot ||
                 !locked ||
                 training.checkpointPending[tab] ||
-                (tab === "GA" && training.paused && !snapshot.live?.boundary)
+                (training.paused &&
+                  (tab === "GA"
+                    ? !snapshot.live?.boundary
+                    : snapshot.runtime?.phase !== "READY"))
               }
+              title="일시정지 도중에는 세대/rollout 경계에서만 저장할 수 있습니다. 중간 상태라면 재개한 뒤 저장을 요청하세요."
               aria-label="체크포인트"
               onClick={() => training.send("SAVE_CHECKPOINT", undefined, tab)}
             >
               <Download size={15} />
               {training.checkpointPending[tab]
-                ? "세대 경계까지 대기…"
+                ? tab === "GA"
+                  ? "세대 경계까지 대기…"
+                  : "Rollout 업데이트 경계까지 대기…"
                 : "체크포인트"}
             </button>
           </div>
           <p className="helper session-note">
             GA는 다음 세대 경계에서 개체군·RNG를 저장합니다. 세대 도중 요청하면
             경계까지 기다립니다. 일시정지 중에는 경계에서만 저장할 수 있습니다.
-            PPO는 에피소드 경계에서 재개합니다.
+            PPO는 완료된 Rollout 업데이트 경계에서 Actor·Critic·Adam·RNG를
+            저장하고 새 에피소드에서 재개합니다. 중간 Rollout은 저장하지
+            않습니다.
           </p>
         </section>
       </div>

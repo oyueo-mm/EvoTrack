@@ -142,6 +142,7 @@ export interface Config {
   clip: number;
   entropy: number;
   speed: number;
+  trainingMode?: "observe" | "fast";
 }
 export const DEFAULT_CONFIG: Config = {
   seed: 42,
@@ -208,6 +209,23 @@ export interface Snapshot {
   state: AgentState;
   population: AgentState[];
   policy: PolicyData;
+  sequence?: number;
+  session?: string;
+  runtime?: {
+    phase: "COLLECTING" | "OPTIMIZING" | "READY";
+    mode: "observe" | "fast";
+    ticks: number;
+    ticksPerSecond: number;
+    effectiveSpeed: number;
+    rollout: number;
+    target: number;
+    updates: number;
+    environmentId: string;
+    sample: number;
+    frameBytes: number;
+    bestProgress: number;
+  };
+  debug?: { transition?: unknown; policyChecksum: number };
   live?: {
     generation: number;
     tick: number;
@@ -222,6 +240,7 @@ export interface Snapshot {
   };
 }
 export type CommandName =
+  | "FRAME_ACK"
   | "START"
   | "PAUSE"
   | "RESUME"
@@ -239,6 +258,9 @@ export interface Command {
   map?: TrackMap;
   config?: Config;
   model?: SavedModel;
+  sequence?: number;
+  selectedAgent?: number;
+  debug?: boolean;
 }
 export interface WorkerReply {
   type: "ACK" | "SNAPSHOT" | "CHECKPOINT" | "ERROR";

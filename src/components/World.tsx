@@ -20,13 +20,11 @@ import type {
   AgentState,
   MapObject,
   Point,
-  PolicyData,
   Snapshot,
   TrackMap,
 } from "../core/types";
 import { objectPosition, Simulator } from "../core/environment";
 import { gateAt, gateEnds } from "../core/geometry";
-import { actionOf } from "../learning/network";
 export type Tool =
   | "select"
   | "road"
@@ -339,9 +337,24 @@ export function drawWorld(
       ctx.stroke();
     }
     ctx.setLineDash([]);
+    if (pivot) {
+      ctx.fillStyle = light ? "#275e46" : "#c2dfce";
+      ctx.font = `${11 * unit}px sans-serif`;
+      ctx.fillText(
+        `${Math.round(((pivot.angle ?? 0) * 180) / Math.PI)}°`,
+        pivot.x,
+        pivot.y - 12 * unit,
+      );
+    }
     for (const h of handles) {
       ctx.beginPath();
-      ctx.arc(h.point.x, h.point.y, 5 * unit, 0, Math.PI * 2);
+      ctx.arc(
+        h.point.x,
+        h.point.y,
+        (h.kind === "rotate" ? 7 : 5) * unit,
+        0,
+        Math.PI * 2,
+      );
       ctx.fillStyle = h.kind === "rotate" ? "#376a50" : "#fff";
       ctx.fill();
       ctx.stroke();
@@ -485,6 +498,8 @@ export function World({
   color = "#83a78c",
   ghost,
   animate = false,
+  onFrame,
+  label,
   interactive = false,
   overview = false,
   eraserSize = 22,
@@ -497,7 +512,7 @@ export function World({
   manualAction = -1,
   manualButtons = [],
   respawnToken = 0,
-  snapRightAngles = false,
+  snapRightAngles = true,
   hidden = new Set<string>(),
   lockedLayers = new Set<string>(),
   onCursor,
@@ -518,6 +533,8 @@ export function World({
   color?: string;
   ghost?: AgentState;
   animate?: boolean;
+  onFrame?: (sequence: number, session?: string) => void;
+  label?: string;
   interactive?: boolean;
   overview?: boolean;
   eraserSize?: number;
@@ -590,6 +607,7 @@ export function World({
     );
   const drag = useRef<{
     kind: "pan" | "road" | "erase" | "move" | "place" | "transform" | "zoom";
+    snapAngle?: number;
     point: Point;
     screen: Point;
     map: TrackMap;
@@ -605,7 +623,6 @@ export function World({
     mapId: string;
     algorithm: string;
     env: Simulator;
-    policy?: PolicyData;
     endedAt: number;
   } | null>(null);
   const brush = useRef<Point | null>(null);
@@ -642,13 +659,9 @@ export function World({
       accumulator = 0,
       lastDraw = 0,
       lastReport = 0;
-    const ensureReplay = () => {
+    const ensureManualTest = () => {
       const p = latest.current,
-        algorithm = p.testing
-          ? "manual"
-          : p.snapshot?.live
-            ? undefined
-            : p.snapshot?.stats.algorithm;
+        algorithm = p.testing ? "manual" : undefined;
       if (!algorithm) {
         replay.current = null;
         return;
@@ -664,7 +677,6 @@ export function World({
           mapId: p.map.id,
           algorithm,
           env,
-          policy: p.snapshot?.policy,
           endedAt: 0,
         };
       }
@@ -682,10 +694,10 @@ export function World({
         canvas.height = r.height * dpr;
       }
       const ctx = canvas.getContext("2d")!;
-      const state = p.snapshot?.live
-        ? p.snapshot.population[
-            p.options.selectedAgent ?? p.snapshot.live.leader
-          ]
+      const state = p.snapshot
+        ? (p.snapshot.population[
+            p.options.selectedAgent ?? p.snapshot.live?.leader ?? 0
+          ] ?? p.snapshot.state)
         : replay.current?.env.getState(true, p.options.sensors);
       if (p.testing && state) {
         canvas.dataset.testSpeed = String(state.speed);
@@ -740,6 +752,23 @@ export function World({
         ctx.stroke();
         ctx.setLineDash([]);
       }
+      if (drag.current?.snapAngle !== undefined) {
+        ctx.save();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = "#356c54";
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillText(
+          `${Math.round((drag.current.snapAngle * 180) / Math.PI)}° · 자석 스냅`,
+          18,
+          80,
+        );
+        ctx.restore();
+      }
+      if (p.snapshot?.sequence) {
+        const sequence = p.snapshot.sequence,
+          session = p.snapshot.session;
+        requestAnimationFrame(() => onFrame?.(sequence, session));
+      }
       const mini = miniRef.current;
       if (mini) {
         const c = mini.getContext("2d")!,
@@ -774,11 +803,11 @@ export function World({
       }
     };
     renderRef.current = draw;
-    ensureReplay();
+    ensureManualTest();
     draw();
     const tick = (now: number) => {
       const p = latest.current;
-      ensureReplay();
+      ensureManualTest();
       const r = replay.current;
       accumulator += Math.min(0.1, (now - last) / 1000);
       last = now;
@@ -790,15 +819,8 @@ export function World({
             r.endedAt = 0;
             accumulator = 0;
           }
-          if (!p.testing && now - r.endedAt > 650) {
-            r.env.reset(p.seed);
-            r.policy = p.snapshot?.policy;
-            r.endedAt = 0;
-            accumulator = 0;
-          }
         } else {
           while (accumulator >= 1 / 60) {
-            let action = 4;
             if (p.testing) {
               const held = (...codes: string[]) =>
                 codes.some(
@@ -816,9 +838,6 @@ export function World({
                 drop: held("ArrowDown", "KeyS"),
                 brake: p.map.mode === "bounce" && held("Space", "brake"),
               });
-            } else {
-              if (r.policy) action = actionOf(r.policy, r.env.observe());
-              r.env.step(action);
             }
             accumulator -= 1 / 60;
           }
@@ -834,7 +853,7 @@ export function World({
       }
       raf = requestAnimationFrame(tick);
     };
-    if ((animate && snapshot) || testing) raf = requestAnimationFrame(tick);
+    if (testing) raf = requestAnimationFrame(tick);
     const resize = new ResizeObserver(draw);
     resize.observe(canvas);
     return () => {
@@ -994,6 +1013,31 @@ export function World({
       transaction = crypto.randomUUID(),
       initial = structuredClone(map);
     if (e.button !== 0 && drag.current?.kind !== "pan") drag.current = null;
+    const unit = 1 / baseScale(map, frame()) / view.zoom;
+    if (
+      e.button === 0 &&
+      selected &&
+      !hidden.has(selectionKey(selected)) &&
+      !lockedLayers.has(selectionKey(selected))
+    ) {
+      const handle = transformHandles(map, selected, unit).find(
+        (h) => Math.hypot(h.point.x - p.x, h.point.y - p.y) < 14 * unit,
+      );
+      if (handle) {
+        drag.current = {
+          kind: "transform",
+          before: initial,
+          point: p,
+          screen: s,
+          map: initial,
+          view: camera.current,
+          transaction,
+          selection: selected,
+          handle: handle.kind,
+        };
+        return;
+      }
+    }
     if (editing && e.ctrlKey && e.button === 0) {
       drag.current = {
         kind: "zoom",
@@ -1022,29 +1066,6 @@ export function World({
         transaction,
       };
       return;
-    }
-    const unit = 1 / baseScale(map, frame()) / view.zoom;
-    if (
-      selected &&
-      !hidden.has(selectionKey(selected)) &&
-      !lockedLayers.has(selectionKey(selected))
-    ) {
-      const handle = transformHandles(map, selected, unit).find(
-        (h) => Math.hypot(h.point.x - p.x, h.point.y - p.y) < 9 * unit,
-      );
-      if (handle) {
-        drag.current = {
-          kind: "transform",
-          point: p,
-          screen: s,
-          map: initial,
-          view: camera.current,
-          transaction,
-          selection: selected,
-          handle: handle.kind,
-        };
-        return;
-      }
     }
     const hits = hitSelections(map, p, 14 * unit)
       .filter(
@@ -1230,7 +1251,7 @@ export function World({
       return;
     }
     if (
-      (d.kind === "road" || d.kind === "place") &&
+      d.kind === "place" &&
       Math.hypot(s.x - d.screen.x, s.y - d.screen.y) > 4
     ) {
       if (d.changed) onChange?.(d.before ?? d.map, d.transaction);
@@ -1257,8 +1278,15 @@ export function World({
         },
       });
     } else if (d.kind === "road") {
-      if (Math.hypot(p.x - d.point.x, p.y - d.point.y) > 12) {
-        d.map.road.push(p);
+      const distance = Math.hypot(p.x - d.point.x, p.y - d.point.y);
+      if (distance >= 12) {
+        const count = Math.ceil(distance / 12),
+          origin = d.point;
+        for (let i = 1; i <= count; i++)
+          d.map.road.push({
+            x: origin.x + ((p.x - origin.x) * i) / count,
+            y: origin.y + ((p.y - origin.y) * i) / count,
+          });
         d.point = p;
         onChange?.(structuredClone(d.map), d.transaction);
       }
@@ -1267,16 +1295,36 @@ export function World({
       onChange?.(d.map, d.transaction);
     } else if (d.kind === "transform" && d.selection && d.handle) {
       d.changed = true;
-      onChange?.(
-        transformSelection(
-          d.map,
-          d.selection,
-          d.handle,
-          p,
-          e.shiftKey || snapRightAngles,
-        ),
-        d.transaction,
+      const transformed = transformSelection(
+        d.map,
+        d.selection,
+        d.handle,
+        p,
+        e.shiftKey,
+        { enabled: snapRightAngles && !e.altKey, previous: d.snapAngle },
       );
+      const angle =
+        d.selection.kind === "object"
+          ? transformed.objects.find(
+              (o) => o.id === (d.selection as { id: string }).id,
+            )?.angle
+          : d.selection.kind === "checkpoint"
+            ? transformed.checkpoints[d.selection.index]?.angle
+            : undefined;
+      d.snapAngle =
+        d.handle === "rotate" &&
+        snapRightAngles &&
+        !e.altKey &&
+        angle !== undefined &&
+        Math.abs(angle / (Math.PI / 2) - Math.round(angle / (Math.PI / 2))) <
+          1e-8
+          ? angle
+          : undefined;
+      e.currentTarget.dataset.angleSnap =
+        d.snapAngle === undefined
+          ? ""
+          : String(Math.round((d.snapAngle * 180) / Math.PI));
+      onChange?.(transformed, d.transaction);
     } else if (d.selection) {
       d.changed = true;
       onChange?.(
@@ -1352,12 +1400,32 @@ export function World({
       <canvas
         ref={canvasRef}
         className={"world " + (editing ? "editing tool-" + tool : "")}
-        aria-label={editing ? "맵 편집 캔버스" : "AI 시뮬레이션 캔버스"}
+        aria-label={
+          label ?? (editing ? "맵 편집 캔버스" : "AI 시뮬레이션 캔버스")
+        }
         tabIndex={interactive ? 0 : undefined}
         data-test-x={
           testing ? replay.current?.env.getState(false).x : undefined
         }
         data-generation={snapshot?.live?.generation}
+        data-frame-bytes={snapshot?.runtime?.frameBytes}
+        data-actual-tps={snapshot?.runtime?.ticksPerSecond}
+        data-training-phase={snapshot?.runtime?.phase}
+        data-environment-id={snapshot?.runtime?.environmentId}
+        data-training-samples={snapshot?.runtime?.sample}
+        data-training-ticks={snapshot?.runtime?.ticks}
+        data-rollout={snapshot?.runtime?.rollout}
+        data-updates={snapshot?.runtime?.updates}
+        data-frame-sequence={snapshot?.sequence}
+        data-policy-checksum={snapshot?.debug?.policyChecksum}
+        data-training-state={
+          snapshot?.debug ? JSON.stringify(snapshot.state) : undefined
+        }
+        data-transition={
+          snapshot?.debug
+            ? JSON.stringify(snapshot.debug.transition)
+            : undefined
+        }
         data-live-tick={snapshot?.live?.tick}
         data-live-count={snapshot?.population.length}
         data-live-positions={

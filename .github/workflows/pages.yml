@@ -71,4 +71,5 @@ jobs:
             .cache/deployment-qa/
             .cache/ui-review/
             .cache/live-population-performance.json
+            .cache/ppo-observation-performance.json
             test-results/

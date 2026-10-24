@@ -1,7 +1,7 @@
 ﻿import * as tf from "@tensorflow/tfjs";
 import { Simulator } from "../core/environment";
 import { Random } from "../core/random";
-import type { Config, PolicyData, TrackMap } from "../core/types";
+import type { AgentState, Config, PolicyData, TrackMap } from "../core/types";
 import { createPolicy, logits, sample, softmax } from "./network";
 export function gae(
   rewards: number[],
@@ -32,6 +32,19 @@ export interface PPOCheckpoint {
   rng: number;
   updates: number;
 }
+export interface PPORunResult {
+  steps: number;
+  episodes: number;
+  successes: number;
+  collisions: number;
+  completion: number;
+  state: AgentState;
+  mean: number;
+  policyLoss: number;
+  valueLoss: number;
+  entropy: number;
+  kl: number;
+}
 export class PPOTrainer {
   rng: Random;
   actor: tf.Variable[];
@@ -39,10 +52,42 @@ export class PPOTrainer {
   optimizer: tf.AdamOptimizer;
   updates = 0;
   private names: string[];
+  readonly environmentId = crypto.randomUUID();
+  environment: Simulator;
+  phase: "READY" | "COLLECTING" | "OPTIMIZING" = "READY";
+  collected = 0;
+  totalSamples = 0;
+  displayState: ReturnType<Simulator["getState"]>;
+  lastTransition?: {
+    environmentId: string;
+    sample: number;
+    action: number;
+    reward: number;
+    logProbability: number;
+    value: number;
+    state: ReturnType<Simulator["getState"]>;
+  };
+  private iterator?: Generator<null, PPORunResult, void>;
+  advance() {
+    this.iterator ??= this.iterate();
+    const result = this.iterator.next();
+    if (result.done) {
+      this.iterator = undefined;
+      return result.value;
+    }
+    return null;
+  }
+  run() {
+    let result: PPORunResult | null;
+    while (!(result = this.advance())) {}
+    return result;
+  }
   constructor(
     public map: TrackMap,
     public config: Config,
   ) {
+    this.environment = new Simulator(map, config.horizon);
+    this.displayState = this.environment.getState(true, true);
     this.rng = new Random(config.seed);
     this.actor = this.variables(
       createPolicy(12, map.mode === "racing" ? 5 : 6, this.rng),
@@ -85,8 +130,10 @@ export class PPOTrainer {
   getPolicy() {
     return this.policy(this.actor);
   }
-  run() {
-    const env = new Simulator(this.map, this.config.horizon);
+  private *iterate(): Generator<null, PPORunResult, void> {
+    this.phase = "COLLECTING";
+    this.collected = 0;
+    const env = this.environment;
     env.reset(this.config.seed + this.updates);
     const obs: number[][] = [],
       acts: number[] = [],
@@ -118,7 +165,20 @@ export class PPOTrainer {
       nextValues.push(logits(critic, r.observation)[0]);
       terms.push(r.terminated);
       bounds.push(r.terminated || r.truncated);
-      state = env.getState();
+      state = env.getState(true, true);
+      this.displayState = state;
+      this.collected++;
+      this.totalSamples++;
+      this.lastTransition = {
+        environmentId: this.environmentId,
+        sample: this.totalSamples,
+        action: a,
+        reward: r.reward,
+        logProbability: logs.at(-1)!,
+        value,
+        state,
+      };
+      yield null;
       if (r.terminated || r.truncated) {
         episodes++;
         successes += +state.success;
@@ -128,6 +188,8 @@ export class PPOTrainer {
         env.reset(this.config.seed + this.updates + episodes);
       }
     }
+    this.phase = "OPTIMIZING";
+    yield null;
     const result = gae(
       rewards,
       values,
@@ -227,9 +289,11 @@ export class PPOTrainer {
         entropy += losses[2];
         kl += losses[3];
         batches++;
+        yield null;
       }
     }
     this.updates++;
+    this.phase = "READY";
     return {
       steps: obs.length,
       episodes,
@@ -245,6 +309,8 @@ export class PPOTrainer {
     };
   }
   async checkpoint(): Promise<PPOCheckpoint> {
+    if (this.phase !== "READY" || this.iterator)
+      throw Error("PPO 체크포인트는 완료된 rollout 경계에서 저장하세요.");
     const weights = await this.optimizer.getWeights();
     const serialized = weights.map((w) => ({
       name: w.name,

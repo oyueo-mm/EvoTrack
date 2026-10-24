@@ -260,7 +260,13 @@ test("speed changes actual Worker throughput at a fixed physics timestep", async
     },
     {
       map: EXAMPLE_MAPS[0],
-      config: { ...DEFAULT_CONFIG, population: 4, horizon: 30, speed: 0.5 },
+      config: {
+        ...DEFAULT_CONFIG,
+        population: 4,
+        horizon: 30,
+        speed: 0.5,
+        trainingMode: "fast",
+      },
     },
   );
   expect(measured.fast.iterations).toBeGreaterThan(measured.slow.iterations);

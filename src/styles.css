@@ -3556,3 +3556,59 @@ input[type="range"] {
     font-size: 10px;
   }
 }
+
+.observation-controls,
+.ppo-runtime {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 12px 18px;
+  background: var(--accent-bg);
+  font-size: 12px;
+  align-items: center;
+}
+.split-learning {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 320px;
+}
+.learning-pane {
+  position: relative;
+  min-width: 0;
+  min-height: 280px;
+  height: 100%;
+}
+.learning-pane .world-frame {
+  height: 100%;
+}
+.pane-label {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 1;
+  font-size: 11px;
+  color: var(--accent-text);
+}
+@media (max-width: 700px) {
+  .split-learning {
+    grid-template-columns: 1fr;
+  }
+  .learning-pane {
+    min-height: 220px;
+  }
+}
+
+.split-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px 18px;
+  font-size: 11px;
+  line-height: 1.8;
+  background: var(--surface-raised);
+}
+@media (max-width: 700px) {
+  .split-comparison {
+    grid-template-columns: 1fr;
+  }
+}

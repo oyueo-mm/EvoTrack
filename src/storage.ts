@@ -18,7 +18,12 @@ export interface Experiment {
   result: unknown;
 }
 export function validateConfig(c: Config) {
-  if (!c || Object.values(c).some((v) => !Number.isFinite(v)))
+  if (
+    !c ||
+    Object.entries(c).some(
+      ([key, v]) => key !== "trainingMode" && !Number.isFinite(v),
+    )
+  )
     throw Error("학습 설정이 손상되었습니다.");
   const range = (v: number, a: number, b: number, integer = false) =>
     v >= a && v <= b && (!integer || Number.isInteger(v));
@@ -38,6 +43,8 @@ export function validateConfig(c: Config) {
     !range(c.lambda, 0, 1) ||
     !range(c.clip, 0.01, 0.5) ||
     !range(c.entropy, 0, 1) ||
+    (c.trainingMode !== undefined &&
+      !["observe", "fast"].includes(c.trainingMode)) ||
     !range(c.speed, 0.5, 10)
   )
     throw Error("학습 설정의 허용 범위를 벗어났습니다.");

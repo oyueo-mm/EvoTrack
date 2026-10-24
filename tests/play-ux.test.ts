@@ -119,7 +119,7 @@ describe("manual test controls and extended physics", () => {
       map,
       { kind: "object", id: "box" },
       "rotate",
-      { x: 400, y: 220 },
+      { x: 420, y: 250 },
       true,
     );
     expect((transformed.objects[0].angle! / (Math.PI / 2)) % 1).toBeCloseTo(0);

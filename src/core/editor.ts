@@ -1,3 +1,4 @@
+import { magneticAngle } from "./angle-snap";
 import type { Point, TrackMap } from "./types";
 import { segmentDistance } from "./maps";
 import {
@@ -350,10 +351,11 @@ export function transformSelection(
   h: TransformHandle,
   p: Point,
   shift = false,
+  rotation: { enabled: boolean; previous?: number } = { enabled: true },
 ): TrackMap {
   const m = structuredClone(map),
     snap = (a: number) =>
-      shift ? Math.round(a / (Math.PI / 2)) * (Math.PI / 2) : a;
+      magneticAngle(a, rotation.enabled, rotation.previous).angle;
   if (s.kind === "object") {
     const o = m.objects.find((o) => o.id === s.id);
     if (!o) return map;

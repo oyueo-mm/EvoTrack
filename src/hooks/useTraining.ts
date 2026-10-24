@@ -15,6 +15,8 @@ interface Handle {
   worker: Worker;
   session: string;
   latestAck: number;
+  lastFrame: number;
+  startRequest: number;
 }
 export function useTraining(
   onError: (e: string) => void,
@@ -63,7 +65,13 @@ export function useTraining(
           { type: "module" },
         ),
         session = crypto.randomUUID();
-      const handle: Handle = { worker, session, latestAck: 0 };
+      const handle: Handle = {
+        worker,
+        session,
+        latestAck: 0,
+        lastFrame: 0,
+        startRequest: request.current + 1,
+      };
       handles.current[algorithm] = handle;
       worker.onmessage = (e: MessageEvent<WorkerReply>) => {
         const r = e.data;
@@ -71,7 +79,8 @@ export function useTraining(
         if (r.type === "ERROR") {
           setCheckpointPending((p) => ({ ...p, [algorithm]: false }));
           errorRef.current(r.error ?? "Worker 오류");
-          setStatuses((s) => ({ ...s, [algorithm]: "error" }));
+          if (r.requestId === 0 || r.requestId === handle.startRequest)
+            setStatuses((s) => ({ ...s, [algorithm]: "error" }));
           return;
         }
         if (r.type === "ACK" && r.requestId >= handle.latestAck) {
@@ -86,7 +95,10 @@ export function useTraining(
             bestSnapshots.current[algorithm] = r.snapshot;
           }
           setSnapshots((s) => ({ ...s, [algorithm]: r.snapshot! }));
-          if (!r.snapshot.live || r.snapshot.live.boundary)
+          if (
+            (!r.snapshot.live || r.snapshot.live.boundary) &&
+            (!r.snapshot.runtime || r.snapshot.runtime.phase === "READY")
+          )
             setHistories((h) => ({
               ...h,
               [algorithm]: [
@@ -114,6 +126,9 @@ export function useTraining(
         map,
         config,
         model,
+        debug:
+          import.meta.env.DEV ||
+          new URLSearchParams(location.search).has("debug"),
       };
       worker.postMessage(cmd);
     }
@@ -135,6 +150,24 @@ export function useTraining(
         } satisfies Command);
     }
   }
+  function presentFrame(
+    algorithm: Algorithm,
+    sequence: number,
+    selectedAgent?: number,
+    session?: string,
+  ) {
+    const h = handles.current[algorithm];
+    if (!h || session !== h.session || sequence <= h.lastFrame) return;
+    h.lastFrame = sequence;
+    h.worker.postMessage({
+      selectedAgent,
+      type: "FRAME_ACK",
+      session: h.session,
+      requestId: 0,
+      algorithm,
+      sequence,
+    } satisfies Command);
+  }
   function clear() {
     Object.values(handles.current).forEach((h) => h?.worker.terminate());
     handles.current = {};
@@ -148,6 +181,7 @@ export function useTraining(
   return {
     start,
     send,
+    presentFrame,
     clear,
     ghosts,
     snapshots,

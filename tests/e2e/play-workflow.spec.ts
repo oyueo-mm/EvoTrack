@@ -60,13 +60,11 @@ test("manual WASD separates steering, throttle and boost; bombs trigger retry wi
     objects: [{ id: "bomb", kind: "bomb", x: 210, y: 305, w: 30, h: 30 }],
   };
   await page.goto("./#maps");
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: "manual.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(map)),
-    });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "manual.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(map)),
+  });
   await expect(page.locator('.toast[role="status"]')).toContainText(
     "가져왔습니다",
   );
@@ -138,7 +136,7 @@ test("training keeps its original map while an editable draft is saved for next 
   await page.getByRole("button", { name: "학습하기", exact: true }).click();
   await expect(page.getByLabel("현재 맵")).toHaveValue("r-straight");
   await expect(
-    page.getByRole("button", { name: "일시정지", exact: true }),
+    page.getByRole("button", { name: "학습 재개", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "맵 편집", exact: true }).click();
   await page.getByLabel("맵 이름", { exact: true }).fill("지금 반영할 편집본");
@@ -185,13 +183,11 @@ test("inspector explains and persists launch properties; leaving dirty edits war
     ],
   };
   await page.goto("./#maps");
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: "properties.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(map)),
-    });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "properties.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(map)),
+  });
   await expect(page.locator('.toast[role="status"]')).toContainText(
     "가져왔습니다",
   );

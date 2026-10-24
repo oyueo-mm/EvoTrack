@@ -96,11 +96,11 @@ test("editor, GA/PPO workers, pause/resume, storage, checkpoint and evaluation",
   await expect(page.locator('.toast[role="status"]')).toContainText(
     "추론 모델",
   );
+  await page.getByRole("button", { name: "학습 재개", exact: true }).click();
   await page.getByRole("button", { name: "체크포인트", exact: true }).click();
   await expect(page.locator('.toast[role="status"]')).toContainText(
     "체크포인트",
   );
-  await page.getByRole("button", { name: "학습 재개", exact: true }).click();
   await expect
     .poll(() => page.locator(".metric-card").nth(1).innerText())
     .not.toBe(steps);

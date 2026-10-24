@@ -337,7 +337,16 @@ test("32 and 64 live cars expose successive real Worker positions and responsive
       .poll(() => canvas.getAttribute("data-live-positions"))
       .not.toBe(paused);
     await page.getByRole("button", { name: "학습 중지", exact: true }).click();
-    reports.push({ population, ...measured, status, uiResponseMs });
+    reports.push({
+      population,
+      ...measured,
+      status,
+      uiResponseMs,
+      frameBytes: Number(await canvas.getAttribute("data-frame-bytes")),
+      actualTicksPerSecond: Number(
+        await canvas.getAttribute("data-actual-tps"),
+      ),
+    });
   }
   const body = JSON.stringify(reports, null, 2);
   mkdirSync(".cache", { recursive: true });

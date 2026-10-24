@@ -224,6 +224,8 @@ describe("synchronous GA population", () => {
       expect(() => ga.checkpoint()).toThrow("boundary");
       const completed = ga.advance(20);
       expect(completed?.episodes).toBe(population);
+      expect(completed?.scores).toEqual(ga.states().map((s) => s.reward));
+      expect(completed?.states).toEqual(ga.states());
       expect(ga.generation).toBe(1);
       const restored = new GeneticTrainer(EXAMPLE_MAPS[0], config);
       const legacy = JSON.parse(JSON.stringify(ga.checkpoint()));

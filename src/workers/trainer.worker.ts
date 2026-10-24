@@ -8,7 +8,6 @@
   WorkerReply,
 } from "../core/types";
 import { schemasFor } from "../core/types";
-import { Simulator } from "../core/environment";
 import { GeneticTrainer, type GACheckpoint } from "../learning/ga";
 import {
   PPOTrainer,
@@ -16,8 +15,7 @@ import {
   initTensorflow,
   tensorMemory,
 } from "../learning/ppo";
-import { actionOf } from "../learning/network";
-import { assertCompatible, evaluate } from "../learning/evaluate";
+import { assertCompatible } from "../learning/evaluate";
 import { validateConfig, validateModel } from "../storage";
 import { validateMap } from "../core/maps";
 let session = "",
@@ -27,15 +25,13 @@ let session = "",
   map: TrackMap,
   config: Config,
   stats: TrainingStats,
-  snapshot: Snapshot | undefined,
-  started = 0,
-  activeElapsed = 0,
-  lastSent = 0;
+  snapshot: Snapshot | undefined;
 let lastTick = 0,
   accumulator = 0,
   totalTicks = 0,
   gaWall = 0,
   gaSteps = 0;
+let wallOffset = 0;
 let pendingCheckpoints: number[] = [];
 function reply(message: Omit<WorkerReply, "session">) {
   self.postMessage({ ...message, session });
@@ -52,113 +48,173 @@ function policy() {
     ? (trainer.best ?? trainer.population[0])
     : (trainer as PPOTrainer).getPolicy();
 }
-function next() {
-  if (!running || !trainer) return;
-  try {
-    if (trainer instanceof GeneticTrainer) {
-      nextGA(trainer);
-      return;
-    }
-    const before = performance.now();
-    const result = trainer.run();
-    const duration = performance.now() - before;
-    activeElapsed += duration;
-    stats.steps += result.steps;
-    stats.episodes += result.episodes;
-    stats.iteration++;
-    stats.elapsed = (performance.now() - started) / 1000;
-    stats.collisions += result.collisions;
-    stats.successRate = result.episodes
-      ? result.successes / result.episodes
-      : 0;
-    stats.completionTime = result.successes
-      ? result.completion / result.successes
-      : null;
-    stats.stepsPerSecond = stats.steps / (activeElapsed / 1000 || 1);
-    stats.mean = result.mean;
-    stats.policyLoss = result.policyLoss;
-    stats.valueLoss = result.valueLoss;
-    stats.entropy = result.entropy;
-    stats.kl = result.kl;
-    const p = policy(),
-      env = new Simulator(map, config.horizon);
-    env.reset(config.seed);
-    for (let i = 0; i < config.horizon; i++) {
-      const r = env.step(actionOf(p, env.observe()));
-      if (r.terminated || r.truncated) break;
-    }
-    const evaluated = evaluate(p, map, [config.seed], config.horizon);
-    if (!(trainer instanceof GeneticTrainer))
-      stats.best = Math.max(stats.best, evaluated.meanReward);
-    stats.progress = evaluated.meanProgress;
-    const memory = tensorMemory();
-    stats.tensors = memory.numTensors;
-    stats.bytes = memory.numBytes;
-    snapshot = {
-      stats: { ...stats },
-      state: env.getState(),
-      population: [],
-      policy: p,
+let awaitingFrame = 0,
+  sequence = 0,
+  debug = false,
+  bestProgress = 0;
+let selectedAgent: number | undefined;
+function mode() {
+  return config.trainingMode ?? "observe";
+}
+function schedule() {
+  clearTimeout(timer);
+  if (running && (!awaitingFrame || mode() === "fast"))
+    timer = setTimeout(next, 16);
+}
+function emit() {
+  if (!snapshot) return;
+  snapshot.sequence = ++sequence;
+  snapshot.session = session;
+  if (mode() === "observe") awaitingFrame = sequence;
+  if (debug)
+    snapshot.debug = {
+      policyChecksum: snapshot.policy.weights.reduce(
+        (a, b, i) => a + b * (i + 1),
+        0,
+      ),
+      transition:
+        trainer instanceof PPOTrainer ? trainer.lastTransition : undefined,
     };
-    if (performance.now() - lastSent >= 150) {
-      reply({ type: "SNAPSHOT", requestId: 0, snapshot });
-      lastSent = performance.now();
+  if (snapshot.runtime)
+    snapshot.runtime.frameBytes = new TextEncoder().encode(
+      JSON.stringify(snapshot),
+    ).byteLength;
+  reply({ type: "SNAPSHOT", requestId: 0, snapshot });
+}
+function runtime(
+  phase: "COLLECTING" | "OPTIMIZING" | "READY",
+  ppo?: PPOTrainer,
+) {
+  const ticksPerSecond = totalTicks / (gaWall / 1000 || 1);
+  return {
+    phase,
+    mode: mode(),
+    ticks: totalTicks,
+    ticksPerSecond,
+    effectiveSpeed: ticksPerSecond / 60,
+    rollout: ppo?.collected ?? 0,
+    target: config.rollout,
+    updates: ppo?.updates ?? 0,
+    environmentId: ppo?.environmentId ?? session + ":ga-population",
+    sample: ppo?.totalSamples ?? stats.steps,
+    frameBytes: 0,
+    bestProgress,
+  };
+}
+function publishPPO(ppo: PPOTrainer) {
+  const state = ppo.displayState;
+  bestProgress = Math.max(bestProgress, state.progress);
+  stats.elapsed = (wallOffset + gaWall) / 1000;
+  stats.progress = state.progress;
+  stats.best = Math.max(stats.best, state.reward);
+  stats.stepsPerSecond = ppo.totalSamples / (gaWall / 1000 || 1);
+  const memory = tensorMemory();
+  stats.tensors = memory.numTensors;
+  stats.bytes = memory.numBytes;
+  snapshot = {
+    stats: { ...stats },
+    state,
+    population: [],
+    policy: ppo.getPolicy(),
+    runtime: runtime(ppo.phase, ppo),
+  };
+  emit();
+}
+function next() {
+  if (!running || !trainer || (awaitingFrame && mode() === "observe")) return;
+  try {
+    const now = performance.now(),
+      elapsed = Math.max(0, now - lastTick);
+    lastTick = now;
+    gaWall += elapsed;
+    accumulator = Math.min(
+      mode() === "observe" ? Math.ceil(config.speed * 4) : 120,
+      accumulator + (Math.min(100, elapsed) * 60 * config.speed) / 1000,
+    );
+    const begin = performance.now();
+    let budget = mode() === "observe" ? Math.ceil(config.speed * 2) : 120;
+    while (budget-- > 0 && performance.now() - begin < 10) {
+      if (trainer instanceof GeneticTrainer) {
+        if (accumulator < 1) break;
+        const ga = trainer;
+        if (ga.boundary) ga.beginGeneration();
+        const count = ga.environments.filter((e) => !e.done).length,
+          result = ga.advance();
+        totalTicks++;
+        bestProgress = Math.max(
+          bestProgress,
+          ...ga.environments.map((e) => e.getMetrics().progress),
+        );
+        stats.steps += count;
+        gaSteps += count;
+        accumulator--;
+        if (result) {
+          stats.iteration = ga.generation;
+          stats.episodes += result.episodes;
+          stats.mean =
+            result.scores.reduce((a, b) => a + b, 0) / result.scores.length;
+          stats.fitness = result.scores;
+          stats.best = ga.bestScore;
+          stats.successRate = result.successes / result.episodes;
+          stats.collisions += result.collisions;
+          stats.completionTime = result.successes
+            ? result.completion / result.successes
+            : null;
+          for (const id of pendingCheckpoints.splice(0)) void checkpoint(id);
+          break;
+        }
+      } else {
+        const ppo = trainer;
+        if (ppo.phase !== "OPTIMIZING" && accumulator < 1) break;
+        const before = ppo.totalSamples,
+          result = ppo.advance();
+        bestProgress = Math.max(bestProgress, ppo.displayState.progress);
+        const samples = ppo.totalSamples - before;
+        totalTicks += samples;
+        stats.steps += samples;
+        accumulator -= samples;
+        if (result) {
+          stats.iteration = ppo.updates;
+          stats.mean = result.mean;
+          stats.episodes += result.episodes;
+          stats.collisions += result.collisions;
+          stats.successRate = result.episodes
+            ? result.successes / result.episodes
+            : 0;
+          stats.completionTime = result.successes
+            ? result.completion / result.successes
+            : null;
+          stats.policyLoss = result.policyLoss;
+          stats.valueLoss = result.valueLoss;
+          stats.entropy = result.entropy;
+          stats.kl = result.kl;
+          for (const id of pendingCheckpoints.splice(0)) void checkpoint(id);
+          break;
+        }
+        // Optimization yields after each minibatch so PAUSE is handled between units.
+        if (ppo.phase === "OPTIMIZING" && mode() === "observe") break;
+      }
     }
-    timer = setTimeout(next, Math.max(8, 180 / config.speed - duration));
+    if (trainer instanceof GeneticTrainer) publishGA(trainer, trainer.boundary);
+    else publishPPO(trainer);
+    schedule();
   } catch (e) {
     running = false;
     reply({ type: "ERROR", requestId: 0, error: String(e) });
   }
 }
-function nextGA(ga: GeneticTrainer) {
-  const now = performance.now(),
-    elapsed = Math.min(100, Math.max(0, now - lastTick));
-  lastTick = now;
-  gaWall += elapsed;
-  accumulator = Math.min(
-    120,
-    accumulator + (elapsed * 60 * config.speed) / 1000,
-  );
-  const workStarted = performance.now();
-  while (accumulator >= 1 && performance.now() - workStarted < 12) {
-    if (ga.boundary) ga.beginGeneration();
-    const before = ga.environments.filter((e) => !e.done).length;
-    const result = ga.advance();
-    accumulator--;
-    totalTicks++;
-    stats.steps += before;
-    gaSteps += before;
-    if (result) {
-      stats.iteration = ga.generation;
-      stats.episodes += result.episodes;
-      stats.mean =
-        result.scores.reduce((a, b) => a + b, 0) / result.scores.length;
-      stats.fitness = result.scores;
-      stats.best = ga.bestScore;
-      stats.successRate = result.successes / result.episodes;
-      stats.collisions += result.collisions;
-      stats.completionTime = result.successes
-        ? result.completion / result.successes
-        : null;
-      publishGA(ga, true);
-      for (const id of pendingCheckpoints.splice(0)) void checkpoint(id);
-      // Keep the finished generation visible until the next scheduled turn.
-      break;
-    }
-  }
-  if (performance.now() - lastSent >= 50) publishGA(ga, false);
-  timer = setTimeout(next, Math.max(1, 16 - (performance.now() - workStarted)));
-}
 function publishGA(ga: GeneticTrainer, boundary: boolean) {
   const states = ga.states(false);
+  bestProgress = Math.max(bestProgress, ...states.map((s) => s.progress));
   if (!states.length) return;
   const scores = states.map((s) => s.reward),
     leader = scores.indexOf(Math.max(...scores));
   // Only the followed/leading trace is transferred; avoid N growing trail arrays.
   states.forEach((s, i) => {
-    s.trail = ga.environments[i].recentTrail();
+    s.trail =
+      i === (selectedAgent ?? leader) ? ga.environments[i].recentTrail() : [];
   });
-  stats.elapsed = (performance.now() - started) / 1000;
+  stats.elapsed = (wallOffset + gaWall) / 1000;
   stats.stepsPerSecond = gaSteps / (gaWall / 1000 || 1);
   stats.progress = states[leader].progress;
   if (!boundary) {
@@ -186,8 +242,8 @@ function publishGA(ga: GeneticTrainer, boundary: boolean) {
       boundary,
     },
   };
-  reply({ type: "SNAPSHOT", requestId: 0, snapshot });
-  lastSent = performance.now();
+  snapshot.runtime = runtime(boundary ? "READY" : "COLLECTING");
+  emit();
 }
 async function checkpoint(requestId: number) {
   if (!trainer || !snapshot) throw Error("저장할 학습 결과가 없습니다.");
@@ -250,8 +306,11 @@ self.onmessage = (event: MessageEvent<Command>) => {
           stepsPerSecond: 0,
         };
         snapshot = undefined;
-        activeElapsed = 0;
-        lastSent = 0;
+        awaitingFrame = 0;
+        sequence = 0;
+        debug = !!cmd.debug;
+        bestProgress = 0;
+        selectedAgent = undefined;
         accumulator = 0;
         totalTicks = 0;
         gaWall = 0;
@@ -268,11 +327,6 @@ self.onmessage = (event: MessageEvent<Command>) => {
               trainer.restore(m.checkpoint as GACheckpoint);
             else await trainer.restore(m.checkpoint as PPOCheckpoint);
             stats = { ...m.stats };
-            // Keep the throughput denominator consistent with restored counters.
-            activeElapsed =
-              stats.stepsPerSecond > 0
-                ? (stats.steps / stats.stepsPerSecond) * 1000
-                : 0;
           } else {
             if (trainer instanceof GeneticTrainer) {
               trainer.population[0] = structuredClone(m.policy);
@@ -284,25 +338,45 @@ self.onmessage = (event: MessageEvent<Command>) => {
             }
           }
         }
-        started = performance.now() - stats.elapsed * 1000;
+        wallOffset = stats.elapsed * 1000;
         running = true;
         reply({ type: "ACK", requestId: cmd.requestId, status: "running" });
-        timer = setTimeout(next, 0);
+        if (trainer instanceof GeneticTrainer) {
+          trainer.beginGeneration();
+          publishGA(trainer, false);
+        } else publishPPO(trainer);
+        schedule();
         return;
       }
       if (cmd.session !== session) return;
+      if (cmd.type === "FRAME_ACK") {
+        selectedAgent =
+          Number.isInteger(cmd.selectedAgent) &&
+          cmd.selectedAgent! >= 0 &&
+          cmd.selectedAgent! < config.population
+            ? cmd.selectedAgent
+            : undefined;
+        if (cmd.sequence === awaitingFrame) {
+          awaitingFrame = 0;
+          schedule();
+        }
+        return;
+      }
       if (cmd.type === "PAUSE") {
         running = false;
         clearTimeout(timer);
         if (trainer instanceof GeneticTrainer)
           publishGA(trainer, trainer.boundary);
+        else if (trainer instanceof PPOTrainer) publishPPO(trainer);
         reply({ type: "ACK", requestId: cmd.requestId, status: "paused" });
       } else if (cmd.type === "RESUME") {
         if (!trainer) throw Error("학습 세션이 없습니다.");
         if (!running) {
           running = true;
           lastTick = performance.now();
-          timer = setTimeout(next, 0);
+          awaitingFrame = 0;
+          accumulator = 0;
+          schedule();
         }
         reply({ type: "ACK", requestId: cmd.requestId, status: "running" });
       } else if (cmd.type === "STOP" || cmd.type === "RESET") {
@@ -315,12 +389,15 @@ self.onmessage = (event: MessageEvent<Command>) => {
           Object.keys(updated).some(
             (k) =>
               k !== "speed" &&
+              k !== "trainingMode" &&
               updated[k as keyof Config] !== config[k as keyof Config],
           )
         )
           throw Error("배속 외 학습 설정은 새 세션에서 적용하세요.");
         config = { ...updated };
         if (trainer) trainer.config = config;
+        awaitingFrame = 0;
+        schedule();
         reply({
           type: "ACK",
           requestId: cmd.requestId,
@@ -330,8 +407,14 @@ self.onmessage = (event: MessageEvent<Command>) => {
         if (!snapshot) throw Error("아직 학습 스냅샷이 없습니다.");
         reply({ type: "SNAPSHOT", requestId: cmd.requestId, snapshot });
       } else if (cmd.type === "SAVE_CHECKPOINT") {
-        if (trainer instanceof GeneticTrainer && !trainer.boundary) {
-          if (!running) throw Error("GA ?? ????? ?????. ?? ?? ? ?? ?????.");
+        if (
+          (trainer instanceof GeneticTrainer && !trainer.boundary) ||
+          (trainer instanceof PPOTrainer && trainer.phase !== "READY")
+        ) {
+          if (!running)
+            throw Error(
+              "세대/rollout 도중 일시정지 상태입니다. 학습 재개 후 경계에서 체크포인트를 저장하세요.",
+            );
           pendingCheckpoints.push(cmd.requestId);
         } else await checkpoint(cmd.requestId);
       }

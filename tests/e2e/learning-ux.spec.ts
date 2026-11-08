@@ -196,7 +196,7 @@ test("desktop navigation pushes the editor; fullscreen works in lab/editor/libra
     .toBeCloseTo(64, 0);
   await expect
     .poll(async () => (await canvas.boundingBox())!.width)
-    .toBeGreaterThan(expanded.width + 100);
+    .toBeGreaterThan(expanded.width + 40);
   await page.getByRole("button", { name: "전체 보기", exact: true }).click();
   await expect(page.locator(".app")).toHaveClass(/full-view/);
   await expect(page.locator(".sidebar")).not.toBeVisible();

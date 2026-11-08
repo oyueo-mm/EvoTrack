@@ -182,6 +182,8 @@ test("desktop navigation pushes the editor; fullscreen works in lab/editor/libra
 }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.goto("./#editor");
+  if (await page.locator(".app.nav-collapsed").count())
+    await page.getByRole("button", { name: "메뉴", exact: true }).click();
   const canvas = page.getByLabel("맵 편집 캔버스");
   const expanded = (await canvas.boundingBox())!;
   await expect(page.locator(".nav-scrim")).toHaveCount(0);

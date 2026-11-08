@@ -18,6 +18,8 @@ test("blank drag pans, Ctrl vertical drag zooms; sidebar size and collapsed stat
 }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.goto("./");
+  if (await page.locator(".app.nav-collapsed").count())
+    await page.getByRole("button", { name: "메뉴", exact: true }).click();
   const resize = page.getByRole("separator", { name: "사이드바 너비" });
   await resize.focus();
   await resize.press("ArrowRight");

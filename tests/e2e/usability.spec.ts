@@ -217,7 +217,11 @@ test("speed changes actual Worker throughput at a fixed physics timestep", async
         { type: "module" },
       );
       const replies: any[] = [];
-      worker.onmessage = (e) => replies.push(e.data);
+      worker.onmessage = (e) => {
+        replies.push(e.data);
+        if (e.data.type === "SNAPSHOT" && e.data.requestId === 0)
+          worker.postMessage({ type: "FRAME_ACK", session: "speed-test", requestId: 0, algorithm: "GA", sequence: e.data.snapshot.sequence });
+      };
       let id = 0;
       const command = async (
         type: string,
@@ -270,7 +274,7 @@ test("speed changes actual Worker throughput at a fixed physics timestep", async
         population: 4,
         horizon: 30,
         speed: 0.5,
-        trainingMode: "fast",
+        trainingMode: "observe",
       },
     },
   );

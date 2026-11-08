@@ -187,9 +187,9 @@ test("desktop navigation pushes the editor; fullscreen works in lab/editor/libra
   const canvas = page.getByLabel("맵 편집 캔버스");
   const expanded = (await canvas.boundingBox())!;
   await expect(page.locator(".nav-scrim")).toHaveCount(0);
-  expect((await page.locator(".main-shell").boundingBox())!.x).toBeGreaterThan(
-    190,
-  );
+  await expect
+    .poll(async () => (await page.locator(".main-shell").boundingBox())!.x)
+    .toBeGreaterThan(190);
   await page.getByRole("button", { name: "메뉴", exact: true }).click();
   await expect
     .poll(async () => (await page.locator(".main-shell").boundingBox())!.x)

@@ -104,7 +104,7 @@ export default function App() {
     [models, setModels] = useState<SavedModel[]>([]),
     [experiments, setExperiments] = useState<Experiment[]>([]),
     [config, setConfig] = useState<Config>({ ...DEFAULT_CONFIG }),
-    [method, setMethod] = useState<"GA" | "PPO" | "both">("both"),
+    [method, setMethod] = useState<"GA" | "PPO" | "both">("GA"),
     [tab, setTab] = useState<Algorithm>("GA"),
     [options, setOptions] = useState<ViewOptions>({
       sensors: false,
@@ -120,7 +120,7 @@ export default function App() {
     [sidebar, setSidebar] = useState(false),
     [fullView, setFullView] = useState(false),
     [navCollapsed, setNavCollapsed] = useState(
-      () => localStorage.getItem("evotrack-nav-collapsed") === "true",
+      () => localStorage.getItem("evotrack-nav-collapsed") !== "false",
     ),
     [navWidth, setNavWidth] = useState(() =>
       Math.max(
@@ -618,6 +618,7 @@ export default function App() {
       className={
         "app " +
         (light ? "light " : "") +
+        (page === "lab" ? "lab-mode " : "") +
         (page === "editor" ? "editor-mode " : "") +
         (navCollapsed ? "nav-collapsed " : "") +
         (fullView ? "full-view " : "") +
@@ -782,7 +783,7 @@ export default function App() {
             <span className="system-status">
               <i /> 브라우저에서 실행
             </span>
-            <button className="text-btn" onClick={() => setTransfer(true)}>
+            <button className="text-btn" aria-label="데이터 백업 · 이전" title="데이터 백업 · 이전" onClick={() => setTransfer(true)}>
               <Download size={14} /> 데이터 백업 · 이전
             </button>
             <span className="avatar">EV</span>

@@ -1,6 +1,15 @@
 import { test, expect, type Page } from "@playwright/test";
 import { EXAMPLE_MAPS } from "../../src/core/maps";
 import { openSettings } from "./helpers";
+test("learning studio defaults to GA alone; comparison is opt-in", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.getByLabel("학습 알고리즘")).toHaveValue("GA");
+  await expect(page.locator(".viewport")).not.toHaveClass(/split-learning/);
+  await expect(page.getByLabel("PPO 실제 학습 캔버스")).toHaveCount(0);
+  await page.getByLabel("학습 알고리즘").selectOption("both");
+  await expect(page.locator(".viewport")).toHaveClass(/split-learning/);
+  await expect(page.getByLabel("PPO 실제 학습 캔버스")).toBeVisible();
+});
 async function selectObject(page: Page, label: string) {
   await page.getByRole("tab", { name: "레이어", exact: true }).click();
   await page

@@ -250,6 +250,7 @@ test("both algorithms use separate real canvases; navigation and hidden tabs pau
 }) => {
   await page.goto("./?debug=1");
   await page.getByLabel("현재 맵").selectOption("r-straight");
+  await page.getByLabel("학습 알고리즘").selectOption("both");
   await openSettings(page);
   await page.getByLabel("개체군 크기", { exact: true }).fill("4");
   await page.getByRole("button", { name: "학습 시작", exact: true }).click();

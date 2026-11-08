@@ -4096,3 +4096,54 @@ input[type="range"] {
   right: 104px;
   z-index: 1;
 }
+
+/* Compact, canvas-first learning studio. Other screens retain their layouts. */
+.app.lab-mode main { max-width: none; padding: 10px 12px 0; }
+.app.lab-mode .topbar { height: 44px; padding: 0 14px; }
+.app.lab-mode .breadcrumb, .app.lab-mode .system-status, .app.lab-mode .avatar { display: none; }
+.app.lab-mode .topbar-right { margin-left: auto; gap: 6px; }
+.app.lab-mode .topbar-right .text-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 32px; padding: 0; font-size: 0; }
+.app.lab-mode .topbar-right .text-btn svg { width: 16px; height: 16px; }
+.app.lab-mode .page-heading { margin: 0 0 6px; min-height: 33px; gap: 8px; }
+.app.lab-mode .page-heading h1 { font-size: 12px; line-height: 1.2; letter-spacing: 0; margin: 0; }
+.app.lab-mode .page-heading p { display: none; }
+.app.lab-mode .heading-actions { gap: 4px; }
+.app.lab-mode .heading-actions .button { min-height: 30px; height: 30px; width: 34px; padding: 4px; gap: 0; font-size: 0; }
+.app.lab-mode .heading-actions .button svg { width: 16px; height: 16px; }
+.app.lab-mode .training-card-header { padding: 8px 10px; min-height: 49px; align-items: center; gap: 8px; }
+.app.lab-mode .training-card-header > div:first-child { min-width: 0; max-width: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.app.lab-mode .training-card-header .map-context { margin: 0; gap: 5px; }
+.app.lab-mode .training-card-header .status-badge { margin: 0; padding: 4px 6px; font-size: 10px; }
+.app.lab-mode .card-training-controls.training-controls { flex: 1 1 380px; justify-content: flex-end; gap: 5px; }
+.app.lab-mode .card-training-controls .button { min-height: 30px; padding: 4px 9px; }
+.app.lab-mode .card-training-controls .button.icon-only { min-width: 32px; width: 32px; padding: 5px; }
+.app.lab-mode .card-training-controls .top-speed { font-size: 10px; }
+.app.lab-mode .observation-controls { padding: 5px 10px; gap: 10px; background: var(--surface); border-bottom: 1px solid var(--border-soft); font-size: 11px; }
+.app.lab-mode .view-toolbar { min-height: 37px; padding: 4px 9px; gap: 6px; }
+.app.lab-mode .view-options summary { display: flex; align-items: center; justify-content: center; width: 32px; min-height: 29px; font-size: 0; }
+.app.lab-mode .population-toolbar { padding: 5px 10px; gap: 9px; }
+.app.lab-mode .population-toolbar > label { gap: 4px; font-size: 10px; }
+.app.lab-mode .population-toolbar select { min-height: 28px; }
+.app.lab-mode .viewport { height: clamp(490px, calc(100dvh - 255px), 1050px); }
+.app.lab-mode .canvas-help { padding: 3px 10px; min-height: 27px; justify-content: flex-end; }
+.app.lab-mode .canvas-help > span { display: none; }
+.app.lab-mode .canvas-help .text-btn { font-size: 0; min-height: 24px; padding: 3px; }
+.app.lab-mode .canvas-help .text-btn svg { width: 15px; height: 15px; }
+.app.lab-mode .pane-label { font-size: 10px; }
+.app.lab-mode .split-comparison { padding: 5px 12px; gap: 8px; font-size: 10px; line-height: 1.4; }
+.app.lab-mode .canvas-idle-hint .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 900px) {
+  .app.lab-mode .training-card-header > div:first-child { width: auto; }
+  .app.lab-mode .card-training-controls.training-controls { flex: 1 1 100%; justify-content: flex-start; }
+  .app.lab-mode .viewport { height: max(410px, calc(100dvh - 280px)); }
+}
+@media (max-width: 600px) {
+  .app.lab-mode main { padding: 7px 8px 0; }
+  .app.lab-mode .training-card-header { padding: 7px; gap: 6px; }
+  .app.lab-mode .card-training-controls.training-controls { gap: 4px; }
+  .app.lab-mode .card-training-controls .top-speed { order: 1; }
+  .app.lab-mode .observation-controls { padding: 4px 8px; }
+  .app.lab-mode .population-toolbar { gap: 6px; padding: 5px 7px; }
+  .app.lab-mode .viewport { height: max(340px, calc(100dvh - 285px)); }
+}
+.app.full-view.lab-mode .viewport { height: calc(100dvh - 165px); min-height: 320px; }

@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Save,
   Settings2,
+  Target,
   Square,
   X,
   ZoomIn,
@@ -205,21 +206,7 @@ function TrainingStudio({
         <section className="canvas-card">
           <div className="canvas-heading training-card-header" ref={headingRef}>
             <div>
-              <h2>
-                {tab === "GA" ? "실시간 개체군" : "실제 PPO Rollout"}{" "}
-                <small className="environment-label">
-                  환경 v{map.environmentVersion ?? 1} ·{" "}
-                  {(map.environmentVersion ?? 1) >= 2
-                    ? "방향 게이트·회전 충돌"
-                    : "이전 점형 판정"}
-                </small>
-              </h2>
-              <span>
-                {tab === "GA"
-                  ? "독립된 환경 · 고정 1/60초 · 개체 간 충돌 없음."
-                  : "단일 학습 환경 · PPO 에이전트 1개 · 실제 경험 수집"}
-              </span>
-              <span className="status-badge">{statusText[status]}</span>
+              <span className="status-badge" role="status">{statusText[status]}</span>
               <div className="map-context">
                 {" "}
                 <div className="mode-tabs">
@@ -298,6 +285,7 @@ function TrainingStudio({
               </label>
               <button
                 className="button primary training-main-action"
+                aria-label={training.active ? "일시정지" : training.paused ? "학습 재개" : "학습 시작"}
                 onClick={() =>
                   training.active
                     ? training.send("PAUSE")
@@ -310,31 +298,35 @@ function TrainingStudio({
                 {training.active
                   ? "일시정지"
                   : training.paused
-                    ? "학습 재개"
-                    : "학습 시작"}
+                    ? "재개"
+                    : "시작"}
               </button>
               <button
-                className="button"
+                className="button icon-only"
+                aria-label="학습 중지"
+                title="학습 중지"
                 disabled={!locked}
                 onClick={() => training.send("STOP")}
               >
                 <Square size={14} />
-                학습 중지
               </button>
               <button
-                className="button panel-trigger"
+                className="button panel-trigger icon-only"
+                aria-label={panel ? "패널 접기" : "학습 설정"}
+                title={panel ? "패널 접기" : "학습 설정"}
                 aria-expanded={panel}
                 onClick={() => setPanel(!panel)}
               >
                 <Settings2 size={16} />
-                {panel ? "패널 접기" : "학습 설정"}
               </button>
               <button
-                className="button"
+                className="button icon-only"
+                aria-label={inspecting ? "정책 확인 중" : "최고 모델 확인"}
+                title="최고 모델 확인"
                 disabled={!snapshot || inspecting}
                 onClick={() => void inspect()}
               >
-                {inspecting ? "정책 확인 중…" : "최고 모델 확인"}
+                <Target size={15} />
               </button>
             </div>
           </div>
@@ -356,9 +348,7 @@ function TrainingStudio({
               </select>
             </label>
             <span>
-              요청 {config.speed.toFixed(1)}× · 실제{" "}
-              {(snapshot?.runtime?.effectiveSpeed ?? 0).toFixed(2)}× ·{" "}
-              {(snapshot?.runtime?.ticksPerSecond ?? 0).toFixed(0)} ticks/s
+              실제 {(snapshot?.runtime?.effectiveSpeed ?? 0).toFixed(2)}×
             </span>
             {training.paused && (
               <span>일시정지 · 학습 재개로 이어서 관찰하세요.</span>
@@ -374,12 +364,12 @@ function TrainingStudio({
           <div className="view-toolbar">
             <div className="row">
               <div className="algorithm-switch">
-                <button aria-pressed={tab === "GA"} onClick={() => onTab("GA")}>
+                <button aria-pressed={tab === "GA"} onClick={() => method === "both" ? onTab("GA") : onMethod("GA")}>
                   GA
                 </button>
                 <button
                   aria-pressed={tab === "PPO"}
-                  onClick={() => onTab("PPO")}
+                  onClick={() => method === "both" ? onTab("PPO") : onMethod("PPO")}
                 >
                   PPO
                 </button>
@@ -424,7 +414,7 @@ function TrainingStudio({
               onClick={() => setFollow(!follow)}
             />
             <details className="view-options">
-              <summary>표시 옵션</summary>
+              <summary aria-label="표시 옵션" title="표시 옵션"><Settings2 size={15} /></summary>
               <div>
                 <Toggle
                   label="충돌 영역"
@@ -593,7 +583,7 @@ function TrainingStudio({
             {!snapshot && (
               <div className="canvas-idle-hint">
                 <Play size={16} />
-                <span>상단에서 알고리즘을 선택하고 학습을 시작하세요.</span>
+                <span className="sr-only">학습 시작 버튼을 눌러 시작하세요.</span>
               </div>
             )}
           </div>
@@ -706,6 +696,8 @@ function TrainingStudio({
             </span>
             <button
               className="text-btn"
+              aria-label="세션 초기화"
+              title="세션 초기화"
               disabled={locked || !stats}
               onClick={() => training.clear()}
             >

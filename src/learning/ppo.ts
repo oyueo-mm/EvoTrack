@@ -38,6 +38,32 @@ export const combinedPPOLoss = (
   entropyCoefficient: number,
 ) => policy.add(valueMSE.mul(0.5)).sub(entropy.mul(entropyCoefficient));
 
+export function clipActorCriticGradients(
+  gradients: tf.NamedTensorMap,
+  actor: tf.Variable[],
+  critic: tf.Variable[],
+  maxNorm = 0.5,
+) {
+  const normOf = (variables: tf.Variable[]) =>
+    tf.sqrt(tf.addN(variables.map((v) => gradients[v.name].square().sum())));
+  const actorNorm = normOf(actor),
+    criticNorm = normOf(critic);
+  const scaled: tf.NamedTensorMap = {};
+  for (const [variables, norm] of [
+    [actor, actorNorm],
+    [critic, criticNorm],
+  ] as const) {
+    const factor = tf.minimum(1, tf.scalar(maxNorm).div(norm.add(1e-8)));
+    for (const variable of variables)
+      scaled[variable.name] = gradients[variable.name].mul(factor);
+  }
+  return {
+    gradients: scaled,
+    norm: tf.sqrt(actorNorm.square().add(criticNorm.square())).dataSync()[0],
+    actorNorm: actorNorm.dataSync()[0],
+    criticNorm: criticNorm.dataSync()[0],
+  };
+}
 type SerializedTensor = { name: string; shape: number[]; values: number[] };
 export interface PPOCheckpoint {
   actor: PolicyData;
@@ -349,21 +375,19 @@ export class PPOTrainer {
             );
             return l.total as tf.Scalar;
           }, [...this.actor, ...this.critic]);
-          const norm = tf.sqrt(
-            tf.addN(Object.values(grads.grads).map((g) => g.square().sum())),
+          const clipped = clipActorCriticGradients(
+            grads.grads,
+            this.actor,
+            this.critic,
           );
-          const scale = tf.minimum(1, tf.scalar(0.5).div(norm.add(1e-8)));
-          const clipped: tf.NamedTensorMap = {};
-          for (const [name, g] of Object.entries(grads.grads))
-            clipped[name] = g.mul(scale);
-          const gradNorm = norm.dataSync()[0];
+          const gradNorm = clipped.norm;
           if (
             !Number.isFinite(gradNorm) ||
             !Number.isFinite(grads.value.dataSync()[0])
           )
             throw Error("PPO loss is not finite");
           this.optimizer.applyGradients(
-            Object.entries(clipped).map(([name, tensor]) => ({ name, tensor })),
+            Object.entries(clipped.gradients).map(([name, tensor]) => ({ name, tensor })),
           );
           return [...measurements, gradNorm];
         });

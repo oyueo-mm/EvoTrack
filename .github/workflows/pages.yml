@@ -24,6 +24,22 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Matched-seed GA and PPO performance comparison
+        run: |
+          git fetch --no-tags --depth=1 origin b50732fe87bc5f06de43c60088d40d926cd8013b
+          git worktree add --detach .cache/learning-baseline b50732fe87bc5f06de43c60088d40d926cd8013b
+          cp scripts/benchmark-learning-v06.ts .cache/learning-baseline/scripts/benchmark-learning-v06.ts
+          ./node_modules/.bin/tsx .cache/learning-baseline/scripts/benchmark-learning-v06.ts .cache/learning-baseline-results.json
+          npm run bench:learning -- .cache/learning-candidate-results.json
+          node scripts/compare-learning-v06.mjs .cache/learning-baseline-results.json .cache/learning-candidate-results.json
+      - name: Keep learning comparison records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: learning-comparison
+          path: |
+            .cache/learning-baseline-results.json
+            .cache/learning-candidate-results.json
       - name: Check preinstalled Chrome
         run: google-chrome --version
       - run: npm run test:e2e

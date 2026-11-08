@@ -28,6 +28,43 @@ describe("phase 4: neuroevolution", () => {
     expect(ga.population[0].weights).not.toBe(elite.weights);
     expect(ga.generation).toBe(1);
   });
+  it("crossover preserves each hidden neuron's incoming, bias and outgoing weights", () => {
+    const ga = new GeneticTrainer(EXAMPLE_MAPS[0], {
+      ...DEFAULT_CONFIG,
+      population: 4,
+      elite: 0.25,
+      crossover: 1,
+      mutation: 0,
+    });
+    ga.population[0].weights.fill(0);
+    ga.population[1].weights.fill(10);
+    let selected = 0;
+    ga.tournament = () => selected++ % 2;
+    ga.reproduce([4, 3, 2, 1]);
+    const child = ga.population[1],
+      incoming = child.input * child.hidden,
+      outgoing = incoming + child.hidden,
+      output = child.output;
+    for (let neuron = 0; neuron < child.hidden; neuron++) {
+      const value = child.weights[incoming + neuron];
+      expect([0, 10]).toContain(value);
+      for (let input = 0; input < child.input; input++)
+        expect(child.weights[input * child.hidden + neuron]).toBe(value);
+      for (let action = 0; action < output; action++)
+        expect(child.weights[outgoing + neuron * output + action]).toBe(value);
+    }
+  });
+  it("preserves adaptive diversity state across generation checkpoints", () => {
+    const config = { ...DEFAULT_CONFIG, population: 8, horizon: 30 };
+    const a = new GeneticTrainer(EXAMPLE_MAPS[0], config);
+    a.stagnantGenerations = 9;
+    const checkpoint = a.checkpoint();
+    const b = new GeneticTrainer(EXAMPLE_MAPS[0], config);
+    b.restore(checkpoint);
+    expect(b.stagnantGenerations).toBe(9);
+    expect(a.run()).toEqual(b.run());
+    expect(a.checkpoint()).toEqual(b.checkpoint());
+  });
   it("checkpoint restores exact next generation", () => {
     const a = new GeneticTrainer(EXAMPLE_MAPS[0], {
       ...DEFAULT_CONFIG,

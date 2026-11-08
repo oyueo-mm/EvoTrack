@@ -12,6 +12,7 @@ export interface GACheckpoint {
   bestScore: number;
   bestGeneration?: number;
   bestState?: AgentState;
+  stagnantGenerations?: number;
 }
 export class GeneticTrainer {
   rng: Random;
@@ -21,6 +22,7 @@ export class GeneticTrainer {
   bestScore = -Infinity;
   bestGeneration = 0;
   bestState?: AgentState;
+  stagnantGenerations = 0;
   lastGenerationBest?: {
     policy: PolicyData;
     state: AgentState;
@@ -77,12 +79,13 @@ export class GeneticTrainer {
       state: structuredClone(states[index]),
       generation: this.generation + 1,
     };
-    if (max > this.bestScore) {
+    if (max > this.bestScore + 1e-6) {
+      this.stagnantGenerations = 0;
       this.bestScore = max;
       this.best = structuredClone(this.population[index]);
       this.bestGeneration = this.generation + 1;
       this.bestState = structuredClone(states[index]);
-    }
+    } else this.stagnantGenerations++;
     this.reproduce(scores);
     this.boundary = true;
     const successes = states.filter((s) => s.success);
@@ -127,20 +130,53 @@ export class GeneticTrainer {
     const next = order
       .slice(0, n)
       .map(({ i }) => structuredClone(this.population[i]));
+    const sigmaScale =
+      this.stagnantGenerations < 4
+        ? 1
+        : Math.min(2.5, 1 + (this.stagnantGenerations - 3) * 0.25);
     while (next.length < this.population.length) {
       const a = this.population[this.tournament(scores)],
         b = this.population[this.tournament(scores)];
       const cross = this.rng.next() < this.config.crossover;
+      // Mix entire hidden neurons, including their incoming weights,
+      // bias, and outgoing connections. Per-weight mixing breaks a
+      // neuron's co-adapted features.
+      const useB = Array.from({ length: a.hidden }, () => this.rng.next() < 0.5);
+      const incoming = a.input * a.hidden,
+        hiddenBiasEnd = incoming + a.hidden,
+        outgoingEnd = hiddenBiasEnd + a.hidden * a.output;
       next.push({
         ...a,
-        weights: a.weights.map(
-          (v, i) =>
-            (cross && this.rng.next() < 0.5 ? b.weights[i] : v) +
+        weights: a.weights.map((value, i) => {
+          const neuron =
+            i < incoming
+              ? i % a.hidden
+              : i < hiddenBiasEnd
+                ? i - incoming
+                : i < outgoingEnd
+                  ? Math.floor((i - hiddenBiasEnd) / a.output)
+                  : -1;
+          const donor =
+            cross &&
+            (neuron < 0 ? this.rng.next() < 0.5 : useB[neuron]);
+          const inherited = donor ? b.weights[i] : value;
+          return (
+            inherited +
             (this.rng.next() < this.config.mutation
-              ? this.rng.normal() * this.config.sigma
-              : 0),
-        ),
+              ? this.rng.normal() * this.config.sigma * sigmaScale
+              : 0)
+          );
+        }),
       });
+    }
+    if (this.stagnantGenerations >= 8) {
+      const immigrants = Math.max(1, Math.floor(this.population.length * 0.08));
+      for (let i = 0; i < immigrants; i++)
+        next[next.length - 1 - i] = createPolicy(
+          observationSizeFor(this.map),
+          this.map.mode === "racing" ? 5 : 6,
+          this.rng,
+        );
     }
     this.population = next;
     this.generation++;
@@ -162,6 +198,7 @@ export class GeneticTrainer {
       bestScore: this.bestScore,
       bestGeneration: this.bestGeneration,
       bestState: this.bestState,
+      stagnantGenerations: this.stagnantGenerations,
     });
   }
   restore(c: GACheckpoint) {
@@ -172,6 +209,7 @@ export class GeneticTrainer {
     this.bestScore = c.bestScore;
     this.bestGeneration = c.bestGeneration ?? 0;
     this.bestState = c.bestState;
+    this.stagnantGenerations = c.stagnantGenerations ?? 0;
     this.lastGenerationBest = undefined;
     this.environments = [];
     this.tick = 0;

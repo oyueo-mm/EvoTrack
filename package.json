@@ -10,7 +10,8 @@
     "test:e2e": "playwright test",
     "validate:learning": "tsx scripts/validate-learning.ts",
     "validate:maps": "tsx scripts/validate-challenges.ts",
-    "validate:rewards": "tsx scripts/validate-rewards.ts"
+    "validate:rewards": "tsx scripts/validate-rewards.ts",
+    "bench:learning": "tsx scripts/benchmark-learning-v06.ts"
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",

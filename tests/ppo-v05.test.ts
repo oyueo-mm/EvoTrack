@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import * as tf from "@tensorflow/tfjs";
 import {
   combinedPPOLoss,
+  clipActorCriticGradients,
   PPOTrainer,
   initTensorflow,
   gae,
@@ -9,6 +10,28 @@ import {
 import { EXAMPLE_MAPS } from "../src/core/maps";
 import { DEFAULT_CONFIG } from "../src/core/types";
 describe("PPO v0.5 regressions", () => {
+  it("clips actor and critic separately so a large value gradient cannot freeze the policy", async () => {
+    await initTensorflow();
+    const actor = tf.variable(tf.scalar(0)),
+      critic = tf.variable(tf.scalar(0));
+    try {
+      tf.tidy(() => {
+        const clipped = clipActorCriticGradients(
+          { [actor.name]: tf.scalar(1), [critic.name]: tf.scalar(100) },
+          [actor],
+          [critic],
+        );
+        expect(clipped.actorNorm).toBeCloseTo(1);
+        expect(clipped.criticNorm).toBeCloseTo(100);
+        expect(clipped.gradients[actor.name].dataSync()[0]).toBeCloseTo(0.5);
+        expect(clipped.gradients[critic.name].dataSync()[0]).toBeCloseTo(0.5);
+      });
+    } finally {
+      actor.dispose();
+      critic.dispose();
+    }
+  });
+
   it("applies value MSE coefficient exactly once and gives the expected analytical gradient", () => {
     tf.tidy(() => {
       const grad = tf.grad((x) =>

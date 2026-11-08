@@ -38,6 +38,19 @@ export const combinedPPOLoss = (
   entropyCoefficient: number,
 ) => policy.add(valueMSE.mul(0.5)).sub(entropy.mul(entropyCoefficient));
 
+export function clipJointGradients(
+  gradients: tf.NamedTensorMap,
+  maxNorm = 0.5,
+) {
+  const norm = tf.sqrt(
+    tf.addN(Object.values(gradients).map((g) => g.square().sum())),
+  );
+  const factor = tf.minimum(1, tf.scalar(maxNorm).div(norm.add(1e-8)));
+  const scaled: tf.NamedTensorMap = {};
+  for (const [name, gradient] of Object.entries(gradients))
+    scaled[name] = gradient.mul(factor);
+  return { gradients: scaled, norm: norm.dataSync()[0] };
+}
 export function clipActorCriticGradients(
   gradients: tf.NamedTensorMap,
   actor: tf.Variable[],
@@ -375,11 +388,12 @@ export class PPOTrainer {
             );
             return l.total as tf.Scalar;
           }, [...this.actor, ...this.critic]);
-          const clipped = clipActorCriticGradients(
-            grads.grads,
-            this.actor,
-            this.critic,
-          );
+          // Racing retains its established joint-gradient budget.
+          // Bounce uses independent actor/critic budgets to avoid critic domination.
+          const clipped =
+            this.map.mode === "bounce"
+              ? clipActorCriticGradients(grads.grads, this.actor, this.critic)
+              : clipJointGradients(grads.grads);
           const gradNorm = clipped.norm;
           if (
             !Number.isFinite(gradNorm) ||

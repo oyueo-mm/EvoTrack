@@ -79,7 +79,7 @@ export class GeneticTrainer {
       state: structuredClone(states[index]),
       generation: this.generation + 1,
     };
-    if (max > this.bestScore + 1e-6) {
+    if (max > this.bestScore) {
       this.stagnantGenerations = 0;
       this.bestScore = max;
       this.best = structuredClone(this.population[index]);
@@ -138,6 +138,21 @@ export class GeneticTrainer {
       const a = this.population[this.tournament(scores)],
         b = this.population[this.tournament(scores)];
       const cross = this.rng.next() < this.config.crossover;
+      // Bounce retains the proven per-weight strategy; its jump/move
+      // combinations were less reliable under neuron-level crossover.
+      if (this.map.mode === "bounce") {
+        next.push({
+          ...a,
+          weights: a.weights.map(
+            (value, i) =>
+              (cross && this.rng.next() < 0.5 ? b.weights[i] : value) +
+              (this.rng.next() < this.config.mutation
+                ? this.rng.normal() * this.config.sigma
+                : 0),
+          ),
+        });
+        continue;
+      }
       // Mix entire hidden neurons, including their incoming weights,
       // bias, and outgoing connections. Per-weight mixing breaks a
       // neuron's co-adapted features.
@@ -169,7 +184,7 @@ export class GeneticTrainer {
         }),
       });
     }
-    if (this.stagnantGenerations >= 8) {
+    if (this.map.mode === "racing" && this.stagnantGenerations >= 8) {
       const immigrants = Math.max(1, Math.floor(this.population.length * 0.08));
       for (let i = 0; i < immigrants; i++)
         next[next.length - 1 - i] = createPolicy(
